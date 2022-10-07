@@ -26,5 +26,11 @@
 #define S_PEXIT     0x0013  // Process exit
 
 // Memory
+#define S_MMAP      0x0014  // Used in malloc
+#define S_MUNMAP    0x0015  // Used in malloc
+#define S_MALLOC    0x0016  // Used in malloc
+#define S_PMALLOC   0x0017  // Process malloc
+
+err_t call(uint32_t SCALL);
 
 #endif  // _SYSCALL_H_

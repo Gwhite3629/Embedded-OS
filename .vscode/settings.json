@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.fs": "fsharp",
+        "proc.h": "c",
+        "err.h": "c"
+    }
+}
