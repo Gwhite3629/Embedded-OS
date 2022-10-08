@@ -1,7 +1,7 @@
 #ifndef _MALLOC_H_
 #define _MALLOC_H_
 
-#include "mmu.h"
+#include "slab.h"
 #include "../stdlib/err.h"
 
 proc_t* pmalloc(void);
