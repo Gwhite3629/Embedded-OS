@@ -2,8 +2,11 @@
 #define _ERR_H_
 
 #include "../process/proc.h"
+#include "types.h"
 
 #define NULL ((void *) 0)
+
+#define NLIST ((DLL *) 0)
 
 #define err_t int32_t
 
@@ -35,6 +38,12 @@
 
 // Memory errors
 #define E_NOMEM     0x0014  // No available memory
+
+// UART errors
+#define E_OERR      0x0033  // UART Overrun error
+#define E_BERR      0x0032  // UART Break error
+#define E_PERR      0x0031  // UART Parity error
+#define E_FERR      0x0030  // UART Framing error
 
 #define PROC_CHECK(err) \
     if (err == NULL) { \

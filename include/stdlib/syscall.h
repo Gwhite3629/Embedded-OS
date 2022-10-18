@@ -1,6 +1,9 @@
 #ifndef _SYSCALL_H_
 #define _SYSCALL_H_
 
+#include "err.h"
+#include "types.h"
+
 // Ports, pins and IO
 #define S_PREAD     0x0004  // Port read
 #define S_PWRITE    0x0005  // Port write
