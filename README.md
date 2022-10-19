@@ -30,12 +30,15 @@ The virtual machine is used to test kernel processes before sending them to the 
 
 ## Process Scheduler:
 
-## Memory Management:
+## Memory Management
+A slab allocator is implemented as well as functions like malloc and free for user programs.
 
 ## File System:
+FAT32 is the filesystem.
 
 ## Terminal:
 
 # Programming Interface:
 
 # Standard Library:
+Several key libraries are provided for user programs. A full system call interface is included here. The standard libraries file are found in the stdlib directory. Included here are things like containers and string functions.
