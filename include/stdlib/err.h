@@ -1,7 +1,6 @@
 #ifndef _ERR_H_
 #define _ERR_H_
 
-#include "../process/proc.h"
 #include "types.h"
 
 #define NULL ((void *) 0)
@@ -44,11 +43,5 @@
 #define E_BERR      0x0032  // UART Break error
 #define E_PERR      0x0031  // UART Parity error
 #define E_FERR      0x0030  // UART Framing error
-
-#define PROC_CHECK(err) \
-    if (err == NULL) { \
-        proc_exit(p, E_NOMEM); \
-        return err; \
-    }
 
 #endif  // _ERR_H_

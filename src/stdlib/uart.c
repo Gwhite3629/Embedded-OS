@@ -33,6 +33,21 @@ int open_UART(const char *dev, uint32_t baud)
     // Calculate 22-bit baud rate divisor
     divisor = (UARTCLK * 32) / baud;
 
+    /* * * * * * * * * * * * *
+     * UART control register *
+     * * * * * * * * * * * * */
+
+    // Enable UART
+    *(addr + UART_CTRL2) &= (0b0 << UART_CTRL2_UARTEN);
+    *(addr + UART_CTRL2) |= (0b1 << UART_CTRL2_UARTEN);
+
+    // Enable RX and TX
+    *(addr + UART_CTRL2) &= (0b0 << UART_CTRL2_RXE);
+    *(addr + UART_CTRL2) &= (0b0 << UART_CTRL2_TXE);
+    *(addr + UART_CTRL2) |= (0b1 << UART_CTRL2_RXE);
+    *(addr + UART_CTRL2) |= (0b1 << UART_CTRL2_TXE);
+
+
     /* * * * * * * * * * * * * *
      * Line control register 1 *
      * * * * * * * * * * * * * */

@@ -2,6 +2,7 @@
 #define _PROC_H_
 
 #include "../stdlib/err.h"
+#include "../stdlib/types.h"
 
 #define MAX_PROCESSES 20
 #define DEFAULT_STACK 8192
@@ -54,5 +55,11 @@ err_t proc_sleep(proc_t *p);             // Puts proc in sleep, sets (any) -> sl
 err_t proc_sweep();                      // Sweeps to look for stale processes and clean
 
 void proc_exit(proc_t *p, err_t err);              // Exit proc on error
+
+#define PROC_CHECK(err) \
+    if (err == NULL) { \
+        proc_exit(p, E_NOMEM); \
+        return err; \
+    }
 
 #endif  // _PROC_H_

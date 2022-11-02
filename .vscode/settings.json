@@ -2,6 +2,8 @@
     "files.associations": {
         "*.fs": "fsharp",
         "proc.h": "c",
-        "err.h": "c"
+        "err.h": "c",
+        "typeinfo": "c",
+        "lock.h": "c"
     }
 }

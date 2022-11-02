@@ -4,8 +4,15 @@
 #define size_t uint32_t
 
 #define uint32_t unsigned int
+#define uint16_t unsigned short
+#define uint8_t unsigned char
 
 #define int32_t int
+
+typedef int bool;
+
+#define true 1
+#define false 0
 
 typedef struct DLL {
     DLL *next, *prev;
@@ -21,12 +28,6 @@ typedef struct rb_root {
     rb_node *rb_node;
 } rb_root;
 
-typedef struct rb_root_cached {
-    rb_root rb_root;
-    rb_node *rb_leftmost;
-} rb_root_cached;
-
 #define RB_ROOT (rb_root) {NULL, }
-#define RB_ROOT_CACHED (rb_root_cached) { {NULL, }, NULL}
 
 #endif // _TYPES_H_
