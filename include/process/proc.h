@@ -40,13 +40,13 @@ extern proc_t *current_proc;
 
 extern proc_t *first_proc;
 
-err_t proc_insert(proc_t **p);   // Puts proc on processor, sets running
+err_t proc_insert(proc_t *p);   // Puts proc on processor, sets running
 
-err_t proc_remove(proc_t **p);   // Puts proc in queue from processor, sets waiting
+err_t proc_remove(void);   // Puts proc in queue from processor, sets waiting
 
 err_t proc_queue(proc_t *p);    // Puts proc in queue, sets idle -> waiting
 
-err_t proc_construct(void);         // Puts proc in queue, sets idle
+proc_t *proc_construct(void);         // Puts proc in queue, sets idle
 
 err_t proc_destroy(proc_t *p);           // Puts proc in destroy queue, sets destroy
 
@@ -59,7 +59,10 @@ void proc_exit(proc_t *p, err_t err);              // Exit proc on error
 #define PROC_CHECK(err) \
     if (err == NULL) { \
         proc_exit(p, E_NOMEM); \
-        return err; \
+        return NULL; \
     }
+
+void load_context(int *regs);
+void save_context(int *regs);
 
 #endif  // _PROC_H_

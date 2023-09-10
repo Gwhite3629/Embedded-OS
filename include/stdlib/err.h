@@ -9,6 +9,8 @@
 
 #define err_t int32_t
 
+err_t error;
+
 #define E_NOERR     0x1000  // No error
 #define E_PANIC     0x0001  // Panic signal for commisioner
 #define E_BADARG    0x0002  // Bad argument

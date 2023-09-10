@@ -3,7 +3,7 @@
 
 #define COMM   -1       // Is the commissioner
 
-#define INVLAID 0       // Process is invalid
+#define INVALID 0       // Process is invalid
 
 #define IDLE    1       // In queue, pre-insert
 
@@ -15,6 +15,6 @@
 
 #define DESTROY 5       // Marked for destroy, in queue
 
-#define STALE   6       // Stale is the first thing market when destroying
+#define STALE   6       // Stale is the first thing marked when destroying
 
 #endif  // _STATUS_H_

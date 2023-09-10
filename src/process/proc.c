@@ -10,68 +10,59 @@ proc_t *current_proc;
 
 static proc_t all_procs[MAX_PROCESSES];
 
-err_t proc_insert(proc_t **p)
+err_t proc_insert(proc_t *p)
 {
     err_t ret = E_NOERR;
 
-    asm (
-            "mov    r2, %[reg]\n"       // Loads address of first register
-            "ldr    r0, [r2, #60]\n"    // 
-            "msr    SPSR, r0\n"         // Restore SPSR
-            "ldmia  r2, {r0-r14}\n"     // Restore registers
-            "mov    pc, lr\n"           // Return and restore pc
-            :
-            :   [reg] "r"(&((*p)->registers.r[0]))
-            :
-    );
+    current_proc = p;
 
-    (*p)->status = RUNNING;
+    // Clear TLB
+    asm ("mov r4, #0\n"
+         "mcr p15, 0, r4, c8, c7, 0");
+
+    load_context(&(*p).registers);
+
+    (*p).status = RUNNING;
 
     return ret;
 }
 
-err_t proc_remove(proc_t **p)
+err_t proc_remove(void)
 {
     err_t ret = E_NOERR;
 
-    asm (
-            "mov    r2, %[reg]\n"       // Load register 0
-            "stmia  r2, {r0-lr}\n"      // Save registers to LR
-            "add    r2, r2, #60\n"      // Increment to PC
-            "mrs    r0, SPSR\n"         // Load SPSR
-            "stmia  r2, {r0}\n"         // Store
-            :
-            :   [reg] "r"(&((*p)->registers.r[0]))
-            :
-    );
+    store_context(&(*current_proc).registers);
 
-    (*p)->status = WAITING;
+    (*current_proc).status = WAITING;
 
     return ret;
 }
 
 err_t proc_queue(proc_t *p);    // Puts proc in queue, sets idle -> waiting
 
-err_t proc_construct(void)
+proc_t *proc_construct(void)
 {
-    err_t ret = E_NOERR;
+    error = E_NOERR;
     int i;
+    int pid = -1;
 
     proc_t *p = NULL;
 
     for (i = 0; i < MAX_PROCESSES; i++) {
-        if (all_procs[i].status == 0) {
+        if (all_procs[i].status == INVALID) {
             p = &all_procs[i];
+            pid = i;
             break;
         }
     }
 
+    if (pid == -1) {
+        error = E_NOSTART;
+        return NULL;
+    }
+
     p = pmalloc();
     PROC_CHECK(p);
-
-    if (p == NULL) {
-        proc_exit(p, E_NOMEM);
-    }
 
     memset(p, 0, sizeof(proc_t));
 
@@ -90,7 +81,7 @@ err_t proc_construct(void)
     p->registers.spsr = 0x10;
     p->registers.r[14] = 0;
 
-    return ret;
+    return p;
 }
 
 err_t proc_destroy(proc_t *p);           // Puts proc in destroy queue, sets destroy

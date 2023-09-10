@@ -67,6 +67,11 @@ typedef struct SLAB {
 
 typedef struct BUFCTL {
     bufctl_t *next;
+    char color:2;   // Determines what the purpose of the BUFCTL is.
+                    // 00 = INVALID
+                    // 01 = Span
+                    // 10 = Allocated segment
+                    // 11 = Free segment
 } bufctl_t;
 
 static inline kcache_map *kcache_map_create(char *name, size_t size) {
