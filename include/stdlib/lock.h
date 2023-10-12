@@ -3,6 +3,11 @@
 
 #include "types.h"
 
+#define KERNEL_OWNER 0
+
+#define LOCKED 1
+#define UNLOCKED 0
+
 typedef struct lock_t {
     bool acquired;
     uint32_t owner;

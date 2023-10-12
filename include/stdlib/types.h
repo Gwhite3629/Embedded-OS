@@ -30,4 +30,11 @@ typedef struct rb_root {
 
 #define RB_ROOT (rb_root) {NULL, }
 
+typedef int (*__compar_fn_t) (const void *, const void *);
+
+typedef int (*__compar_d_fn_t) (const void *, const void *, void *);
+
+#define CHAR_BIT 8
+
+
 #endif // _TYPES_H_

@@ -4,6 +4,8 @@
         "proc.h": "c",
         "err.h": "c",
         "typeinfo": "c",
-        "lock.h": "c"
+        "lock.h": "c",
+        "hardware_reserve.h": "c",
+        "types.h": "c"
     }
 }
