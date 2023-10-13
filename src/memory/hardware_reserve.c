@@ -15,21 +15,18 @@ static lock_t MEM_LOCK = {UNLOCKED, KERNEL_OWNER};
 
 static uint32_t MEMORY_TOTAL;
 
-static bitmap_t MEMORY_MAP[MAX_MEMORY/CHUNK_SIZE/32];
+static unsigned int MEMORY_MAP[MAX_MEMORY/CHUNK_SIZE/32];
 
 static uint32_t MAX_CHUNK = 0;
 
-static void mark_used(int chunk) {
-    set_bit(MEMORY_MAP, chunk);
-}
+#define mark_used(chunk) \
+    set_bit(MEMORY_MAP, chunk)
 
-static void mark_free(int chunk) {
-    clear_bit(MEMORY_MAP, chunk);
-}
+#define mark_free(chunk) \
+    clear_bit(MEMORY_MAP, chunk)
 
-static int test_used(int chunk) {
-    return get_bit(MEMORY_MAP, chunk);
-}
+#define test_used(chunk) \
+    get_bit(MEMORY_MAP, chunk)
 
 static int init(unsigned long memory_total,
                 unsigned long memory_kernel) {

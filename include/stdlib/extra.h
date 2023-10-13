@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 #define unlikely(x)		__builtin_expect(!!(x), 0)
 #define likely(x)		__builtin_expect(!!(x), 1)
 
@@ -49,6 +51,15 @@ static inline void __write_once_size(volatile void *p, void *res, int size)
 	__write_once_size(&(x), __u.__c, sizeof(x));	\
 	__u.__val;					\
 })
+
+static inline int ilog2(unsigned long v)
+{
+	int l = 0;
+	while ((1UL << l) < v)
+		l++;
+	return l;
+}
+
 
 #define EXPORT(x)
 

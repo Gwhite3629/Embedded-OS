@@ -1,6 +1,3 @@
-# Embedded OS:
-This is an operating system made for ECE471 at UMaine.
-
 # Directory Structure:
 
 ## boot
