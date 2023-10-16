@@ -46,4 +46,7 @@ err_t error;
 #define E_PERR      0x0031  // UART Parity error
 #define E_FERR      0x0030  // UART Framing error
 
+// FAT32 errors
+#define E_BADC      0x0100  // Bad cluster
+
 #endif  // _ERR_H_

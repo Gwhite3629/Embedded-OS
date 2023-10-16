@@ -6,6 +6,8 @@
         "typeinfo": "c",
         "lock.h": "c",
         "hardware_reserve.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "stdlib.h": "c",
+        "fat32.h": "c"
     }
 }

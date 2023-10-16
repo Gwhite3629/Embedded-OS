@@ -60,6 +60,7 @@ static inline int ilog2(unsigned long v)
 	return l;
 }
 
+#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
 #define EXPORT(x)
 

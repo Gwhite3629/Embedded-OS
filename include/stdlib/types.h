@@ -3,14 +3,14 @@
 
 #define BITS_PER_LONG 64
 
-#define size_t uint32_t
+typedef uint32_t size_t;
 
-#define uint64_t unsigned long
-#define uint32_t unsigned int
-#define uint16_t unsigned short
-#define uint8_t unsigned char
+typedef unsigned long uint64_t;
+typedef unsigned int uint32_t;
+typedef unsigned short uint16_t;
+typedef unsigned char uint8_t;
 
-#define int32_t int
+typedef int int32_t;
 
 typedef int bool;
 
@@ -47,5 +47,6 @@ struct hlist_head {
     struct hlist_node *first;
 };
 
+#include "compact.h"
 
 #endif // _TYPES_H_

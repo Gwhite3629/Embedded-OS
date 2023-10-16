@@ -27,6 +27,7 @@
 #define S_SLEEP     0x0011  // Process sleep
 #define S_PINT      0x0012  // Process interrupt
 #define S_PEXIT     0x0013  // Process exit
+#define S_GETPID    0x0014  // Process Get PID
 
 // Memory
 #define S_MMAP      0x0014  // Used in malloc

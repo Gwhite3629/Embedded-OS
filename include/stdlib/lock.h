@@ -13,6 +13,10 @@ typedef struct lock_t {
     uint32_t owner;
 } lock_t;
 
+err_t init_lock(lock_t *lock);
+
+void remove_lock(lock_t *lock);
+
 void acquire(lock_t *lock);
 
 void release(lock_t *lock);
