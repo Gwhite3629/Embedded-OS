@@ -51,5 +51,15 @@ err_t error;
 #define E_FSINT     0x0101  // Internal error
 #define E_FSNOF     0x0102  // No file in FS
 #define E_NOFREE    0x0103  // No free clusters
+#define E_BADNAME   0x0104  // Name doesn't work
+#define E_NOPATH    0x0105  // Couldn't find path
+#define E_NODRIVE   0x0106  // Invalid drive
+
+// SD errors
+#define E_NOT_READY 0x0200
+#define E_WRONLY    0x0201
+#define E_DISKERR   0x0202
+#define E_NOFS      0x0203
+
 
 #endif  // _ERR_H_

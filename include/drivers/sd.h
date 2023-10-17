@@ -9,6 +9,10 @@
 #define GET_BLOCK_SIZE 3
 #define CTRL_TRIM 4
 
+#define STATUS_NOINIT   0x01
+#define STATUS_NODISK   0x02
+#define STATUS_PROTECT  0x04
+
 int sd_init(void);
 int sd_status(void);
 int sd_read(char *buff, uint16_t sector, size_t n);

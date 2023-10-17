@@ -40,6 +40,7 @@ typedef struct Bios_Parameter_Block {
 } BPB __packed;
 
 typedef struct FAT32_FS {
+    uint8_t is_mounted;
     uint8_t status; // 0: Not Contiguous 2: Contiguous 3: Frag
     uint8_t attr;   // Attributes;
     uint8_t n_fats; // 1 or 2
@@ -108,10 +109,11 @@ err_t dir_read(DIR *dir, int sel);
 err_t dir_find(DIR *dir);
 err_t dir_register(DIR *dir);
 err_t dir_remove(DIR *dir);
-err_t dir_getfileinfo(DIR *dir, FILEINFO *finfo);
+void dir_getfileinfo(DIR *dir, FILEINFO *finfo);
 err_t dir_create_name(DIR *dir, const char **path);
 err_t dir_follow_path(DIR *dir, const char *path);
 
+int get_ldnumber(const char **path);
 uint32_t check_fs(FS *fs, uint16_t sector);
 uint32_t find_volume(FS *fs, uint32_t partition);
 err_t mount_volume(const char **path, FS **rfs, uint8_t mode);
@@ -121,7 +123,6 @@ err_t validate(FS *fs, FS **rfs);
 #define MAX_CLUSTERS    0x0FFFFFF5
 #define DIR_ENTRY_SIZE  32
 #define DIR_DEL_M       0xE5
-
 
 // Directory offsets
 #define DIR_Name        0
@@ -134,5 +135,28 @@ err_t validate(FS *fs, FS **rfs);
 #define DIR_ModTime     22
 #define DIR_FstClusLo   26
 #define DIR_FileSize    28
+
+#define A_VOL       0x08
+#define A_MASK      0x3F
+#define A_RDONLY    0x01
+#define A_HIDDEN    0x02
+#define A_SYSTEM    0x04
+#define A_DIR       0x10
+#define A_ARCHIVE   0x20
+
+#define	FA_READ				0x01
+#define	FA_WRITE			0x02
+#define	FA_OPEN_EXISTING	0x00
+#define	FA_CREATE_NEW		0x04
+#define	FA_CREATE_ALWAYS	0x08
+#define	FA_OPEN_ALWAYS		0x10
+#define	FA_OPEN_APPEND		0x30
+
+// Character code macros
+#define IsUpper(c)		((c) >= 'A' && (c) <= 'Z')
+#define IsLower(c)		((c) >= 'a' && (c) <= 'z')
+#define IsDigit(c)		((c) >= '0' && (c) <= '9')
+#define IsSeparator(c)	((c) == '/' || (c) == '\\')
+#define IsTerminator(c)	((c) < ('!'))
 
 #endif // _FAT32_H_
