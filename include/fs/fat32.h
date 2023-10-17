@@ -41,6 +41,7 @@ typedef struct Bios_Parameter_Block {
 
 typedef struct FAT32_FS {
     uint8_t status; // 0: Not Contiguous 2: Contiguous 3: Frag
+    uint8_t attr;   // Attributes;
     uint8_t n_fats; // 1 or 2
     uint8_t dflag; // Access dirty flag
     uint8_t fsiflag; // FSInfo dirty flag
@@ -48,11 +49,13 @@ typedef struct FAT32_FS {
     uint32_t lac; // Last allocated cluster
     uint32_t nfc; // Number of free clusters
     uint32_t n_entries;
+    uint16_t n_rootdir;
     uint32_t fsize; // Number of secters/entry
     uint32_t vbase; // Volume base sector
     uint32_t fbase; // FAT base sector
     uint32_t cbase; // Root directory cluster
     uint32_t dbase; // Data base sector
+    uint32_t sclust; // Object data start cluster
     uint32_t current_sector; // Sector in current
     uint8_t current_access[SECTOR_SIZE]; // Current access
 } FS;
@@ -77,6 +80,14 @@ typedef struct {
     uint8_t fn[12];
 } DIR;
 
+typedef struct {
+    uint32_t fsize;
+    uint16_t fdate;
+    uint16_t ftime;
+    uint8_t fattrib;
+    char fname[13];
+} FILEINFO;
+
 typedef uint32_t FAT32_ENTRY;
 
 // FAT32 entry values
@@ -89,9 +100,39 @@ err_t set_entry(FS *fs, uint32_t n, uint32_t v);
 err_t remove_chain(FS *fs, uint32_t n, uint32_t prev);
 uint32_t create_chain(FS *fs, uint32_t n);
 
+err_t dir_clear(FS *fs, uint32_t n);
+err_t dir_set_idx(DIR *dir, uint32_t offset);
+err_t dir_next(DIR *dir, int stretch);
+err_t dir_alloc(DIR *dir, uint32_t n_entries);
+err_t dir_read(DIR *dir, int sel);
+err_t dir_find(DIR *dir);
+err_t dir_register(DIR *dir);
+err_t dir_remove(DIR *dir);
+err_t dir_getfileinfo(DIR *dir, FILEINFO *finfo);
+err_t dir_create_name(DIR *dir, const char **path);
+err_t dir_follow_path(DIR *dir, const char *path);
+
+uint32_t check_fs(FS *fs, uint16_t sector);
+uint32_t find_volume(FS *fs, uint32_t partition);
+err_t mount_volume(const char **path, FS **rfs, uint8_t mode);
+err_t validate(FS *fs, FS **rfs);
+
 #define MAX_DIR         0x200000
 #define MAX_CLUSTERS    0x0FFFFFF5
 #define DIR_ENTRY_SIZE  32
+#define DIR_DEL_M       0xE5
 
+
+// Directory offsets
+#define DIR_Name        0
+#define DIR_Attr        11
+#define DIR_NTres       12
+#define DIR_CrtTime10   13
+#define DIR_CrtTime     14
+#define DIR_LstAccDate  18
+#define DIR_FstClusHi   20
+#define DIR_ModTime     22
+#define DIR_FstClusLo   26
+#define DIR_FileSize    28
 
 #endif // _FAT32_H_
