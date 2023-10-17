@@ -89,4 +89,9 @@ err_t set_entry(FS *fs, uint32_t n, uint32_t v);
 err_t remove_chain(FS *fs, uint32_t n, uint32_t prev);
 uint32_t create_chain(FS *fs, uint32_t n);
 
+#define MAX_DIR         0x200000
+#define MAX_CLUSTERS    0x0FFFFFF5
+#define DIR_ENTRY_SIZE  32
+
+
 #endif // _FAT32_H_

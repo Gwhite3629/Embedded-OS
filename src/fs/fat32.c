@@ -232,3 +232,30 @@ uint32_t create_chain(FS *fs, uint32_t n)
 
     return next;
 }
+
+err_t dir_clear(FS *fs, uint32_t n)
+{
+    uint16_t sector;
+    uint32_t i;
+    uint8_t *buff;
+
+    if (sync_access(fs) != E_NOERR) return E_FAILDEV;
+    sector = c2s(fs, n);
+    fs->current_sector = sector;
+    memset(fs->current_access, 0, SECTOR_SIZE);
+    buff = fs->current_access;
+    for (i = 0; i < fs->csize && sd_write(buff, sector + i, 1) > 0; i ++);
+    return (i == fs->csize) ? E_NOERR : E_FAILDEV;
+}
+
+err_t dir_set_idx(DIR *dir, int32_t offset)
+{
+    uint32_t csize, cluster;
+    FS *fs = dir->fs;
+
+    if (offset >= MAX_DIR || offset % DIR_ENTRY_SIZE) {
+        return E_FSINT; 
+    }
+    dir->dptr = offset;
+    cluster = 
+}
