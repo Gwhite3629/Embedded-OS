@@ -48,6 +48,8 @@ err_t error;
 
 // FAT32 errors
 #define E_BADC      0x0100  // Bad cluster
-#define E_FSINT     0x0101
+#define E_FSINT     0x0101  // Internal error
+#define E_FSNOF     0x0102  // No file in FS
+#define E_NOFREE    0x0103  // No free clusters
 
 #endif  // _ERR_H_

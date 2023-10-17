@@ -248,7 +248,7 @@ err_t dir_clear(FS *fs, uint32_t n)
     return (i == fs->csize) ? E_NOERR : E_FAILDEV;
 }
 
-err_t dir_set_idx(DIR *dir, int32_t offset)
+err_t dir_set_idx(DIR *dir, uint32_t offset)
 {
     uint32_t csize, cluster;
     FS *fs = dir->fs;
@@ -257,5 +257,135 @@ err_t dir_set_idx(DIR *dir, int32_t offset)
         return E_FSINT; 
     }
     dir->dptr = offset;
-    cluster = 
+    cluster = fs->sclust;
+    if (cluster == 0) {
+        cluster = (uint32_t)fs->cbase;
+    }
+    if (cluster == 0) {
+        if (offset / DIR_ENTRY_SIZE >= fs->n_rootdir) return E_FSINT;
+        dir->sector = fs->cbase;
+    } else {
+        csize = (uint32_t)fs->csize * SECTOR_SIZE;
+        while (offset >= csize) {
+            cluster = get_entry(fs, cluster);
+            if (cluster == 0xFFFFFFFF) return E_FAILDEV;
+            if (cluster < 2 || cluster >= fs->n_entries) return E_FSINT;
+            offset -= csize;
+        }
+        dir->sector = c2s(fs, cluster);
+    }
+    dir->cluster = cluster;
+    if (dir->sector == 0) return E_FSINT;
+    dir->sector += offset / SECTOR_SIZE;
+    dir->dir = fs->current_access + (offset % SECTOR_SIZE);
+
+    return E_NOERR;
 }
+
+err_t dir_next(DIR *dir, int stretch)
+{
+    uint32_t offset, cluster;
+    FS *fs = dir->fs;
+
+    offset = dir->dptr + DIR_ENTRY_SIZE;
+    if (offset >= MAX_DIR) dir->sector = 0;
+    if (dir->sector == 0) return E_FSNOF;
+
+    if (offset % SECTOR_SIZE == 0) {
+        dir->sector++;
+        if (dir->cluster == 0) {
+            if (offset / DIR_ENTRY_SIZE >= fs->n_rootdir) {
+                dir->sector = 0;
+                return E_FSNOF;
+            }
+        } else {
+            if ((offset / SECTOR_SIZE & (fs->csize - 1)) == 0) {
+                cluster = get_entry(fs, dir->cluster);
+                if (cluster <= 1) return E_FSINT;
+                if (cluster == 0xFFFFFFFF) return E_FAILDEV;
+                if (cluster >= fs->n_entries) {
+                    if (!stretch) {
+                        dir->sector = 0;
+                        return E_FSNOF;
+                    }
+                    cluster = create_chain(fs, dir->cluster);
+                    if (cluster == 0) return E_NOFREE;
+                    if (cluster == 1) return E_FSINT;
+                    if (cluster == 0xFFFFFFFF) return E_FAILDEV;
+                    if (dir_clear(dir, cluster) != E_NOERR) return E_FAILDEV;
+                }
+                dir->cluster = cluster;
+                dir->sector = c2s(fs, cluster);
+            }
+        }
+    }
+    dir->dptr = offset;
+    dir->dir = fs->current_access + offset % SECTOR_SIZE;
+
+    return E_NOERR;
+}
+
+err_t dir_alloc(DIR *dir, uint32_t n_entries) {
+    err_t ret = E_NOERR;
+    uint32_t n;
+    FS *fs = dir->fs;
+
+    ret = dir_set_idx(dir, 0);
+    if (ret == E_NOERR) {
+        n = 0;
+        do {
+            ret = move_access(fs, dir->sector);
+            if (ret != E_NOERR) break;
+            if (dir->dir[0] == DIR_DEL_M || dir->dir[0] == 0) {
+                if (++n == n_entries) break;
+            } else {
+                n = 0;
+            }
+            ret = dir_next(dir, 1);
+        } while(ret == E_NOERR);
+    }
+    if (ret == E_FSNOF) ret = E_NOFREE;
+    return ret;
+}
+
+static uint32_t load_cluster(FS *fs, const uint8_t *dir)
+{
+    uint32_t cluster = 0x00000000;
+
+    cluster |= ((uint32_t)dir[DIR_FstClusLo + 1] && 0xFF) << 0;
+    cluster |= ((uint32_t)dir[DIR_FstClusLo + 0] && 0xFF) << 8;
+    cluster |= ((uint32_t)dir[DIR_FstClusHi + 1] && 0xFF) << 16;
+    cluster |= ((uint32_t)dir[DIR_FstClusHi + 0] && 0xFF) << 24;
+    
+    return cluster;
+}
+
+static void store_cluster(FS *fs, uint8_t *dir, uint32_t v)
+{
+    dir[DIR_FstClusLo + 1] = (uint8_t)((v >> 0) & 0xFF);
+    dir[DIR_FstClusLo + 0] = (uint8_t)((v >> 8) & 0xFF);
+    dir[DIR_FstClusHi + 1] = (uint8_t)((v >> 16) & 0xFF);
+    dir[DIR_FstClusHi + 0] = (uint8_t)((v >> 24) & 0xFF);
+}
+
+#define DIR_READ_FILE(dir) dir_read(dir, 0)
+#define DIR_READ_LABEL(dir) dir_read(dir, 1)
+
+err_t dir_read(DIR *dir, int sel)
+{
+    err_t ret = E_FSNOF;
+    FS *fs = dir->fs;
+    int8_t attr, b;
+
+    while (dir->sector) {
+        ret = move_access(fs, dir->sector);
+        if (ret != E_NOERR) break;
+        b = dir->dir[DIR_Name];
+        if (b == 0) {
+            ret = E_FSNOF;
+            break;
+        }
+        fs->attr = attr = dir->dir[DIR_Attr] & AM_MASK;
+    }
+}
+
