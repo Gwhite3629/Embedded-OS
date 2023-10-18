@@ -67,15 +67,17 @@ static err_t sync_access(FS *fs)
     err_t ret = E_NOERR;
 
     if (fs->dflag) {
-        if (sd_write(fs->current_access, fs->current_sector, 1) == E_NOERR) {
-            fs->dflag = 0;
-            if (fs->current_sector - fs->fbase < fs->fsize) {
-                if (fs->n_fats == 2) disk_write(fs->current_access, fs->current_sector + fs->fsize, 1);
-            }
-        } else {
-            ret = E_FAILDEV;
+        ret = sd_write(fs->current_access, fs->current_sector, 1);
+        if (ret != E_NOERR) {
+            return E_FAILDEV;
+        }
+        fs->dflag = 0;
+        if (fs->current_sector - fs->fbase < fs->fsize) {
+            if (fs->n_fats == 2)
+                disk_write(fs->current_access, fs->current_sector + fs->fsize, 1);
         }
     }
+
     return ret;
 }
 
@@ -86,13 +88,15 @@ static err_t move_access(FS *fs, uint32_t sector)
     if (sector != fs->current_sector) {
         ret = sync_access(fs);
         if (ret == E_NOERR) {
-            if (sd_read(fs->current_access, sector, 1) != E_NOERR) {
+            ret = sd_read(fs->current_access, sector, 1);
+            if (ret != E_NOERR) {
                 sector = (uint32_t)0 - 1;
                 ret = E_FAILDEV;
             }
             fs->current_sector = sector;
         }
     }
+
     return ret;
 }
 
@@ -106,34 +110,25 @@ static err_t sync_fs(FS *fs)
             // Set FSInfo struct
             memset(fs->current_access, 0, SECTOR_SIZE);
             // FSI_LeadSig
-            fs->current_access[0] = 0x52;
-            fs->current_access[1] = 0x52;
-            fs->current_access[2] = 0x61;
-            fs->current_access[3] = 0x41;
+            store_full(fs->current_access, 0x41615252);
+
             // FSI_StrucSig
-            fs->current_access[484] = 0x72;
-            fs->current_access[485] = 0x72;
-            fs->current_access[486] = 0x41;
-            fs->current_access[487] = 0x61;
+            store_full(fs->current_access + 484, 0x61417272);
+
             // FSI_FreeCount
-            fs->current_access[488] = (fs->nfc >> 0) & 0xFF;
-            fs->current_access[489] = (fs->nfc >> 8) & 0xFF;
-            fs->current_access[490] = (fs->nfc >> 16) & 0xFF;
-            fs->current_access[491] = (fs->nfc >> 24) & 0xFF;
+            store_full(fs->current_access + 488, fs->nfc);
+
             // FSI_Nxt_Free
-            fs->current_access[492] = (fs->lac >> 0) & 0xFF;
-            fs->current_access[493] = (fs->lac >> 8) & 0xFF;
-            fs->current_access[494] = (fs->lac >> 16) & 0xFF;
-            fs->current_access[495] = (fs->lac >> 24) & 0xFF;
+            store_full(fs->current_access + 492, fs->lac);
+
             // FSI_TrailSig
-            fs->current_access[510] = 0x55;
-            fs->current_access[511] = 0xAA;
+            store_half(fs->current_access + 510, 0xAA55);
 
             fs->current_sector = fs->vbase + 1;
             sd_write(fs->current_access, fs->current_sector, 1);
             fs->fsiflag = 0;
         }
-        if (sd_ioctl(CTRL_SYNC, NULL) != E_NOERR) ret = E_FAILDEV;
+        ret = sd_ioctl(CTRL_SYNC, NULL);
     }
 
     return ret;
@@ -158,10 +153,7 @@ uint32_t get_entry(FS *fs, uint32_t n)
     
     ret = 0x00000000;
     uint8_t *tmp = fs->current_access + n * 4 % SECTOR_SIZE;
-    ret |= ((uint32_t)tmp[3] & 0xFF) << 0;
-    ret |= ((uint32_t)tmp[2] & 0xFF) << 8;
-    ret |= ((uint32_t)tmp[1] & 0xFF) << 16;
-    ret |= ((uint32_t)tmp[0] & 0xFF) << 24;
+    ret = load_full(tmp);
     return ret;
 }
 
@@ -174,10 +166,7 @@ err_t set_entry(FS *fs, uint32_t n, uint32_t v)
     ret = move_access(fs, fs->fbase + (n / (SECTOR_SIZE / 4)));
     if (ret != E_NOERR) return ret;
     uint8_t *tmp = fs->current_access + n * 4 % SECTOR_SIZE;
-    tmp = (v >> 0) & 0xFF;
-    tmp = (v >> 8) & 0xFF;
-    tmp = (v >> 16) & 0xFF;
-    tmp = (v >> 24) & 0xFF;
+    store_full(tmp, v);
     fs->dflag = 1;
 
     return ret;
@@ -512,18 +501,27 @@ void dir_getfileinfo(DIR *dir, FILEINFO *finfo)
 
     finfo->fattrib = dir->dir[DIR_Attr] & A_MASK;
     finfo->fsize = 0x00000000;
+    finfo->fsize = load_full(dir->dir + DIR_FileSize);
+    /*
     finfo->fsize = ((uint32_t)dir->dir[DIR_FileSize + 3] && 0xFF) << 0;
     finfo->fsize = ((uint32_t)dir->dir[DIR_FileSize + 2] && 0xFF) << 8;
     finfo->fsize = ((uint32_t)dir->dir[DIR_FileSize + 1] && 0xFF) << 16;
     finfo->fsize = ((uint32_t)dir->dir[DIR_FileSize + 0] && 0xFF) << 24;
+    */
     
     finfo->ftime = 0x0000;
+    finfo->ftime = load_half(dir->dir + DIR_ModTime);
+    /*
     finfo->ftime = ((uint16_t)dir->dir[DIR_ModTime + 1] && 0xFF) << 0;
     finfo->ftime = ((uint16_t)dir->dir[DIR_ModTime + 0] && 0xFF) << 8;
+    */
 
     finfo->fdate = 0x0000;
+    finfo->fdate = load_half(dir->dir + DIR_ModTime + 2);
+    /*
     finfo->fdate = ((uint16_t)dir->dir[DIR_ModTime + 3] && 0xFF) << 0;
     finfo->fdate = ((uint16_t)dir->dir[DIR_ModTime + 2] && 0xFF) << 8;
+    */
 
 }
 

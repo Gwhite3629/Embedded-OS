@@ -4,6 +4,7 @@
 #include "stdlib/container_of.h"
 #include "stdlib/err.h"
 #include "stdlib/extra.h"
+#include "stdlib/file.h"
 #include "stdlib/hash.h"
 #include "stdlib/list.h"
 #include "stdlib/lock.h"
