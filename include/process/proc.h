@@ -3,6 +3,7 @@
 
 #include "../stdlib/err.h"
 #include "../stdlib/types.h"
+#include "../memory/mmu.h"
 
 #define MAX_PROCESSES 20
 #define DEFAULT_STACK 8192
@@ -32,9 +33,11 @@ typedef struct proc {
     void *bss;          // 112 bytes
     uint32_t bsssize;   // 116 bytes
 
-    uint32_t pad[3];
+    MM_t mm;            // 132 bytes
+
+    //uint32_t pad[3];
     
-} proc_t;   // 128 bytes in size
+} proc_t;   // 132 bytes in size
 
 extern proc_t *current_proc;
 

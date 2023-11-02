@@ -15,7 +15,7 @@ static lock_t MEM_LOCK = {UNLOCKED, KERNEL_OWNER};
 
 static uint32_t MEMORY_TOTAL;
 
-static unsigned int MEMORY_MAP[MAX_MEMORY/CHUNK_SIZE/32];
+static unsigned long MEMORY_MAP[MAX_MEMORY/CHUNK_SIZE/32];
 
 static uint32_t MAX_CHUNK = 0;
 
@@ -55,8 +55,8 @@ static int init(unsigned long memory_total,
     return 0;
 }
 
-static int find_free(int n_chunks, int start, int end) {
-    int i, j;
+static unsigned long find_free(int n_chunks, unsigned long start, unsigned long end) {
+    unsigned long i, j;
 
     for (i=start; i<end; i++) {
         if (!test_used(i)) {
@@ -87,12 +87,12 @@ uint32_t mem_total(void)
     return MEMORY_TOTAL;
 }
 
-void *reserve(uint32_t n_chunks, uint32_t type)
+unsigned long reserve(uint32_t n_chunks, uint32_t type)
 {
-    int first_chunk;
+    unsigned long first_chunk;
     int n_chunks;
-    int i;
-    int start,end;
+    unsigned long i;
+    unsigned long start,end;
 
     if(n_chunks==0) n_chunks=1;
 
@@ -129,7 +129,7 @@ void *reserve(uint32_t n_chunks, uint32_t type)
 }
 
 
-int32_t relinquish(void *start, uint32_t n_chunks)
+int32_t relinquish(unsigned long start, uint32_t n_chunks)
 {
     int i;
     int first_chunk;
