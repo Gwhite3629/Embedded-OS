@@ -13,3 +13,4 @@
 #include "stdlib/string.h"
 #include "stdlib/syscall.h"
 #include "stdlib/types.h"
+#include "stdlib/hardware.h"

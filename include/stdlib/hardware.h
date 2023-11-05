@@ -2,6 +2,7 @@
 #define _HARDWARE_H_
 
 #define IO_BASE 0x80000000
+#define MEM_SIZE 0x200000000
 
 /* * * * *
  * UART  *
