@@ -14,3 +14,5 @@
 #include "stdlib/syscall.h"
 #include "stdlib/types.h"
 #include "stdlib/hardware.h"
+#include "stdlib/gpio.h"
+#include "stdlib/time.h"

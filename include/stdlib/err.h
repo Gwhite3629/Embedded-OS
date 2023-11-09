@@ -60,6 +60,6 @@ err_t error;
 #define E_WRONLY    0x0201
 #define E_DISKERR   0x0202
 #define E_NOFS      0x0203
-
+#define E_TIMEOUT   0x0204
 
 #endif  // _ERR_H_
