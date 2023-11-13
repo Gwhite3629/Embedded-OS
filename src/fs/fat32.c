@@ -2,67 +2,11 @@
 #include "../../include/drivers/sd.h"
 #include "../../include/stdlib.h"
 
-static lock_t Mutex;
+extern lock_t Mutex;
 
-static FS *FatFs[1];
+extern FS *FatFs[1];
 
-static err_t mutex_create(void)
-{
-    return init_lock(&Mutex);
-}
-
-static void mutex_delete(void)
-{
-    remove_lock(&Mutex);
-}
-
-static void mutex_take(void)
-{
-    wait_acquire(&Mutex);
-}
-
-static void mutex_give(void)
-{
-    release(&Mutex);
-}
-
-static uint16_t load_half(const uint8_t *ptr)
-{
-    uint16_t r = 0x0000;
-
-    r |= ((uint16_t)ptr[1] && 0xFF) << 0;
-    r |= ((uint16_t)ptr[0] && 0xFF) << 8;
-
-    return r;
-}
-
-static uint32_t load_full(const uint8_t *ptr)
-{
-    uint32_t r = 0x00000000;
-
-    r |= ((uint32_t)ptr[3] && 0xFF) << 0;
-    r |= ((uint32_t)ptr[2] && 0xFF) << 8;
-    r |= ((uint32_t)ptr[1] && 0xFF) << 16;
-    r |= ((uint32_t)ptr[0] && 0xFF) << 24;
-
-    return r;
-}
-
-static void store_half(uint8_t *ptr, uint16_t v)
-{
-    ptr[0] = (uint16_t)(v >> 0) & 0xFF;
-    ptr[1] = (uint16_t)(v >> 8) & 0xFF;
-}
-
-static void store_full(uint8_t *ptr, uint32_t v)
-{
-    ptr[0] = (uint32_t)(v >> 0) & 0xFF;
-    ptr[1] = (uint32_t)(v >> 8) & 0xFF;
-    ptr[2] = (uint32_t)(v >> 16) & 0xFF;
-    ptr[3] = (uint32_t)(v >> 24) & 0xFF;
-}
-
-static err_t sync_access(FS *fs)
+err_t sync_access(FS *fs)
 {
     err_t ret = E_NOERR;
 
@@ -81,7 +25,7 @@ static err_t sync_access(FS *fs)
     return ret;
 }
 
-static err_t move_access(FS *fs, uint32_t sector)
+err_t move_access(FS *fs, uint32_t sector)
 {
     err_t ret = E_NOERR;
 
@@ -100,7 +44,7 @@ static err_t move_access(FS *fs, uint32_t sector)
     return ret;
 }
 
-static err_t sync_fs(FS *fs)
+err_t sync_fs(FS *fs)
 {
     err_t ret;
 
@@ -134,7 +78,7 @@ static err_t sync_fs(FS *fs)
     return ret;
 }
 
-static uint16_t c2s(FS *fs, uint32_t n)
+uint16_t c2s(FS *fs, uint32_t n)
 {
     n -= 2;
     if (n >= fs->n_entries - 2) return 0;
@@ -373,26 +317,6 @@ err_t dir_alloc(DIR *dir, uint32_t n_entries) {
     }
     if (ret == E_FSNOF) ret = E_NOFREE;
     return ret;
-}
-
-static uint32_t load_cluster(FS *fs, const uint8_t *dir)
-{
-    uint32_t cluster = 0x00000000;
-
-    cluster |= ((uint32_t)dir[DIR_FstClusLo + 1] && 0xFF) << 0;
-    cluster |= ((uint32_t)dir[DIR_FstClusLo + 0] && 0xFF) << 8;
-    cluster |= ((uint32_t)dir[DIR_FstClusHi + 1] && 0xFF) << 16;
-    cluster |= ((uint32_t)dir[DIR_FstClusHi + 0] && 0xFF) << 24;
-    
-    return cluster;
-}
-
-static void store_cluster(FS *fs, uint8_t *dir, uint32_t v)
-{
-    dir[DIR_FstClusLo + 1] = (uint8_t)((v >> 0) & 0xFF);
-    dir[DIR_FstClusLo + 0] = (uint8_t)((v >> 8) & 0xFF);
-    dir[DIR_FstClusHi + 1] = (uint8_t)((v >> 16) & 0xFF);
-    dir[DIR_FstClusHi + 0] = (uint8_t)((v >> 24) & 0xFF);
 }
 
 #define DIR_READ_FILE(dir) dir_read(dir, 0)
@@ -693,7 +617,7 @@ err_t mount_volume(const char **path, FS **rfs, uint8_t mode)
 
     mode &= (uint8_t)~FA_READ;
     if (fs->is_mounted != 0) {
-        stat = sd_status();
+        stat = sd_status(SR_READ_AVAILABLE);
         if (!(stat & STATUS_NOINIT)) {
             if (mode && (stat & STATUS_PROTECT)) {
                 return E_WRONLY;

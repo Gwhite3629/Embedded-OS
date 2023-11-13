@@ -1,9 +1,9 @@
 #ifndef _GPIO_H_
 #define _GPIO_H_
 
-#define CAST(X) (volatile unsigned int *(X))
+#define CAST(X) ((volatile unsigned int *)(X))
 
-#define GPIO_BASE   IO_BASE + 0x00200000
+#define GPIO_BASE   (IO_BASE + 0x00200000)
 
 #define GPFSEL0     CAST(GPIO_BASE + 0x00)
 #define GPFSEL1     CAST(GPIO_BASE + 0x04)

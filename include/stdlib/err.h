@@ -22,12 +22,6 @@ err_t error;
 #define E_FAILPORT  0x0006  // Port failure
 #define E_NOWRPORT  0x0007  // No write on port
 
-// File errors
-#define E_NOFILE    0x0008  // No available file
-#define E_BUSYFILE  0x0009  // File busy
-#define E_FAILFILE  0x000A  // File failure
-#define E_NORWFILE  0x000B  // No write on file
-
 // Device errors
 #define E_NODEV     0x000C  // No available device
 #define E_BUSYDEV   0x000D  // Device busy
@@ -61,5 +55,14 @@ err_t error;
 #define E_DISKERR   0x0202
 #define E_NOFS      0x0203
 #define E_TIMEOUT   0x0204
+
+// File errors
+#define E_NOFILE    0x0300  // No available file
+#define E_BUSYFILE  0x0301  // File busy
+#define E_FAILFILE  0x0302  // File failure
+#define E_NORWFILE  0x0303  // No write on file
+#define E_FINT      0x0304  // Internal error
+#define E_INVALID_F 0x0305  // Invalid file
+#define E_FDENIED   0x0306  // Denied access
 
 #endif  // _ERR_H_

@@ -7,6 +7,12 @@
 
 #define SECTOR_SIZE 512
 
+#define MAX_VOL 16
+
+lock_t Mutex;
+
+FS *FatFs[1];
+
 typedef struct Bios_Parameter_Block {
     uint8_t BS_jmpBoot[3];      // Jump instruction to boot code
     char BS_OEMName[8];         // OEM Name Identifier
@@ -41,12 +47,15 @@ typedef struct Bios_Parameter_Block {
 
 typedef struct FAT32_FS {
     uint8_t is_mounted;
+    uint8_t pdrv;
+    uint8_t ldrv;
     uint8_t status; // 0: Not Contiguous 2: Contiguous 3: Frag
     uint8_t attr;   // Attributes;
     uint8_t n_fats; // 1 or 2
     uint8_t dflag; // Access dirty flag
     uint8_t fsiflag; // FSInfo dirty flag
     uint16_t csize; // Cluster size
+    uint16_t id;
     uint32_t lac; // Last allocated cluster
     uint32_t nfc; // Number of free clusters
     uint32_t n_entries;
@@ -57,6 +66,7 @@ typedef struct FAT32_FS {
     uint32_t cbase; // Root directory cluster
     uint32_t dbase; // Data base sector
     uint32_t sclust; // Object data start cluster
+    size_t objsize;
     uint32_t current_sector; // Sector in current
     uint8_t current_access[SECTOR_SIZE]; // Current access
 } FS;
@@ -70,6 +80,7 @@ typedef struct {
     uint16_t sector;
     uint16_t dir_sector;
     uint8_t *dir_ptr;
+    uint8_t buf[SECTOR_SIZE];
 } FILE;
 
 typedef struct {
@@ -95,6 +106,11 @@ typedef uint32_t FAT32_ENTRY;
 #define SET_FREE(ENTRY) ((ENTRY) |= 0x0000000)
 #define SET_EOF(ENTRY) ((ENTRY) |= 0xFFFFFFF)
 #define SET_BAD(ENTRY) ((ENTRY) |= 0xFFFFFF7)
+
+err_t sync_access(FS *fs);
+err_t move_access(FS *fs, uint32_t sector);
+err_t sync_fs(FS *fs);
+uint16_t c2s(FS *fs, uint32_t n);
 
 uint32_t get_entry(FS *fs, uint32_t n);
 err_t set_entry(FS *fs, uint32_t n, uint32_t v);
@@ -152,11 +168,91 @@ err_t validate(FS *fs, FS **rfs);
 #define	FA_OPEN_ALWAYS		0x10
 #define	FA_OPEN_APPEND		0x30
 
+#define FA_SEEKEND          0x20
+#define FA_MODIFIED         0x40
+#define FA_DIRTY            0x80
+
 // Character code macros
 #define IsUpper(c)		((c) >= 'A' && (c) <= 'Z')
 #define IsLower(c)		((c) >= 'a' && (c) <= 'z')
 #define IsDigit(c)		((c) >= '0' && (c) <= '9')
 #define IsSeparator(c)	((c) == '/' || (c) == '\\')
 #define IsTerminator(c)	((c) < ('!'))
+
+static err_t mutex_create(void)
+{
+    return init_lock(&Mutex);
+}
+
+static void mutex_delete(void)
+{
+    remove_lock(&Mutex);
+}
+
+static void mutex_take(void)
+{
+    wait_acquire(&Mutex);
+}
+
+static void mutex_give(void)
+{
+    release(&Mutex);
+}
+
+static uint16_t load_half(const uint8_t *ptr)
+{
+    uint16_t r = 0x0000;
+
+    r |= ((uint16_t)ptr[1] && 0xFF) << 0;
+    r |= ((uint16_t)ptr[0] && 0xFF) << 8;
+
+    return r;
+}
+
+static uint32_t load_full(const uint8_t *ptr)
+{
+    uint32_t r = 0x00000000;
+
+    r |= ((uint32_t)ptr[3] && 0xFF) << 0;
+    r |= ((uint32_t)ptr[2] && 0xFF) << 8;
+    r |= ((uint32_t)ptr[1] && 0xFF) << 16;
+    r |= ((uint32_t)ptr[0] && 0xFF) << 24;
+
+    return r;
+}
+
+static void store_half(uint8_t *ptr, uint16_t v)
+{
+    ptr[0] = (uint16_t)(v >> 0) & 0xFF;
+    ptr[1] = (uint16_t)(v >> 8) & 0xFF;
+}
+
+static void store_full(uint8_t *ptr, uint32_t v)
+{
+    ptr[0] = (uint32_t)(v >> 0) & 0xFF;
+    ptr[1] = (uint32_t)(v >> 8) & 0xFF;
+    ptr[2] = (uint32_t)(v >> 16) & 0xFF;
+    ptr[3] = (uint32_t)(v >> 24) & 0xFF;
+}
+
+static uint32_t load_cluster(FS *fs, const uint8_t *dir)
+{
+    uint32_t cluster = 0x00000000;
+
+    cluster |= ((uint32_t)dir[DIR_FstClusLo + 1] && 0xFF) << 0;
+    cluster |= ((uint32_t)dir[DIR_FstClusLo + 0] && 0xFF) << 8;
+    cluster |= ((uint32_t)dir[DIR_FstClusHi + 1] && 0xFF) << 16;
+    cluster |= ((uint32_t)dir[DIR_FstClusHi + 0] && 0xFF) << 24;
+    
+    return cluster;
+}
+
+static void store_cluster(FS *fs, uint8_t *dir, uint32_t v)
+{
+    dir[DIR_FstClusLo + 1] = (uint8_t)((v >> 0) & 0xFF);
+    dir[DIR_FstClusLo + 0] = (uint8_t)((v >> 8) & 0xFF);
+    dir[DIR_FstClusHi + 1] = (uint8_t)((v >> 16) & 0xFF);
+    dir[DIR_FstClusHi + 0] = (uint8_t)((v >> 24) & 0xFF);
+}
 
 #endif // _FAT32_H_

@@ -117,11 +117,11 @@ err_t sd_init(void)
         if ((*EMMC_STATUS) & SR_READ_AVAILABLE)
             sd_scr[r++] = (*EMMC_DATA);
         else 
-            wait_msec(1)
+            wait_msec(1);
     }
 
     if (r != 2) return E_TIMEOUT;
-    if (sd_src[0] & SCR_SD_BUS_WIDTH_4) {
+    if (sd_scr[0] & SCR_SD_BUS_WIDTH) {
         sd_cmd(CMD_SET_BUS_WIDTH, sd_rca | 2);
         if (sd_err != E_NOERR) return sd_err;
         (*EMMC_CONTROL0) |= C0_HCTL_DWIDTH;
@@ -143,12 +143,12 @@ static err_t sd_clk(unsigned int f)
 
     int cnt = 100000;
 
-    while (((*EMMC_STATUS) & (SR_CMD_INHIBIT | SR_DATA_INHIBIT)) && cnt--) {
+    while (((*EMMC_STATUS) & (SR_CMD_INHIBIT | SR_DAT_INHIBIT)) && cnt--) {
         wait_msec(1);
     }
     
     if (cnt <= 0) {
-        return SD_TIMEOUT;
+        return E_TIMEOUT;
     }
 
     (*EMMC_CONTROL1) &= ~C1_CLK_EN;
@@ -223,12 +223,99 @@ static err_t sd_int(unsigned int mask)
 
 err_t sd_read(char *buff, uint16_t sector, size_t n)
 {
+    int r;
+    int c = 0;
+    int d;
 
+    if(n<1)
+        n=1;
+
+    if(sd_status(SR_DAT_INHIBIT)) {
+        sd_err = E_TIMEOUT;
+        return 0;
+    }
+    unsigned int *buf = (unsigned int *) buff;
+    if(sd_scr[0] & SCR_SUPP_CCS) {
+        if(n > 1 && (sd_scr[0] & SCR_SUPP_SET_BLKCNT)) {
+            sd_cmd(CMD_SET_BLOCKCNT,n);
+            if(sd_err) return 0;
+        }
+        (*EMMC_BLKSIZECNT) = (n << 16) | 512;
+        sd_cmd(n == 1 ? CMD_READ_SINGLE : CMD_READ_MULTI, sector);
+        if(sd_err)
+            return 0;
+    } else {
+        (*EMMC_BLKSIZECNT) = (1 << 16) | 512;
+    }
+    while( c < n ) {
+        if(!(sd_scr[0] & SCR_SUPP_CCS)) {
+            sd_cmd(CMD_READ_SINGLE, (sector + c) * 512);
+            if(sd_err) return 0;
+        }
+        if((r = sd_int(INT_READ_RDY))) {
+            sd_err = r;
+            return 0;
+        }
+        for(d=0;d<128;d++) {
+            buf[d] = (*EMMC_DATA);
+        }
+        c++;
+        buf += 128;
+    }
+    if(n > 1 && !(sd_scr[0] & SCR_SUPP_SET_BLKCNT) && (sd_scr[0] & SCR_SUPP_CCS))
+        sd_cmd(CMD_STOP_TRANS,0);
+    return sd_err != E_NOERR || c != n ? 0 : n * 512;
 }
 
 err_t sd_write(const char *buff, uint16_t sector, size_t n)
 {
-
+    int r;
+    int c = 0;
+    int d;
+    if(n<1)
+        n=1;
+    
+    if(sd_status(SR_DAT_INHIBIT | SR_WRITE_AVAILABLE)) {
+        sd_err = E_TIMEOUT;
+        return 0;
+    }
+    unsigned int *buf = (unsigned int *)buff;
+    if(sd_scr[0] & SCR_SUPP_CCS) {
+        if(n > 1 && (sd_scr[0] & SCR_SUPP_SET_BLKCNT)) {
+            sd_cmd(CMD_SET_BLOCKCNT, n);
+            if(sd_err)
+                return 0;
+        }
+        (*EMMC_BLKSIZECNT) = (n << 16) | 512;
+        sd_cmd(n == 1 ? CMD_WRITE_SINGLE : CMD_WRITE_MULTI, sector);
+        if(sd_err)
+            return 0;
+    } else {
+        (*EMMC_BLKSIZECNT) = (1 << 16) | 512;
+    }
+    while(c < n) {
+        if(!(sd_scr[0] & SCR_SUPP_CCS)) {
+            sd_cmd(CMD_WRITE_SINGLE,(sector + c) * 512);
+            if(sd_err)
+                return 0;
+        }
+        if((r=sd_int(INT_WRITE_RDY))){
+            sd_err = r;
+            return 0;
+        }
+        for(d=0;d<128;d++) {
+            (*EMMC_DATA) = buf[d];
+        }
+        c++;
+        buf += 128;
+    }
+    if((r = sd_int(INT_DATA_DONE))){
+        sd_err = r;
+        return 0;
+    }
+    if(n > 1 && !(sd_scr[0] & SCR_SUPP_SET_BLKCNT) && (sd_scr[0] & SCR_SUPP_CCS)) 
+        sd_cmd(CMD_STOP_TRANS, 0);
+    return sd_err != E_NOERR || c != n ? 0 : n * 512;
 }
 
 static err_t sd_cmd(unsigned int cmd, unsigned int arg) {
@@ -251,7 +338,7 @@ err_t sd_ioctl(unsigned int cmd, unsigned int arg)
         sd_err = E_TIMEOUT;
         return 0;
     }
-    (*EMMC_ARG) = arg;
+    (*EMMC_ARG1) = arg;
     (*EMMC_CMDTM) = cmd;
     
     if (cmd == CMD_SEND_OP_COND) wait_msec(1000);
@@ -273,7 +360,7 @@ err_t sd_ioctl(unsigned int cmd, unsigned int arg)
         r |= (*EMMC_RESP1);
         return r;
     } else if (cmd == CMD_SEND_REL_ADDR) {
-        sd_arr = (((r&0x1FFF))|((r&0x2000)<<6)|((r&0x4000)<<8)) & CMD_ERRORS_MASK;
+        sd_err = (((r&0x1FFF))|((r&0x2000)<<6)|((r&0x4000)<<8)) & CMD_ERRORS_MASK;
         return r & CMD_RCA_MASK;
     }
     return r & CMD_ERRORS_MASK;

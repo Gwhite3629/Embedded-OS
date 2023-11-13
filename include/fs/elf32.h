@@ -1,11 +1,13 @@
 #ifndef _ELF32_H_
 #define _ELF32_H_
 
-typedef elf32_word  uint32_t
-typedef elf32_addr  uint32_t
-typedef elf32_half  uint16_t
-typedef elf32_off   uint32_t
-typedef elf32_Sword int32_t
+#include "../stdlib.h"
+
+typedef uint32_t elf32_word;
+typedef uint32_t elf32_addr;
+typedef uint16_t elf32_half;
+typedef uint32_t elf32_off;
+typedef int32_t  elf32_Sword;
 
 #define E_NIDENT 16
 
@@ -80,6 +82,6 @@ typedef struct {
     elf32_word      p_flags;            // Segment flags
     elf32_word      p_align;            // Segment address alignment, must be
                                         // congruent to 0 mod page size
-} elf32_phdr
+} elf32_phdr;
 
 #endif // _ELF32_H_

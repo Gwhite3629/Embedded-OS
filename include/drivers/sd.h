@@ -3,9 +3,9 @@
 
 #include "../stdlib.h"
 
-#define CAST(X) (volatile unsigned int *(X))
+#define CAST(X) ((volatile unsigned int *)(X))
 
-#define EMMC_OFFSET         IO_BASE + 0x00300000
+#define EMMC_OFFSET         (IO_BASE + 0x00300000)
 
 // EMMC Offsets
 
