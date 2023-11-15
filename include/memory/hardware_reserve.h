@@ -8,8 +8,8 @@
 
 void memory_init(unsigned long mem_kernel);
 
-void *reserve(uint32_t n_chunks, uint32_t type);
-int32_t relinquish(void *start, uint32_t n_chunks);
+unsigned long reserve(uint32_t n_chunks, uint32_t type);
+int32_t relinquish(unsigned long start, uint32_t n_chunks);
 int32_t sum_free(void);
 uint32_t mem_total(void);
 

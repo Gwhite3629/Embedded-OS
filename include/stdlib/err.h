@@ -33,6 +33,8 @@ err_t error;
 
 // Memory errors
 #define E_NOMEM     0x0014  // No available memory
+#define E_NOHEAP    0x0015  // Couldn't create heap
+#define E_NOPAGE    0x0016  // Couldn't fetch user pages
 
 // UART errors
 #define E_OERR      0x0033  // UART Overrun error

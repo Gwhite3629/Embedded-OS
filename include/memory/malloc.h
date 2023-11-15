@@ -1,30 +1,81 @@
 #ifndef _MALLOC_H_
 #define _MALLOC_H_
 
-#include "slab.h"
-#include "../stdlib/err.h"
+#include "../stdlib.h"
 
-//proc_t* pmalloc(void);
+#define UNALLOCATED 0
+#define RESERVED 1
+#define CULLED 2
+#define AVAILABLE 3
 
-//file_t* fmalloc(void);
+extern const char *stat_names[12];
 
-/* User facing malloc 
- * The user must specify the type they wish to use so the caches can correctly dispatch objects.
- * The objects that users allocate must be held in an object cache held by the kernel. This is to
- * ensure safety and efficiency. Users can pre-cache their created objects by calling the
- * register functions below.
- */
-void* malloc(char *type, uint32_t typesize, uint32_t n);
+typedef struct __attribute__((packed)) {
+    int size;
+    int flag;
+    void *base;
+    void *addr;
+} smart_ptr;
 
-void* realloc(void *ptr, uint32_t size);
+typedef struct __attribute__((packed)) {
+    int alloc_size;
+    int used_size;
+    int n_chunks;
+    void *base_addr;
+    smart_ptr **chunks;
+} region_t;
 
-/* User facing free 
- * This returns an object to the appropriate cache.
- */
-void free(void *ptr);
+typedef struct __attribute__((packed)) {
+    int alignment;
+    int n_regions;
+    region_t **regions;
+} heap_t;
 
-void register_constructor(void (*constructor)(void *obj));
+extern heap_t *global_heap;
+extern int ret;
 
-void register_destructor(void (*destructor)(void *obj));
+#define ALIGN 4096
+
+#define CHUNK_INFO_SIZE sizeof(smart_ptr)
+#define REGION_INFO_SIZE sizeof(region_t)
+#define HEAP_INFO_SIZE sizeof(heap_t)
+
+#define REGION_ARR sizeof(region_t *)
+#define CHUNK_ARR sizeof(smart_ptr *)
+
+#define HEAP_BASE_OFFSET (REGION_INFO_SIZE + (2*CHUNK_INFO_SIZE))
+#define NEW_REGION_SIZE (REGION_INFO_SIZE + 3*CHUNK_INFO_SIZE + 3*CHUNK_ARR)
+
+#define F_CHECK(F_CHUNK) \
+    ((F_CHUNK->flag & 1) \
+    ^ (F_CHUNK->flag & 2))
+
+#define new(ptr, size, type) \
+    ptr = (type *)alloc(global_heap, size*sizeof(type)); \
+    VALID(ptr, MEM_CODE, ALLOCATION_ERROR);
+
+#define alt(ptr, size, type) \
+    ptr = (type *)change(global_heap, ptr, size*sizeof(type)); \
+    VALID(ptr, MEM_CODE, ALLOCATION_ERROR);
+
+#define del(ptr) \
+    cull(global_heap, ptr); \
+    VALID(global_heap, MEM_CODE, ALLOCATION_ERROR);
+
+heap_t *create(int alignment, int size);
+
+heap_t *grow_kheap(heap_t *h);
+
+void create_region(heap_t *h, int size);
+
+void destroy(heap_t *h);
+
+void *alloc(heap_t *h, int n);
+
+void cull(heap_t *h, void *ptr);
+
+void clean(heap_t *h);
+
+void *change(heap_t *h, void *ptr, int size);
 
 #endif // _MALLOC_H_

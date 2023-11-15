@@ -1,5 +1,5 @@
 #include "../../include/stdlib/err.h"
-#include "../../inlude/memory/hardware_reserve.h"
+#include "../../include/memory/hardware_reserve.h"
 #include "../../include/memory/mmu.h"
 #include "../../include/process/proc.h"
 
@@ -55,7 +55,7 @@ void map_page(proc_t *p, unsigned long va, unsigned long page)
     p->mm.n_user_pages++;
 }
 
-unsigned long map_table(unsigned long *table, unsigned long shift, unsigned long va, int new_table)
+unsigned long map_table(unsigned long *table, unsigned long shift, unsigned long va, int *new_table)
 {
     unsigned long index = va >> shift;
     index = index & (TABLE_SIZE - 1);
