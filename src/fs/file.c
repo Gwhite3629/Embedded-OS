@@ -340,23 +340,140 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
     return E_NOERR;
 }
 
+/* Get file status */
+err_t f_stat (const char* path, FILEINFO* fno)
+{
+    err_t ret;
+    DIR dj;
+    
+    ret = mount_volume(&path, &dj.fs);
+    if (ret == E_NOERR) {
+        ret = follow_path(&dj, path);
+        if (ret == E_NOERR) {
+            if (dj.fn[11] & 0x80) {
+                ret = E_INVALID_F;
+            } else {
+                if (fno) get_fileinfo(&dj, fno);
+            }
+        }
+    }
+
+    return E_NOERR;
+}
+
+/* Get number of free clusters on the drive */
+err_t f_getfree (const char* path, uint32_t* nclst, FS** fatfs)
+{
+    err_t ret;
+    FS *fs;
+    uint32_t nfree, cluster, stat;
+    uint16_t sector;
+    uint32_t i;
+
+    ret = mount_volume(&path, &fs, 0);
+    if (ret == E_NOERR) {
+        *fatfs = fs;
+        if (fs->nfs <= fs->n_entries - 2) {
+            *nclst = fs->nfc;
+        } else {
+            nfree = 0;
+            cluster = fs->n_entries;
+            sector = fs->fbase;
+            i = 0;
+            do {
+                if (i == 0) {
+                    ret = move_access(fs, sect++);
+                    if (ret != E_NOERR) break;
+                }
+                if ((load_full(fs->current_access + i) & 0x0FFFFFFF) == 0)
+                    nfree++;
+                i += 4;
+                i %= SECTOR_SIZE;
+            } while (--cluster);
+        }
+        if (ret == E_NOERR) {
+            *nclst = nfree;
+            fs->nfc = nfree;
+            fs->fsiflag |= 1;
+        }
+    }
+
+    return ret;
+}
+
+/* Delete an existing file or directory */
+err_t f_unlink (const char* path)
+{
+    err_t ret;
+    FS *fs;
+    DIR dj, sdj;
+    uint32_t dcluster = 0;
+
+    ret = mount_volume(&path, &fs, FA_WRITE);
+    if (ret == E_NOERR) {
+        dj.fs = fs;
+        ret = follow_path(&dj, path);
+        if (ret == E_NOERR && (dj.fs[11] & 0x20)) {
+            ret = E_INVALID_F;
+        }
+        if (ret == E_NOERR) {
+            if (dj.fn[11] & 0x80) {
+                ret = E_INVALID_F;
+            } else {
+                if (dj.fs->attr & A_RDONLY) {
+                    ret = E_DENIED;
+                }
+            }
+            if (ret == E_NOERR) {
+                dcluster = load_cluster(fs, dj.dir);
+                if (dj.fs->attr & A_DIR) {
+                    sdj.fs = fs;
+                    sdj.fs->sclust = dcluster;
+                    ret = dir_set_idx(&sdj, 0);
+                    if (ret == E_NOERR) {
+                        ret = dir_read(&sdj, 0);
+                        if (ret == E_NOERR) ret = E_DENIED;
+                        if (ret == E_NOFILE) ret = E_NOERR;
+                    }
+                }
+            }
+            if (ret == E_NOERR) {
+                ret = dir_remove(&dj);
+                if (ret == E_NOERR && dcluster != 0) {
+                    ret = remove_chain(&dj.fs, dcluster, 0);
+                }
+                if (ret == E_NOERR) ret = sync_fs(fs);
+            }
+        }
+    }
+
+    return ret;
+}
+
+/* Rename/Move a file or directory */
+err_t f_rename (const char *path_old, const char *path_new);
+{
+
+}
+
+err_t f_mkdir (const char* path);								/* Create a sub directory */
+
+err_t f_opendir (DIR* dp, const char* path);						/* Open a directory */
+
+err_t f_closedir (DIR* dp);										/* Close an open directory */
+
+err_t f_readdir (DIR* dp, FILEINFO* fno);							/* Read a directory item */
+
+
 err_t f_lseek (FILE* fp, size_t ofs);								/* Move file pointer of the file object */
 err_t f_truncate (FILE* fp);										/* Truncate the file */
-err_t f_opendir (DIR* dp, const char* path);						/* Open a directory */
-err_t f_closedir (DIR* dp);										/* Close an open directory */
-err_t f_readdir (DIR* dp, FILEINFO* fno);							/* Read a directory item */
 err_t f_findfirst (DIR* dp, FILEINFO* fno, const char* path, const char* pattern);	/* Find first file */
 err_t f_findnext (DIR* dp, FILEINFO* fno);							/* Find next file */
-err_t f_mkdir (const char* path);								/* Create a sub directory */
-err_t f_unlink (const char* path);								/* Delete an existing file or directory */
-err_t f_rename (const char* path_old, const char* path_new);	/* Rename/Move a file or directory */
-err_t f_stat (const char* path, FILEINFO* fno);					/* Get file status */
 err_t f_chmod (const char* path, uint8_t attr, uint8_t mask);			/* Change attribute of a file/dir */
 err_t f_utime (const char* path, const FILEINFO* fno);			/* Change timestamp of a file/dir */
 err_t f_chdir (const char* path);								/* Change current directory */
 err_t f_chdrive (const char* path);								/* Change current drive */
 err_t f_getcwd (char* buff, unsigned int len);							/* Get current directory */
-err_t f_getfree (const char* path, uint32_t* nclst, FS** fatfs);	/* Get number of free clusters on the drive */
 err_t f_getlabel (const char* path, char* label, uint32_t* vsn);	/* Get volume label */
 err_t f_setlabel (const char* label);							/* Set volume label */
 err_t f_forward (FILE* fp, unsigned int(*func)(const uint8_t*,unsigned int), unsigned int btf, unsigned int* bf);	/* Forward data to the stream */
