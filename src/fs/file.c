@@ -201,8 +201,145 @@ err_t f_sync (FILE* fp)
     return ret;
 }
 
-err_t f_read (FILE* fp, void* buff, unsigned int btr, unsigned int* br);			/* Read data from the file */
-err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw);	/* Write data to the file */
+/* Read data from the file */
+err_t f_read (FILE* fp, void* buff, unsigned int btr, unsigned int* br)
+{
+    err_t ret;
+    FS *fs;
+    uint32_t cluster;
+    uint16_t sector;
+    size_t rem;
+    uint32_t cnt, cc, csector;
+    uint8_t *rbuff = (uint8_t *)buff;
+
+    *br = 0;
+    ret = validate(&fp->fs, &fs);
+    if (ret != E_NOERR || (ret = (err_t)fp->err) != E_NOERR) return ret;
+    if (!(fp->flags & FA_READ)) return ret;
+    rem = fp->fs->objsize - fp->fptr;
+    if (btr > rem) btr = (uint32_t)rem;
+
+    if (; btr > 0; btr -= cnt, *br += cnt, rbuff += cnt, fp->fptr += cnt) {
+        if (fp->fptr % SECTOR_SIZE == 0) {
+            csector = (uint32_t)(fp->fptr / SECTOR_SIZE & (fs->csize - 1));
+            if (csector == 0) {
+                cluster = fp->fs->sclust;
+            } else {
+                cluster = get_entry(&fp->fs, fp->cluster);
+            }
+            if (cluster < 2) return E_FINT;
+            if (cluster == 0xFFFFFFFF) return E_DISKERR;
+            fp->cluster = cluster;
+        }
+        sector = c2s(fs, fp->cluster);
+        if (sector == 0) return E_FINT;
+        sector += csector;
+        cc = btr / SECTOR_SIZE;
+        if (cc > 0) {
+            if (csector + cc > fs->csize) {
+                cc = fs->csize - csector;
+            }
+            if (sd_read(rbuff, sector, cc) != E_NOERR) return E_FINT;
+            if ((fp->flags & FA_DIRTY) && fp->sector - sector < cc) {
+                memcpy(rbuff + ((fp->sector - sector) * SECTOR_SIZE), fp->buf,
+                SECTOR_SIZE);
+            }
+            cnt = SECTOR_SIZE * cc;
+            continue;
+        }
+        if (fp->sector != sector) {
+            if (fp->flags & FA_DIRTY) {
+                if (sd_write(fp->buf, fp->sector, 1) != E_NOERR) return E_FINT;
+                fp->flags &= (uint8_t)~FA_DIRTY;
+            }
+            if (disk_read(fp->buf, sector, 1) != E_NOERR) return E_DISKERR;
+        }
+        fp->sector = sector;
+    }
+    cnt = SECTOR_SIZE - (uint32_t)fp->fptr % SECTOR_SIZE;
+    if (cnt > btr) cnt = btr;
+    memcpy(rbuff, fp->buf + fp->fptr % SECTOR_SIZE, cnt);
+
+    return E_NOERR;
+}
+
+/* Write data to the file */
+err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
+{
+    err_t ret;
+    FS *fs;
+    uint32_t cluster;
+    uint16_t sector;
+    uint32_t cnt, cc, csector;
+    const uint8_t *wbuff = (const uint8_t *)buff;
+
+    *bw = 0;
+    ret = validate(&fp->fs, &fs);
+    if (ret != E_NOERR || (ret = (err_t)fp->err) != E_NOERR) return ret;
+    if (!(fp->flags & FA_WRITE)) return E_DENIED;
+    if ((uint32_t)(fp->fptr + btw) < (uint32_t)f->fptr) {
+        btw = (uint32_t)(0xFFFFFFFF - (uint32_t)fp->fptr);
+    }
+
+    for (; btw > 0; btw -= cnt, *bw += cnt, wbuff += cnt, fp->fptr += cnt,
+        fp->fs->obkjsize = (fp->fptr > fp->fs->objsize) ? fp->fptr :
+        fp->fs->objsize) {
+        if (fp->fptr % SECTOR_SIZE == 0) {
+            csector = (uint32_t)(fp->fptr / SECTOR_SIZE) & (fs->csize - 1);
+            if (csector == 0) {
+                if (fp->fptr == 0) {
+                    cluster = fp->fs->sclust;
+                    if (cluster == 0) {
+                        cluster = create_chain(&fp->fs, 0);
+                    }
+                } else {
+                    cluster = create_chain(&fp->fs, fp->cluster);
+                }
+                if (cluster == 0) break;
+                if (cluster == 1) return E_FINT;
+                if (cluster == 0xFFFFFFFF) return E_DISKERR;
+                fp->cluster = cluster;
+                if (fp->fs->sclust == 0) fp->fs->sclust = cluster;
+            }
+            if (fp->flags & FA_DIRY) {
+                if (sd_write(fp->buf, fp->sect, 1) != E_NOERR) return E_DISKERR;
+                fp-flags &= (uint8_t)~FA_DIRTY;
+            }
+            sector = c2s(fs, fp->cluster);
+            if (sector == 0) return E_FINT;
+            sector += csector;
+            cc = btw / SECTOR_SIZE;
+            if (cc > 0) {
+                if (csector + cc > fs->csize) {
+                    cc = fs->csize - csector;
+                }
+                if (sd_write(wbuff, sector, cc) != E_NOERR) return E_DISKERR;
+                if (fp->sector - sector < cc) {
+                    memcpy(fp->buf, wbuff + ((fp->sector - sector) *
+                    SECTOR_SIZE), SECTOR_SIZE);
+                    fp->flags &= (uint8_t)~FA_DIRTY;
+                }
+                cnt = SECTOR_SIZE * cc;
+                continue;
+            }
+            if (fp->sector != sector &&
+                fp->fptr < fp->fs->objsize &&
+                sd_read(fp->buf, sector, 1) != E_NOERR) {
+                return E_DISKERR;
+            }
+            fp->sector = sector;
+        }
+        cnt = SECTOR_SIZE - (uint32_t)fp->fptr % SECTOR_SIZE;
+        if (cnt > btw) cnt = btw;
+        memcpy(fp->buf + fp->fptr % SECTOR_SIZE, wbuff, cnt);
+        fp->flags |= FA_DIRTY;
+    }
+
+    fp->flags |= FA_MODIFIED;
+
+    return E_NOERR;
+}
+
 err_t f_lseek (FILE* fp, size_t ofs);								/* Move file pointer of the file object */
 err_t f_truncate (FILE* fp);										/* Truncate the file */
 err_t f_opendir (DIR* dp, const char* path);						/* Open a directory */
