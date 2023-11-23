@@ -50,7 +50,9 @@ err_t error;
 #define E_BADNAME   0x0104  // Name doesn't work
 #define E_NOPATH    0x0105  // Couldn't find path
 #define E_NODRIVE   0x0106  // Invalid drive
-#define E_DENIED    0x0107
+#define E_DENIED    0x0107  // Denied access
+#define E_EXIST     0x0108  // File exists, name conflict
+#define E_INVALID   0x0109  // Invalid object
 
 // SD errors
 #define E_NOT_READY 0x0200

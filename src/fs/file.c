@@ -453,17 +453,185 @@ err_t f_unlink (const char* path)
 /* Rename/Move a file or directory */
 err_t f_rename (const char *path_old, const char *path_new);
 {
+    err_t ret;
+    FS *fs;
+    DIR djo, djn;
+    uint8_t buf[32], *dir;
+    uint16_t sector;
 
+    get_ldnumber(&path_new);
+    ret = follow_path(&djo, path_old);
+    if (ret == E_NOERR && (djo.fn[11] & (0x80 | 0x20))) ret = E_INVALID_F;
+    if (ret == E_NOERR) {
+        memcpy(buf, djo.dir, 32);
+        memcpy(&djn, &djo, sizeof(DIR));
+        ret = follow_path(&djn, path_new);
+        if (ret == E_NOERR) {
+            ret = (djn.fs->sclust == djo.fs->sclust && djn.dptr == djo.dptr) ?
+            E_NOFILE : E_FDENIED;
+        }
+        if (ret == E_NOFILE) {
+            ret = dir_register(&djn);
+            if (ret == E_NOERR) {
+                dir = djn.dir;
+                memcpy(dir + 13, buf + 13, 32 - 13);
+                dir[11] = buf[11];
+                if (!(dir[11] & A_DIR)) dir[11] |= A_ARCHIVE;
+                fs->dflag = 1;
+                if ((dir[11] & A_DIR) && djo.fs->sclust != djn.fs->sclust) {
+                    sector = c2s(fs, load_cluster(fs, dir));
+                    if (sector != 0) {
+                        ret = E_FINT;
+                    } else {
+                        ret = move_access(fs, sector);
+                        dir = fs->current_access + 32 * 1;
+                        if (ret == E_NOERR && dir[1] == '.') {
+                            store_cluster(fs, dir, djn.fs->sclust);
+                            fs->dflag = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (ret == E_NOERR) {
+            ret = dir_remove(&djo);
+            if (ret == E_NOERR) {
+                ret = sync_fs(fs);
+            }
+        }
+    }
+    
+    return ret;
 }
 
-err_t f_mkdir (const char* path);								/* Create a sub directory */
+/* Create a sub directory */
+err_t f_mkdir (const char* path)
+{
+    err_t ret;
+    FS *fs;
+    FS *Sfs;
+    DIR dj;
+    uint32_t dcl, pcl, tm;
 
-err_t f_opendir (DIR* dp, const char* path);						/* Open a directory */
+    ret = mount_volume(&path, &fs, FA_WRITE);
+    if (ret == E_NOERR) {
+        dj.fs = fs;
+        ret = follow_path(&dj, path);
+        if (ret == E_NOERR) ret = E_EXIST;
+        if (dj.fn[11] & 0x20) {
+            ret = E_INVALID_F;
+        }
+        if (ret == E_NOFILE) {
+            Sfs = fs;
+            dcl = create_chain(*Sfs, 0);
+            ret = E_NOERR;
+            if (dcl == 0) ret = E_FDENIED;
+            if (dcl == 1) ret = E_FINT;
+            if (dcl == 0xFFFFFFFF) ret = E_DISKERR;
+            tm = GET_FATTIME();
+            if (ret == E_NOERR) {
+                ret = dir_clear(fs, dcl);
+                if (ret == E_NOERR) {
+                    memset(fs->current_access + 0, ' ', 11);
+                    fs->current_access[0] = '.';
+                    fs->current_access[11] = A_DIR;
+                    store_full(fs->current_access + 22, tm);
+                    store_cluster(fs, fs->current_access, dcl);
+                    memcpy(fs->current_access + 32, fs->current_access, 32);
+                    fs->current_access[32 + 1] = '.';
+                    pcl = dj.fs->sclust;
+                    store_cluster(fs, fs->current_access + 32, pcl);
+                    fs->dflag = 1;
+                    ret = dir_register(&dj);
+                }
+            }
+            if (ret == E_NOERR) {
+                store_full(dj.dir + 22, tm);
+                store_cluster(fs, dj.dir, dcl);
+                dj.dir[11] = A_DIR;
+                fs->dflag = 1;
+            }
+            if (ret == E_NOERR) {
+                ret = sync_fs(fs);
+            }
+        } else {
+            remove_chain(&Sfs, dcl, 0);
+        }
+    }
 
-err_t f_closedir (DIR* dp);										/* Close an open directory */
+    return ret;
+}
 
-err_t f_readdir (DIR* dp, FILEINFO* fno);							/* Read a directory item */
+/* Open a directory */
+err_t f_opendir (DIR* dp, const char* path)
+{
+    err_t ret;
+    FS *fs;
 
+    if (!dp) return E_INVALID;
+
+    ret = mount_volume(&path, &fs, 0);
+    if (ret == E_NOERR) {
+        dp->fs = fs;
+        ret = follow_path(dp, path);
+        if (ret == E_NOERR) {
+            if (!(dp->fn[11] & 0x80)) {
+                if (dp->fs->attr & A_DIR) {
+                    dp->fs->sclust = load_cluster(fs, dp->dir);
+                } else {
+                    ret = E_NOPATH;
+                }
+            }
+            if (ret == E_NOERR) {
+                dp->fs->id = fs->id;
+                ret = dir_set_idx(dp, 0);
+            }
+        }
+        if (ret == E_NOFILE) ret = E_NOPATH;
+    }
+    if (ret != E_NOERR) dp->fs = 0;
+
+    return ret;
+}
+
+/* Close an open directory */
+err_t f_closedir (DIR* dp)
+{
+    err_t ret;
+    FS *fs;
+
+    ret = validate(&dp->fs, &fs);
+    if (ret == E_NOERR) {
+        dp->fs = 0;
+    }
+
+    return ret;
+}
+
+/* Read a directory item */
+err_t f_readdir (DIR* dp, FILEINFO* fno)
+{
+    err_t ret;
+    FS *fs;
+
+    ret = validate(&dp->fs, *fs);
+    if (ret == E_NOERR) {
+        if (!fno) {
+            ret = dir_set_idx(dp, 0);
+        } else {
+            ret = dir_read(dp, 0);
+            if (ret == E_NOFILE) ret = E_NOERR;
+            if (ret == E_NOERR) {
+                get_fileinfo(dp, fno);
+                ret = dir_next(dp, 0);
+                if (ret == E_NOFILE) ret = E_NOERR;
+            }
+        }
+    }
+
+    return ret;
+}
 
 err_t f_lseek (FILE* fp, size_t ofs);								/* Move file pointer of the file object */
 err_t f_truncate (FILE* fp);										/* Truncate the file */
