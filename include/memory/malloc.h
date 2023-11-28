@@ -36,6 +36,8 @@ extern int ret;
 
 #define ALIGN 4096
 
+#define INIT_SIZE (2 >> (9 + 12)) // 512 * 4096 bytes, 1 whole PTE about 2MB
+
 #define CHUNK_INFO_SIZE sizeof(smart_ptr)
 #define REGION_INFO_SIZE sizeof(region_t)
 #define HEAP_INFO_SIZE sizeof(heap_t)

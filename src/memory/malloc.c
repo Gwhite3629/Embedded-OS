@@ -16,7 +16,7 @@ heap_t *global_heap = NULL;
 
 __attribute__ ((constructor)) static inline void init(void)
 {
-	global_heap = create(ALIGN, 1*ALIGN);
+	global_heap = create(ALIGN, INIT_SIZE);
 	VALID(global_heap, E_NOHEAP);
 	return;
 exit:
@@ -26,6 +26,34 @@ exit:
 __attribute__ ((destructor)) static inline void end(void)
 {
 	destroy(global_heap);
+}
+
+static struct page_entries {
+    unsigned long base;
+    size_t n;
+} bases[64];
+
+int base_count = 0;
+
+#define BASE_START 0x000000000000FFFF
+
+static void *acquire_pages(int n)
+{
+    unsigned long pages;
+
+    if (base_count > 0) {
+        pages = (bases[base_count].base + bases[base_count].n * ALIGN);
+    } else {
+        pages = BASE_START;
+    }
+
+    for (unsigned int i = 0; i < n; i++) {
+        get_user_page(p, pages + i * ALIGN);
+    }
+
+    bases[base_count++] = {pages, n};
+
+    return (void *)pages;
 }
 
 // Create initial heap with kernel region and user region 1
@@ -49,6 +77,7 @@ inline heap_t *create(int alignment, int size)
     smart_ptr free_space;
     smart_ptr chunk_arr;
 
+    /*
     #if WINDOWS
         base_kheap = (void *)_aligned_malloc(size, alignment);
         VALID(base_kheap, MEM_CODE, ALLOCATION_ERROR);
@@ -66,7 +95,16 @@ inline heap_t *create(int alignment, int size)
         VALID(base_reg1, MEM_CODE, ALLOCATION_ERROR);
 	    memset(base_reg1, 0, size);
     #endif
+    */
 
+    // Acquire base heap and first region pages
+    base_kheap = acquire_pages(512); // One whole PTE
+    VALID(base_kheap, MEM_CODE, ALLOCATION_ERROR);
+    memset(base_kheap, 0, size);
+    
+    base_reg1 = acquire_pages(512); // One whole PTE
+    VALID(base_reg1, MEM_CODE, ALLOCATION_ERROR);
+    memset(base_reg1, 0, size);
 
     // Initialize kernel region
 
@@ -215,6 +253,7 @@ inline heap_t *grow_kheap(heap_t *h)
     int alignment = h->alignment;
     int size = h->regions[0]->alloc_size + alignment;
 
+    /*
     #if WINDOWS
         base_kheap = (void *)_aligned_malloc(size, alignment);
         VALID(base_kheap, MEM_CODE, ALLOCATION_ERROR);
@@ -224,6 +263,12 @@ inline heap_t *grow_kheap(heap_t *h)
         VALID(base_kheap, E_NOPAGE);
 	    memset(base_kheap, 0, size);
     #endif
+    */
+
+    // Get new larger kheap, not necessarily PTE aligned, but page aligned
+    base_kheap = acquire_pages(size / alignment);
+    VALID(base_kheap, MEM_CODE, ALLOCATION_ERROR);
+    memset(base_kheap, 0, size);
 
     // Initialize kernel region
 
@@ -376,6 +421,7 @@ void create_region(heap_t *h, int size)
     smart_ptr free_space;
     smart_ptr chunk_arr;
 
+    /*
     #if WINDOWS
         base_reg1 = (void *)_aligned_malloc(size, alignment);
         VALID(base_reg1, MEM_CODE, ALLOCATION_ERROR);
@@ -385,6 +431,11 @@ void create_region(heap_t *h, int size)
         VALID(base_reg1, MEM_CODE, ALLOCATION_ERROR);
 	    memset(base_reg1, 0, size);
     #endif
+    */
+
+    base_reg1 = acquire_pages(size / alignment);
+    VALID(base_reg1, MEM_CODE, ALLOCATION_ERROR);
+    memset(base_reg1, 0, size);
 
     if ((h->regions[0]->alloc_size - h->regions[0]->used_size) < (int)REGION_ARR) {
         h = grow_kheap(h);
