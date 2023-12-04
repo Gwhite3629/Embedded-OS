@@ -21,8 +21,7 @@ typedef struct proc {
     void *stack;        // 80 bytes
     uint32_t stacksize; // 84 bytes
 
-    void *heap;         // 88 bytes
-    uint32_t heapsize;  // 92 bytes
+    heap_t *heap;
 
     void *text;         // 96 bytes
     uint32_t textsize;  // 100 bytes

@@ -14,44 +14,28 @@ err_t ret = E_NOERR;
 
 heap_t *global_heap = NULL;
 
-__attribute__ ((constructor)) static inline void init(void)
-{
-	global_heap = create(ALIGN, INIT_SIZE);
-	VALID(global_heap, E_NOHEAP);
-	return;
-exit:
-	abort();
-}
-
-__attribute__ ((destructor)) static inline void end(void)
-{
-	destroy(global_heap);
-}
-
-static struct page_entries {
-    unsigned long base;
-    size_t n;
-} bases[64];
-
-int base_count = 0;
-
 #define BASE_START 0x000000000000FFFF
 
 static void *acquire_pages(int n)
 {
     unsigned long pages;
 
-    if (base_count > 0) {
-        pages = (bases[base_count].base + bases[base_count].n * ALIGN);
+    int n_base = current_proc->mm.n_user_pages;
+
+    if (n_base > 0) {
+        pages = (current_proc->mm.bases[n_base].va + current_proc->mm.bases[n_base].size * ALIGN);
     } else {
         pages = BASE_START;
     }
 
     for (unsigned int i = 0; i < n; i++) {
-        get_user_page(p, pages + i * ALIGN);
+        current_proc->mm.bases->pa = \
+        get_user_page(current_proc, pages + i * ALIGN);
+        current_proc->mm.bases->va = pages + i * ALIGN;
     }
 
-    bases[base_count++] = {pages, n};
+    current_proc->mm.n_user_pages++;
+    current_proc->mm.bases->size = n;
 
     return (void *)pages;
 }
@@ -99,11 +83,11 @@ inline heap_t *create(int alignment, int size)
 
     // Acquire base heap and first region pages
     base_kheap = acquire_pages(512); // One whole PTE
-    VALID(base_kheap, MEM_CODE, ALLOCATION_ERROR);
+    VALID(base_kheap, E_NOHEAP);
     memset(base_kheap, 0, size);
     
     base_reg1 = acquire_pages(512); // One whole PTE
-    VALID(base_reg1, MEM_CODE, ALLOCATION_ERROR);
+    VALID(base_reg1, E_NOPAGE);
     memset(base_reg1, 0, size);
 
     // Initialize kernel region
@@ -267,7 +251,7 @@ inline heap_t *grow_kheap(heap_t *h)
 
     // Get new larger kheap, not necessarily PTE aligned, but page aligned
     base_kheap = acquire_pages(size / alignment);
-    VALID(base_kheap, MEM_CODE, ALLOCATION_ERROR);
+    VALID(base_kheap, E_NOHEAP);
     memset(base_kheap, 0, size);
 
     // Initialize kernel region
@@ -433,8 +417,8 @@ void create_region(heap_t *h, int size)
     #endif
     */
 
-    base_reg1 = acquire_pages(size / alignment);
-    VALID(base_reg1, MEM_CODE, ALLOCATION_ERROR);
+    base_reg1 = acquire_pages(size / ALIGN);
+    VALID(base_reg1, E_NOPAGE);
     memset(base_reg1, 0, size);
 
     if ((h->regions[0]->alloc_size - h->regions[0]->used_size) < (int)REGION_ARR) {

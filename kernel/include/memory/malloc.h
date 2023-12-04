@@ -31,7 +31,7 @@ typedef struct __attribute__((packed)) {
     region_t **regions;
 } heap_t;
 
-extern heap_t *global_heap;
+extern heap_t *kernel_heap;
 extern int ret;
 
 #define ALIGN 4096

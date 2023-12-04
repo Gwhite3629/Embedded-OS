@@ -5,6 +5,8 @@
 #include "../process/proc.h"
 #include "../stdlib.h"
 
+#define MAX_BASES 64
+
 // ARM MMU values
 #define MT_DEVICE       0x0
 #define MT_NORMAL       0x1
@@ -62,6 +64,11 @@
 typedef struct mmu_data {
     unsigned long LVL3;
     int n_user_pages;
+    struct user_page {
+        unsigned long pa;
+        unsigned long va;
+        size_t size;
+    } bases[MAX_BASES];
     int n_kernel_pages;
 } MM_t;
 
