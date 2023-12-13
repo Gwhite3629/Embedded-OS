@@ -11,24 +11,24 @@
 extern const char *stat_names[12];
 
 typedef struct __attribute__((packed)) {
-    int size;
-    int flag;
-    void *base;
-    void *addr;
+    int size;           // Size of alloced space
+    int flag;           // Pointer status (add perms)
+    void *base;         // Base region address
+    void *addr;         // Address of alloced space
 } smart_ptr;
 
 typedef struct __attribute__((packed)) {
-    int alloc_size;
-    int used_size;
-    int n_chunks;
-    void *base_addr;
-    smart_ptr **chunks;
+    int alloc_size;     // Total region size (2MB)
+    int used_size;      // Total alloced space
+    int n_chunks;       // Number of pointers
+    void *base_addr;    // Base region address
+    smart_ptr **chunks; // List of smart_ptr locations
 } region_t;
 
 typedef struct __attribute__((packed)) {
-    int alignment;
-    int n_regions;
-    region_t **regions;
+    int alignment;      // 2MB (value not used)
+    int n_regions;      // Number of 2MB user regions
+    region_t **regions; // List of region locations
 } heap_t;
 
 extern heap_t *kernel_heap;

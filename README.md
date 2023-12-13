@@ -1,3 +1,5 @@
+# THIS IS OUTDATED
+
 # Directory Structure:
 
 ## boot
