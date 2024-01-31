@@ -1,0 +1,3 @@
+The monad structure allows for programs to make use of one or multiple computational units. Any program which uses a monad structure is tagged with the **computational** property as described in the ***node properties*** folder.
+
+The monad system consists of several higher order functions which map an input to an output of the same type. This input is taken in an stateful way but is handled such that the computational function has no state. The monad structure requires a param_struct, a result_struct and 2 functions which transform the input/output type to and from these intermediate structs.
