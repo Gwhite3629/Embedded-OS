@@ -26,79 +26,47 @@
 // Linux workarounds
 
 // Loads kernel modules, can be removed
-#include <linux/module.h>
+// #include <linux/module.h>
 
 // Basic utilities
-#include <linux/kernel.h>
-
-// Scheduling, can be removed
-#include <linux/sched.h>
+// #include <linux/kernel.h>
 
 // Slab allocator, can be replaced
-#include <linux/slab.h>
+// #include <linux/slab.h>
+#include "../memory/malloc.h"
 
 // Simple delay functions
-#include <linux/delay.h>
+// #include <linux/delay.h>
 
 // Interrupts
-#include <linux/interrupt.h>
+// #include <linux/interrupt.h>
 
 // Can be replaced
-#include <linux/errno.h>
-
-// Unneeded
-#include <linux/ioport.h>
+// #include <linux/errno.h>
+#include "../stdlib/err.h"
 
 // NECESSARY ETHERNET CALCS
-#include <linux/crc32.h>
-
-// Driver model, can be removed
-#include <linux/platform_device.h>
+// #include <linux/crc32.h>
 
 // Can be replaced
-#include <linux/spinlock.h>
-
-// Linux ethernet tool
-#include <linux/ethtool.h>
-
-// Can be removed
-#include <linux/mii.h>
+// #include <linux/spinlock.h>
+#include "../stdlib/lock.h"
 
 // NECESSARY
-#include <linux/clk.h>
-
-// Unneeded
-#include <linux/workqueue.h>
-
-// TCP/IP, Unneeded
-#include <linux/netdevice.h>
-
-// Same as above
-#include <linux/etherdevice.h>
-
-// Memory structs
-#include <linux/skbuff.h>
-
-// Linux stuff, can be removed
-#include <linux/phy.h>
+//#include <linux/clk.h>
 
 // Can be reworked
-#include <linux/dma-mapping.h>
-
-// Unneeded
-#include <linux/of.h>
-
-// nothing
-#include <linux/of_net.h>
+//#include <linux/dma-mapping.h>
 
 // Rework
-#include <linux/types.h>
+// #include <linux/types.h>
+#include "../stdlib/types.h"
 
 // Architecture specific
-#include <linux/io.h>
-#include <mach/board.h>
-#include <mach/platform.h>
-#include <mach/hardware.h>
+//#include <linux/io.h>
+//#include <mach/board.h>
+//#include <mach/platform.h>
+//include <mach/hardware.h>
 
 #define MODNAME "lpc-eth"
 #define DRV_VERSION "1.00"
@@ -456,12 +424,12 @@ static bool use_iram_for_net(struct device *dev)
  * Structure of a TX/RX descriptors and RX status
  */
 struct txrx_desc_t {
-	__le32 packet;
-	__le32 control;
+	u32 packet; // __le32
+	u32 control; // __le32
 };
 struct rx_status_t {
-	__le32 statusinfo;
-	__le32 statushashcrc;
+	u32 statusinfo; // __le32
+	u32 statushashcrc; // __le32
 };
 
 /*
@@ -470,7 +438,7 @@ struct rx_status_t {
 struct netdata_local {
 	struct platform_device	*pdev;
 	struct net_device	*ndev;
-	spinlock_t		lock;
+	lock_t		lock;
 	void __iomem		*net_base;
 	u32			msg_enable;
 	unsigned int		skblen[ENET_TX_DESC];
