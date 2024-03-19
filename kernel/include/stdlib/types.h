@@ -3,10 +3,18 @@
 
 #define BITS_PER_LONG 64
 
-typedef uint64_t u64;
-typedef uint32_t u32;
-typedef uint16_t u16;
-typedef uint8_t u8;
+typedef uint64_t __u64;
+typedef uint32_t __u32;
+typedef uint16_t __u16;
+typedef uint8_t __u8;
+
+typedef __u64 u64;
+typedef __u32 u32;
+typedef __u16 u16;
+typedef __u8 u8;
+
+typedef __u32 __le32;
+typedef __u16 __le16;
 
 typedef uint32_t size_t;
 
@@ -51,6 +59,16 @@ struct hlist_node {
 struct hlist_head {
     struct hlist_node *first;
 };
+
+#define __iomem __attribute__((noderef, address_space(2)))
+
+#define __force __attribute__((force))
+
+#define __pure __attribute__((pure))
+
+#define __const __attribute__((const))
+
+#define __bitwise __attribute__((bitwise))
 
 #include "compact.h"
 

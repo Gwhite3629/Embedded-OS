@@ -47,6 +47,7 @@
 
 // NECESSARY ETHERNET CALCS
 // #include <linux/crc32.h>
+#include "../stdlib/crc32.h"
 
 // Can be replaced
 // #include <linux/spinlock.h>
@@ -64,6 +65,7 @@
 
 // Architecture specific
 //#include <linux/io.h>
+#include "io.h"
 //#include <mach/board.h>
 //#include <mach/platform.h>
 //include <mach/hardware.h>
@@ -439,7 +441,7 @@ struct netdata_local {
 	struct platform_device	*pdev;
 	struct net_device	*ndev;
 	lock_t		lock;
-	void __iomem		*net_base;
+	void __iomem	*net_base;
 	u32			msg_enable;
 	unsigned int		skblen[ENET_TX_DESC];
 	unsigned int		last_tx_idx;
@@ -447,7 +449,7 @@ struct netdata_local {
 	struct mii_bus		*mii_bus;
 	struct phy_device	*phy_dev;
 	struct clk		*clk;
-	dma_addr_t		dma_buff_base_p;
+	unsigned long long	dma_buff_base_p;
 	void			*dma_buff_base_v;
 	size_t			dma_buff_size;
 	struct txrx_desc_t	*tx_desc_v;
@@ -776,7 +778,7 @@ static void lpc_handle_link_change(struct net_device *ndev)
 
 	bool status_change = false;
 
-	spin_lock_irqsave(&pldat->lock, flags);
+	acquire(&pldat->lock);
 
 	if (phydev->link) {
 		if ((pldat->speed != phydev->speed) ||
@@ -797,7 +799,7 @@ static void lpc_handle_link_change(struct net_device *ndev)
 		status_change = true;
 	}
 
-	spin_unlock_irqrestore(&pldat->lock, flags);
+	release(&pldat->lock);
 
 	if (status_change)
 		__lpc_params_setup(pldat);
@@ -1056,7 +1058,7 @@ static irqreturn_t __lpc_eth_interrupt(int irq, void *dev_id)
 	struct netdata_local *pldat = netdev_priv(ndev);
 	u32 tmp;
 
-	spin_lock(&pldat->lock);
+	acquire(&pldat->lock);
 
 	tmp = readl(LPC_ENET_INTSTATUS(pldat->net_base));
 	/* Clear interrupts */
@@ -1066,7 +1068,7 @@ static irqreturn_t __lpc_eth_interrupt(int irq, void *dev_id)
 	if (likely(napi_schedule_prep(&pldat->napi)))
 		__napi_schedule(&pldat->napi);
 
-	spin_unlock(&pldat->lock);
+	release(&pldat->lock);
 
 	return IRQ_HANDLED;
 }
@@ -1085,12 +1087,12 @@ static int lpc_eth_close(struct net_device *ndev)
 	if (pldat->phy_dev)
 		phy_stop(pldat->phy_dev);
 
-	spin_lock_irqsave(&pldat->lock, flags);
+	acquire(&pldat->lock);
 	__lpc_eth_reset(pldat);
 	netif_carrier_off(ndev);
 	writel(0, LPC_ENET_MAC1(pldat->net_base));
 	writel(0, LPC_ENET_MAC2(pldat->net_base));
-	spin_unlock_irqrestore(&pldat->lock, flags);
+	release(&pldat->lock);
 
 	__lpc_eth_clock_enable(pldat, false);
 
@@ -1106,13 +1108,13 @@ static int lpc_eth_hard_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 
 	len = skb->len;
 
-	spin_lock_irq(&pldat->lock);
+	acquire(&pldat->lock);
 
 	if (pldat->num_used_tx_buffs >= (ENET_TX_DESC - 1)) {
 		/* This function should never be called when there are no
 		   buffers */
 		netif_stop_queue(ndev);
-		spin_unlock_irq(&pldat->lock);
+		release(&pldat->lock);
 		WARN(1, "BUG! TX request when no free TX buffers!\n");
 		return NETDEV_TX_BUSY;
 	}
@@ -1144,7 +1146,8 @@ static int lpc_eth_hard_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 	if (pldat->num_used_tx_buffs >= (ENET_TX_DESC - 1))
 		netif_stop_queue(ndev);
 
-	spin_unlock_irq(&pldat->lock);
+	release(&pldat->lock);
+	
 
 	dev_kfree_skb(skb);
 	return NETDEV_TX_OK;
@@ -1160,12 +1163,12 @@ static int lpc_set_mac_address(struct net_device *ndev, void *p)
 		return -EADDRNOTAVAIL;
 	memcpy(ndev->dev_addr, addr->sa_data, ETH_ALEN);
 
-	spin_lock_irqsave(&pldat->lock, flags);
+	acquire(&pldat->lock);
 
 	/* Set station address */
 	__lpc_set_mac(pldat, ndev->dev_addr);
 
-	spin_unlock_irqrestore(&pldat->lock, flags);
+	release(&pldat->lock);
 
 	return 0;
 }
@@ -1178,7 +1181,7 @@ static void lpc_eth_set_multicast_list(struct net_device *ndev)
 	u32 tmp32, hash_val, hashlo, hashhi;
 	unsigned long flags;
 
-	spin_lock_irqsave(&pldat->lock, flags);
+	acquire(&pldat->lock);
 
 	/* Set station address */
 	__lpc_set_mac(pldat, ndev->dev_addr);
@@ -1214,7 +1217,7 @@ static void lpc_eth_set_multicast_list(struct net_device *ndev)
 	writel(hashlo, LPC_ENET_HASHFILTERL(pldat->net_base));
 	writel(hashhi, LPC_ENET_HASHFILTERH(pldat->net_base));
 
-	spin_unlock_irqrestore(&pldat->lock, flags);
+	release(&pldat->lock);
 }
 
 static int lpc_eth_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
@@ -1367,7 +1370,7 @@ static int lpc_eth_drv_probe(struct platform_device *pdev)
 	pldat->pdev = pdev;
 	pldat->ndev = ndev;
 
-	spin_lock_init(&pldat->lock);
+	init_lock(&pldat->lock);
 
 	/* Save resources */
 	ndev->irq = irq;
