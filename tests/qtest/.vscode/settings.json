@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        ".fantomasignore": "ignore",
+        "*.fs": "fsharp",
+        "message.h": "c"
+    }
+}

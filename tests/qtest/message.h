@@ -1,24 +1,26 @@
 #ifndef _MESSAGE_H_
 #define _MESSAGE_H_
 
-#include <stdint.h> // types.h
-#include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "utils.h"
+#include "memory.h"
 
-// First byte is always size
-typedef uint8_t * message_t;
+typedef uint8_t* message_t;
 
 typedef struct MESSAGE_container {
     uint32_t node;
     message_t message;
+    uint32_t messageSize;
 } MESSAGE_container;
 
 typedef struct TRIGGER_container {
     uint32_t bitmap[2];
     message_t messages[64];
+    uint32_t messageSize[64];
     uint8_t n_messages;
     uint32_t node;
 } TRIGGER_container;
@@ -38,7 +40,7 @@ lookup(uint32_t node, TRIGGER_array table, uint32_t size)
 {
     TRIGGER_container valid;
     valid.node = node;
-    TRIGGER_container *r = (TRIGGER_container *)bsearch(&table, table, size, sizeof(TRIGGER_container), &cmp);
+    TRIGGER_container *r = (TRIGGER_container *)bsearch(&valid, table, size, sizeof(TRIGGER_container), &cmp);
     return r ? r : NULL;
 }
 
@@ -48,7 +50,7 @@ static inline int insert(TRIGGER_container **map, uint32_t node, uint32_t *size)
     TRIGGER_container *temp = lookup(node, *map, (*size));
     if (temp != NULL) return 1;
     (*size)++;
-    MEM_((*map), (*size), TRIGGER_container);
+    alt((*map), (*size), TRIGGER_container);
     (*map)[(*size)-1].node = node;
     qsort((*map), (*size), sizeof(TRIGGER_container), &cmp);
 
@@ -56,18 +58,22 @@ exit:
     return ret;
 }
 
-static inline int remove(TRIGGER_container **map, uint32_t node, uint32_t *size)
+static inline int remove_node(TRIGGER_container **map, uint32_t node, uint32_t *size)
 {
     int ret = SUCCESS;
 
+    TRIGGER_container *rt = NULL;
+
     TRIGGER_container *temp = lookup(node, *map, (*size));
-    TRIGGER_container *scan = (TRIGGER_container *)bsearch(&temp, (*map), (*size), sizeof(TRIGGER_container), &cmp);
+    TRIGGER_container *scan = (TRIGGER_container *)bsearch(temp, (*map), (*size), sizeof(TRIGGER_container), &cmp);
     if (scan != NULL) {
-        temp = &(*map)[(*size) - 1];
-        (*map)[(*size) - 1] = (*scan);
-        (*scan) = (*temp);
+        new(rt, 1, TRIGGER_container);
+        memcpy(rt, &(*map)[(*size) - 1], sizeof(TRIGGER_container));
+        memcpy(&(*map)[(*size) - 1], scan, sizeof(TRIGGER_container));
+        memcpy(scan, rt, sizeof(TRIGGER_container));
         (*size)--;
-        MEM_((*map), (*size), TRIGGER_container);
+        alt((*map), (*size), TRIGGER_container);
+        qsort((*map), (*size), sizeof(TRIGGER_container), &cmp);
     } else {
         printf("Node number not in map\n");
     }
