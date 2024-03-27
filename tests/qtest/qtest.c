@@ -3,6 +3,7 @@
 #include <string.h>
 #include "memory.h"
 #include "headers.h"
+#include "stack.h"
 
 int i = 0;
 
@@ -27,19 +28,19 @@ void rawGetBytes(uint8_t **b, size_t n)
 void printNodeMap(void)
 {
     printf("DQ:\n");
-    for (unsigned int j = 0; j < DQ_size; j++) {
-        printf("\tNode %u: 0x", DQ[j].node);
-        for (unsigned int k = 0; k < DQ[j].messageSize; k++) {
-            printf("%1x", (unsigned)DQ[j].message[k]);
+    for (unsigned int j = 0; j < DQ_stack.size; j++) {
+        printf("\tNode %u: ", DQ_stack.data[j].node);
+        for (unsigned int k = 0; k < DQ_stack.data[j].messageSize; k++) {
+            printf("%1c", (char)(unsigned)DQ_stack.data[j].message[k]);
         }
         printf("\n");
     }
 
     printf("LPQ:\n");
-    for (unsigned int j = 0; j < LPQ_size; j++) {
-        printf("\tNode %u: 0x", LPQ[j].node);
-        for (unsigned int k = 0; k < LPQ[j].messageSize; k++) {
-            printf("%1x", (unsigned)LPQ[j].message[k]);
+    for (unsigned int j = 0; j < LPQ_stack.size; j++) {
+        printf("\tNode %u: ", LPQ_stack.data[j].node);
+        for (unsigned int k = 0; k < LPQ_stack.data[j].messageSize; k++) {
+            printf("%1c", (char)(unsigned)LPQ_stack.data[j].message[k]);
         }
         printf("\n");
     }
@@ -49,9 +50,9 @@ void printNodeMap(void)
         printf("\tNode %u\n", TQ[j].node);
         for (unsigned int b = 0; b < 64; b++) {
             if (get_bit(TQ[j].bitmap, b)) {
-                printf("\t\tTrigger %u: 0x", b);
+                printf("\t\tTrigger %u: ", b);
                 for (unsigned int k = 0; k < TQ[j].messageSize[b]; k++) {
-                    printf("%1x", (unsigned)TQ[j].messages[b][k]);
+                    printf("%1c", (char)(unsigned)TQ[j].messages[b][k]);
                 }
                 printf("\n");
             }
@@ -63,7 +64,7 @@ void printNodeMap(void)
 int main(void) {
     int ret = SUCCESS;
 
-    while (i < 10) {
+    while (i < 11) {
         ret = getMessage();
         CHECK(ret);
         i++;

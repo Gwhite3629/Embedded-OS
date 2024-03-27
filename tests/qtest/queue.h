@@ -3,13 +3,12 @@
 
 #include "message.h"
 #include "bitmap.h"
+#include "stack.h"
 
 extern TRIGGER_array TQ;
 extern uint32_t TQ_size;
-extern MESSAGE_array DQ;
-extern uint32_t DQ_size;
-extern MESSAGE_array LPQ;
-extern uint32_t LPQ_size;
+extern stack_t DQ_stack;
+extern stack_t LPQ_stack;
 
 // Placeholder for driver functions
 extern void rawGetHeader(uint8_t *b);

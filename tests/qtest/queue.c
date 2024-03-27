@@ -3,12 +3,12 @@
 #include "queue.h"
 #include "memory.h"
 
+#include "stack.h"
+
 TRIGGER_array TQ;
 uint32_t TQ_size;
-MESSAGE_array DQ;
-uint32_t DQ_size;
-MESSAGE_array LPQ;
-uint32_t LPQ_size;
+stack_t DQ_stack = {NULL, 0};
+stack_t LPQ_stack = {NULL, 0};
 
 int getMessage(void)
 {
@@ -42,7 +42,6 @@ int getMessage(void)
         }
         new(message, messageSize, uint8_t);
         rawGetBytes(&message, messageSize);
-        //triggerInsert(nodeNumber, triggerNumber, message);
     }
 
     switch (mType) {
@@ -108,8 +107,8 @@ int triggerInsert(uint8_t node, uint8_t trigger, uint8_t *message, uint32_t mess
             new((*temp).messages[trigger], messageSize, uint8_t);
             memcpy((*temp).messages[trigger], message, messageSize);
             (*temp).messageSize[trigger] = messageSize;
+            goto exit;
         }
-        goto exit;
     }
 
     CHECK(insert(&TQ, node, &TQ_size));
@@ -119,7 +118,7 @@ int triggerInsert(uint8_t node, uint8_t trigger, uint8_t *message, uint32_t mess
     memset((*container).messages, 0, 64*sizeof(message_t));
     set_bit((*container).bitmap, trigger);
     (*container).node = node;
-    new(TQ[0].messages[trigger], messageSize, uint8_t);
+    new((*container).messages[trigger], messageSize, uint8_t);
     memcpy((*container).messages[trigger], message, messageSize);
     (*container).messageSize[trigger] = messageSize;
 
@@ -132,42 +131,15 @@ int demandInsert(uint8_t node, uint8_t *message, bool tb, uint32_t messageSize)
     printf("Found: Demand\n");
     int ret = SUCCESS;
 
-    if ((DQ_size == 0) && (DQ == NULL)) {
-        DQ_size = 1;
-        new(DQ, 1, MESSAGE_container);
-        new(DQ[0].message, messageSize, uint8_t);
-        memcpy(DQ[0].message, message, messageSize);
-        DQ[0].messageSize = messageSize;
-        DQ[0].node = node;
+    if ((DQ_stack.size == 0)) {
+        CHECK(init_stack(&DQ_stack, node, message, messageSize));
         goto exit;
-    } else if ((DQ_size == 0) && (DQ != NULL)) {
-        DQ_size = 1;
-        
-        new(DQ[0].message, messageSize, uint8_t);
-        memcpy(DQ[0].message, message, messageSize);
-        DQ[0].messageSize = messageSize;
-        DQ[0].node = node;
-        goto exit;
-    } else {
-        DQ_size++;
-        alt(DQ, DQ_size, MESSAGE_container);
     }
 
     if (tb) {
-        for (unsigned int i = DQ_size; i > 1; i--) {
-            DQ[i-1].message = DQ[i-2].message;
-            DQ[i-1].messageSize = DQ[i-2].messageSize;
-            DQ[i-1].node = DQ[i-2].node;
-        }
-        new(DQ[0].message, messageSize, uint8_t);
-        memcpy(DQ[0].message, message, messageSize);
-        DQ[0].messageSize = messageSize;
-        DQ[0].node = node;
+        CHECK(push(&DQ_stack, node, message, messageSize));
     } else {
-        new(DQ[DQ_size-1].message, messageSize, uint8_t);
-        memcpy(DQ[DQ_size-1].message, message, messageSize);
-        DQ[DQ_size-1].messageSize = messageSize;
-        DQ[DQ_size-1].node = node;
+        CHECK(push_back(&DQ_stack, node, message, messageSize));
     }
 
 exit:
@@ -182,37 +154,19 @@ int lowprioInsert(uint8_t node, uint8_t *message, uint32_t messageSize)
     printf("Found: Low Priority\n");
     int ret = SUCCESS;
 
-    if ((LPQ_size == 0) && (LPQ == NULL)) {
-        LPQ_size = 1;
-        new(LPQ, 1, MESSAGE_container);
-        new(LPQ[0].message, messageSize, uint8_t);
-        memcpy(LPQ[0].message, message, messageSize);
-        LPQ[0].messageSize = messageSize;
-        LPQ[0].node = node;
-        goto exit;
-    } else if ((LPQ_size == 0) && (LPQ != NULL)) {
-        LPQ_size = 1;
-        new(LPQ[0].message, messageSize, uint8_t);
-        memcpy(LPQ[0].message, message, messageSize);
-        LPQ[0].messageSize = messageSize;
-        LPQ[0].node = node;
-        goto exit;
+    if ((LPQ_stack.size == 0)) {
+        CHECK(init_stack(&LPQ_stack, node, message, messageSize));
     } else {
-        LPQ_size++;
-        alt(LPQ, LPQ_size, MESSAGE_container);
-        new(LPQ[LPQ_size-1].message, messageSize, uint8_t);
-        memcpy(LPQ[LPQ_size-1].message, message, messageSize);
-        LPQ[LPQ_size-1].messageSize = messageSize;
-        LPQ[LPQ_size-1].node = node;
+        CHECK(push_back(&LPQ_stack, node, message, messageSize));
     }
 
     // Promote all if DQ is empty
-    if (DQ_size == 0) {
-        for (uint32_t i = 0; i < LPQ_size; i++) {
-            demandInsert(LPQ[i].node, LPQ[i].message, 0, messageSize);
+    if (DQ_stack.size == 0) {
+        for (uint32_t i = 0; i < LPQ_stack.size; i++) {
+            demandInsert(LPQ_stack.data[i].node, LPQ_stack.data[i].message, 0, LPQ_stack.data[i].messageSize);
         }
-        alt(LPQ, 1, MESSAGE_container);
-        LPQ_size = 0;
+        alt(LPQ_stack.data, 1, MESSAGE_container);
+        LPQ_stack.size = 0;
     }
 
 exit:

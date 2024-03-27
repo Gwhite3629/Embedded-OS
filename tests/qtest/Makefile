@@ -4,7 +4,7 @@ LINK=gcc
 TEST=build/test
 LIBRARY=build/memory.so
 
-TESTOBJS=qtest.o headers.o queue.o memory.o
+TESTOBJS=qtest.o headers.o queue.o memory.o stack.o
 
 LIBS=-lm
 CFLAGS=-fPIC -D WINDOWS=0 -D LOGGING=1 -Wall #-Werror -Wextra -pedantic
@@ -24,6 +24,7 @@ qtest.o: qtest.c
 memory.o: memory.c memory.h
 headers.o: headers.c headers.h
 queue.o: queue.c queue.h
+stack.o: stack.c stack.h
 
 .PHONY : clean
 

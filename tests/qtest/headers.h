@@ -3,8 +3,8 @@
 
 #include "message.h"
 
-extern uint8_t rawBytes[62];
+extern uint8_t rawBytes[58];
 
-extern int SIZES[20];
+extern int SIZES[22];
 
 #endif // _HEADERS_H_
