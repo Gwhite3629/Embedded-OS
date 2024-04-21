@@ -1,5 +1,4 @@
-#include "../../include/stdlib/types.h"
-#include "../../include/stdlib/err.h"
+#include <stdlib.h>
 
 #define SWAP(a, b, size)                \
     do {                                \

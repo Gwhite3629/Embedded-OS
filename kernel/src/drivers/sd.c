@@ -1,5 +1,5 @@
-#include "../../include/stdlib.h"
-#include "../../include/drivers/sd.h"
+#include <stdlib.h>
+#include <drivers/sd.h>
 
 unsigned long sd_scr[2];
 unsigned long sd_ocr;

@@ -1,8 +1,7 @@
-#include "../../include/memory/malloc.h"
-#include "../../include/process/proc.h"
-#include "../../include/process/status.h"
-#include "../../include/stdlib/err.h"
-#include "../../include/stdlib/syscall.h"
+#include <memory/malloc.h>
+#include <process/proc.h>
+#include <process/status.h>
+#include <stdlib.h>
 
 proc_t *first_proc = NULL;
 

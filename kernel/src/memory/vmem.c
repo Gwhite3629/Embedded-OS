@@ -1,2 +1,2 @@
-#include "../../include/memory/mmu.h"
-#include "../../include/stdlib/err.h"
+#include <memory/mmu.h>
+#include <stdlib.h>

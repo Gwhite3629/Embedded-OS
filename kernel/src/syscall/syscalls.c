@@ -15,12 +15,20 @@ err_t swi_handler_c(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
             proc_exit(r0, E_NOERR);
             break;
 
+        case SYS_SREAD:
+            ret = uart_getc();
+            break;
+
+        case SYS_SWRITE:
+            ret = uart_write((void *)r0, (unsigned int)r1);
+            break;
+
         case SYS_FREAD:
             ret = f_read((FILE *)r0, (char *)r1, (unsigned int)r2, (unsigned int  *)r3);
             break;
 
         case SYS_FWRITE:
-            ret = f_read((FILE *)r0, (const char *)r1, (unsigned int)r2, (unsigned int *)r3);
+            ret = f_write((FILE *)r0, (const char *)r1, (unsigned int)r2, (unsigned int *)r3);
             break;
 
         case SYS_FOPEN:

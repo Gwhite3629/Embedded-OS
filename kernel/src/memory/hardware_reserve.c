@@ -1,10 +1,6 @@
-#include "../../include/stdlib/types.h"
-#include "../../include/stdlib/err.h"
-#include "../../include/stdlib/lock.h"
-#include "../../include/stdlib/bitmap.h"
-#include "../../include/stdlib/memset.h"
+#include <stdlib.h>
 
-#include "../../include/memory/hardware_reserve.h"
+#include <memory/hardware_reserve.h>
 
 #define MAX_MEMORY (1024*1024*1024)     // 1GB
 #define KERNEL_RESERVED (16*1024*1024)  // 16MB

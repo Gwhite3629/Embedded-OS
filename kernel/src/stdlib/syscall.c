@@ -1,4 +1,3 @@
-#include "../../include/stdlib/err.h"
-#include "../../include/stdlib/syscall.h"
+#include <stdlib.h>
 
 err_t call(uint32_t SCALL);

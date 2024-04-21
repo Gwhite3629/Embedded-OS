@@ -4,6 +4,8 @@
 
 #include "../../kernel/include/syscalls/syscalls.h"
 
+int serial_write(const void *buff, unsigned int count);
+unsigned char serial_read(void);
 int write(FILE *fd, const void *buff, unsigned int count);
 int read(FILE *fd, void *buff, unsigned int count);
 FILE *open(const char *filename, uint8_t mode);

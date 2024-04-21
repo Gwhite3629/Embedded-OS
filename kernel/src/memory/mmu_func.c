@@ -1,4 +1,4 @@
-#include "../../include/memory/mmu_func.h"
+#include <memory/mmu_func.h>
 
 static void tlb_invalidate_all(void) {
     uint32_t reg=0;

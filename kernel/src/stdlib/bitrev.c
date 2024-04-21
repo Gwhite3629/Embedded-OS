@@ -1,5 +1,4 @@
-#include "../../include/stdlib/types.h"
-#include "../../include/stdlib/bitrev.h"
+#include <stdlib.h>
 
 const u8 byte_rev_table[256] = {
 

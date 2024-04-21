@@ -70,6 +70,13 @@ struct hlist_head {
 
 #define __bitwise __attribute__((bitwise))
 
+#define __IRQ__ __attribute__((interrupt("IRQ")))
+#define __UNDEF__ __attribute__((interrupt("UNDEF")))
+#define __ABORT__ __attribute__((interrupt("ABORT")))
+#define __FIQ__ __attribute__((interrupt("FIQ")))
+#define __SVC__ __attribute__((interrupt("SVC")))
+#define __SWI__ __attribute__((interrupt("SWI")))
+
 #include "compact.h"
 
 #endif // _TYPES_H_

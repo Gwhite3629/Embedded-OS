@@ -1,7 +1,7 @@
-#include "../../include/stdlib/err.h"
-#include "../../include/memory/hardware_reserve.h"
-#include "../../include/memory/mmu.h"
-#include "../../include/process/proc.h"
+#include <stdlib/err.h>
+#include <memory/hardware_reserve.h>
+#include <memory/mmu.h>
+#include <process/proc.h>
 
 unsigned long get_kernel_page()
 {

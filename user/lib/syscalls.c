@@ -1,6 +1,43 @@
 #include "../include/syscalls.h"
 #include "../../kernel/include/process/proc.h"
 
+int serial_write(const void *buff, unsigned int count)
+{
+    int ret = 0;
+    register long r7 __asm__("r7") = SYS_SWRITE;
+    register long r0 __asm__("r0") = (long)(buff);
+    register long r1 __asm__("r1") = count;
+
+    asm volatile(
+        "svc #0\n"
+        : "=r"(r0)
+        : "r"(r7), "0"(r0), "r"(r1)
+        : "memory");
+    
+    if (r0 != E_NOERR) {
+        ret = -r0;
+    }
+
+    return ret;
+}
+
+unsigned char serial_read(void)
+{
+    int ret = 0;
+    register long r7 __asm__("r7") = SYS_SREAD;
+    register long r0 __asm__("r0") = 0;
+    
+    asm volatile(
+        "svc #0\n"
+        : "=r"(r0)
+        : "r"(r7)
+        : "memory");
+
+    ret = r0;
+
+    return ret;
+}
+
 int write(FILE *fd, const void *buff, unsigned int count)
 {
     int ret = 0;

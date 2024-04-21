@@ -4,6 +4,12 @@
 #include "../stdlib/err.h"
 #include "../stdlib/types.h"
 
+// Serial
+#define SYS_SREAD     0x0000    // Serial read
+#define SYS_SWRITE      0x0001  // Serial write
+#define SYS_SOPEN       0x0002  // Serial open
+#define SYS_SCLOSE      0x0003  // Serial close
+
 // Ports, pins and IO
 #define SYS_PREAD     0x0004  // Port read
 #define SYS_PWRITE    0x0005  // Port write

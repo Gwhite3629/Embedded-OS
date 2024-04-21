@@ -1,5 +1,4 @@
-#include "../../include/stdlib/rbtree.h"
-#include "../../include/stdlib/extra.h"
+#include <stdlib.h>
 
 static inline void dummy_propagate(rb_node *node, rb_node *stop) {}
 static inline void dummy_copy(rb_node *old, rb_node *new) {}

@@ -1,6 +1,6 @@
-#include "../../include/fs/fat32.h"
-#include "../../include/drivers/sd.h"
-#include "../../include/stdlib.h"
+#include <fs/fat32.h>
+#include <drivers/sd.h>
+#include <stdlib.h>
 
 extern lock_t Mutex;
 

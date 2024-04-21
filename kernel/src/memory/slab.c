@@ -1,7 +1,6 @@
-#include "../../include/memory/vmem.h"
-#include "../../include/stdlib/err.h"
-#include "../../include/memory/slab.h"
-#include "../../include/stdlib/list.h"
+#include <memory/vmem.h>
+#include <memory/slab.h>
+#include <stdlib.h>
 
 kcache_t *kcache;
 

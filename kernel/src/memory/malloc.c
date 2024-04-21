@@ -1,7 +1,6 @@
-#include "../../include/stdlib/err.h"
-#include "../../include/memory/malloc.h"
-#include "../../include/stdlib/types.h"
-#include "../../include/memory/mmu.h"
+#include <memory/malloc.h>
+#include <memory/mmu.h>
+#include <stdlib.h>
 
 const char *stat_names[12] = {
     "UNALLOCATED",
