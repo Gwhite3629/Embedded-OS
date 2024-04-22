@@ -1,33 +1,30 @@
 #include <stdlib/err.h>
 #include <memory/hardware_reserve.h>
-#include <memory/mmu.h>
 #include <process/proc.h>
+#include <memory/mmu.h>
 
-unsigned long get_kernel_page()
+unsigned long map_table(unsigned long *table, unsigned long shift, unsigned long va, int *new_table)
 {
-    unsigned long page = reserve(1, MEM_K);
-    if (page == 0) {
-        return 0;
+    unsigned long index = va >> shift;
+    index = index & (TABLE_SIZE - 1);
+    if (!table[index]) {
+        *new_table = 1;
+        unsigned long next_level_table = reserve(1, MEM_K);
+        unsigned long entry = next_level_table | MM_TYPE_TABLE;
+        table[index] = entry;
+        return next_level_table;
+    } else {
+        *new_table = 0;
     }
-    return page + VA_START;
+    return table[index] & PAGE_MASK;
 }
 
-unsigned long get_user_page(proc_t *p, unsigned long va)
+void map_table_entry(unsigned long *LVL0, unsigned long va, unsigned long pa)
 {
-    unsigned long page = reserve(1, MEM_U);
-    if (page == 0) {
-        return 0;
-    }
-    map_page(p, va, page);
-    return page + VA_START;
-}
-
-void free_page(unsigned long page)
-{
-    int32_t r = relinquish(page, 1);
-    if (r != 0) {
-        return;
-    }
+    unsigned long index = va >> PAGE_SHIFT;
+    index = index & (TABLE_SIZE - 1);
+    unsigned long entry = pa | MM_PTE_FLAGS;
+    LVL0[index] = entry;
 }
 
 void map_page(proc_t *p, unsigned long va, unsigned long page)
@@ -55,26 +52,29 @@ void map_page(proc_t *p, unsigned long va, unsigned long page)
     p->mm.n_user_pages++;
 }
 
-unsigned long map_table(unsigned long *table, unsigned long shift, unsigned long va, int *new_table)
+unsigned long get_kernel_page()
 {
-    unsigned long index = va >> shift;
-    index = index & (TABLE_SIZE - 1);
-    if (!table[index]) {
-        *new_table = 1;
-        unsigned long next_level_table = reserve(1, MEM_K);
-        unsigned long entry = next_level_table | MM_TYPE_TABLE;
-        table[index] = entry;
-        return next_level_table;
-    } else {
-        *new_table = 0;
+    unsigned long page = reserve(1, MEM_K);
+    if (page == 0) {
+        return 0;
     }
-    return table[index] & PAGE_MASK;
+    return page + VA_START;
 }
 
-void map_table_entry(unsigned long *LVL0, unsigned long va, unsigned long pa)
+unsigned long get_user_page(proc_t *p, unsigned long va)
 {
-    unsigned long index = va >> PAGE_SHIFT;
-    index = index & (TABLE_SIZE - 1);
-    unsigned long entry = pa | MM_PTE_FLAGS;
-    LVL0[index] = entry;
+    unsigned long page = reserve(1, MEM_U);
+    if (page == 0) {
+        return 0;
+    }
+    map_page(p, va, page);
+    return page + VA_START;
+}
+
+void free_page(unsigned long page)
+{
+    int32_t r = relinquish(page, 1);
+    if (r != 0) {
+        return;
+    }
 }

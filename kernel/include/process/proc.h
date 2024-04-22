@@ -3,17 +3,15 @@
 
 #include "../stdlib/err.h"
 #include "../stdlib/types.h"
-#include "../memory/mmu.h"
+#include "../memory/mmu_func.h"
 
 #define MAX_PROCESSES 20
 #define DEFAULT_STACK 8192
 
 // Process structure
-typedef struct proc {
-    struct {
-        uint32_t r[16]; // Programmable registers
-        uint32_t spsr;
-    } registers;        // 68 bytes
+typedef struct proc_t {
+    uint32_t r[17]; // Programmable registers        
+    // 68 bytes
 
     uint32_t status;    // 72 bytes
     uint32_t pid;       // 76 bytes
@@ -21,7 +19,7 @@ typedef struct proc {
     void *stack;        // 80 bytes
     uint32_t stacksize; // 84 bytes
 
-    heap_t *heap;
+    void *heap;
 
     void *text;         // 96 bytes
     uint32_t textsize;  // 100 bytes
@@ -64,7 +62,7 @@ void proc_exit(proc_t *p, err_t err);              // Exit proc on error
         return NULL; \
     }
 
-void load_context(int *regs);
-void save_context(int *regs);
+void load_context(unsigned int *regs);
+void store_context(unsigned int *regs);
 
 #endif  // _PROC_H_

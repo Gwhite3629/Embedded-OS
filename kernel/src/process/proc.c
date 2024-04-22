@@ -9,6 +9,34 @@ proc_t *current_proc;
 
 static proc_t all_procs[MAX_PROCESSES];
 
+void store_context(unsigned int *regs)
+{
+    asm volatile (
+        "mov    r2, %[save]\n"
+        "stmia  r2, {r0-lr}\n"
+        "add    r2, r2, #60\n"
+        "mrs    r0, SPSR\n"
+        "stmia  r2, {r0}\n"
+        :
+        : [save] "r"(regs)
+        :
+    );
+}
+
+void load_context(unsigned int *regs)
+{
+    asm volatile (
+        "mov r2, %[restore]\n"
+        "ldr r0, [r2, #60]\n"
+        "msr SPSR, r0\n"
+        "ldmia r2, {r0-r14}\n"
+        "mov pc, lr\n"
+        :
+        : [restore] "r"(regs)
+        :
+    );
+}
+
 err_t proc_insert(proc_t *p)
 {
     err_t ret = E_NOERR;
@@ -19,7 +47,7 @@ err_t proc_insert(proc_t *p)
     asm ("mov r4, #0\n"
          "mcr p15, 0, r4, c8, c7, 0");
 
-    load_context(&(*p).registers);
+    load_context(p->r);
 
     (*p).status = RUNNING;
 
@@ -30,7 +58,7 @@ err_t proc_remove(void)
 {
     err_t ret = E_NOERR;
 
-    store_context(&(*current_proc).registers);
+    store_context(current_proc->r);
 
     (*current_proc).status = WAITING;
 
@@ -60,10 +88,10 @@ proc_t *proc_construct(void)
         return NULL;
     }
 
-    p = pmalloc();
+    //new(p, 1, proc_t);
     PROC_CHECK(p);
 
-    memset(p, 0, sizeof(proc_t));
+    //memset(p, 0, sizeof(proc_t));
 
     p->status = IDLE;
     p->pid = i;
@@ -74,11 +102,11 @@ proc_t *proc_construct(void)
     p->textsize = 0;
 
     for (i = 0; i < 14; i++) {
-        p->registers.r[i] = 0;
+        p->r[i] = 0;
     }
 
-    p->registers.spsr = 0x10;
-    p->registers.r[14] = 0;
+    p->r[16] = 0x10;
+    p->r[14] = 0;
 
     return p;
 }

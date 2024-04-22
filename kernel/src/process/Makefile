@@ -1,6 +1,12 @@
-CFLAGS += KINCLUDE
+#KINCLUDE := $(if $(KINCLUDE),$(KINCLUDE),../../include/)
+#ktree := $(if $(ktree),$(ktree),..)
+CFLAGS += $(KINCLUDE)
 
-obj.o := proc.o
+obj := proc.o
 
-proc.o:	proc.c process/proc.h
-	$(CROSS)$(CC) $(CFLAGS) -o proc.o -c proc.c
+all: $(obj)
+
+proc.o:
+	$(CROSS)$(CC) $(CFLAGS) -o proc.o $(ktree)/process/proc.c
+
+.PHONY: all

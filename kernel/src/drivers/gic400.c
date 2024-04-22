@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <stdlib.h>
 #include <drivers/io.h>
 #include <drivers/gic400.h>
 
@@ -54,7 +54,7 @@ uint32_t gic400_init(void* interrupt_controller_base) {
     writel(0x80000000UL, GICD_ISENABLER0);
 
 	/* enable */
-    writel(GICD_CTLR_ENABL, GICD_CTLR);
+    writel(GICD_CTLR_ENABLE, GICD_CTLR);
 
 	/* initialize core 0 CPU interface: */
     writel(GICC_PMR_PRIORITY, GICC_PMR);

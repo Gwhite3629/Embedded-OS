@@ -18,7 +18,7 @@ err_t sync_access(FS *fs)
         fs->dflag = 0;
         if (fs->current_sector - fs->fbase < fs->fsize) {
             if (fs->n_fats == 2)
-                disk_write(fs->current_access, fs->current_sector + fs->fsize, 1);
+                sd_write(fs->current_access, fs->current_sector + fs->fsize, 1);
         }
     }
 

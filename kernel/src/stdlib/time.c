@@ -25,8 +25,9 @@ int timer_init(void)
         IO_BASE + TIMER_CONTROL);
 
     // For RPI4B
-    bcm2835_write(IRQ_ENABLE_BASIC_IRQ_ARM_TIMER,IO_BASE + IRQ0_SET_EN_2);
+    writel(IO_BASE + IRQ0_SET_EN_2, IRQ_ENABLE_BASIC_IRQ_ARM_TIMER);
 
+    return 0;
 }
 
 void wait_cycles(unsigned int n)
@@ -39,7 +40,7 @@ void wait_cycles(unsigned int n)
         }
     }
 }
-
+/*
 void wait_msec(unsigned int n)
 {
     register unsigned long f, t, r;
@@ -63,3 +64,4 @@ void wait_msec(unsigned int n)
         );
     } while (r - t < i);
 }
+*/

@@ -2,12 +2,12 @@ include Makefile.inc
 
 PHONY := _all
 
-srctree := .
+srctree := ..
 
 ktree := $(srctree)/kernel/src
 utree := $(srctree)/user
 
-KBUILD_OUTPUT := $(./build)
+KBUILD_OUTPUT := build
 saved-output := $(KBUILD_OUTPUT)
 KBUILD_OUTPUT := $(shell mkdir -p $(KBUILD_OUTPUT)\
 					&& cd $(KBUILD_OUTPUT)\
@@ -20,6 +20,7 @@ _all:
 
 export CROSS CC AS CFLAGS LFLAGS ASFLAGS
 export KINCLUDE UINCLUDE
+export ktree utree
 
 $(if $(KBUILD_OUTPUT),, \
      $(error failed to create output directory "$(saved-output)"))

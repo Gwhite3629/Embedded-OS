@@ -11,8 +11,6 @@
 
 lock_t Mutex;
 
-FS *FatFs[1];
-
 typedef struct Bios_Parameter_Block {
     uint8_t BS_jmpBoot[3];      // Jump instruction to boot code
     char BS_OEMName[8];         // OEM Name Identifier
@@ -101,6 +99,8 @@ typedef struct {
 } FILEINFO;
 
 typedef uint32_t FAT32_ENTRY;
+
+FS *FatFs[1];
 
 // FAT32 entry values
 #define SET_FREE(ENTRY) ((ENTRY) |= 0x0000000)

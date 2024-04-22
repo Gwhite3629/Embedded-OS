@@ -1,7 +1,7 @@
 #ifndef _GPIO_H_
 #define _GPIO_H_
 
-#define CAST(X) ((volatile unsigned int *)(X))
+#define CAST(X) ((volatile void *)(X))
 
 #define GPIO_BASE   (IO_BASE + 0x00200000)
 

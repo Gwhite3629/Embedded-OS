@@ -1,3 +1,6 @@
+#ifndef _BSEARCH_H_
+#define _BSEARCH_H_
+
 #include "err.h"
 #include "types.h"
 
@@ -28,3 +31,5 @@ bsearch (const void *__key, const void *__base, size_t __nmemb, size_t __size,
 
   return NULL;
 }
+
+#endif // _BSEARCH_H_

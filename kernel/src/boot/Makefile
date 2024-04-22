@@ -1,6 +1,8 @@
-CFLAGS += KINCLUDE
+CFLAGS += $(KINCLUDE)
 
-obj := boot.o
+obj = boot.o
 
-boot.o:	boot.S
-	$(CROSS)$(AS) $(ASFLAGS) -o boot.o boot.S
+$(obj):
+	$(CROSS)$(AS) $(ASFLAGS) -o $(obj) $(ktree)/boot/boot.S
+
+.PHONY: $(obj)

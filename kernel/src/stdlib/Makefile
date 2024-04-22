@@ -1,30 +1,36 @@
-CFLAGS += KINCLUDE
+CFLAGS += $(KINCLUDE)
+obj := rbtree.o bitrev.o memset.o qsort.o string.o syscall.o interrupts.o time.o serial.o printk.o
 
-obj := bitrev.o memset.o qsort.o string.o syscall.o interrupts.o time.o serial.o printk.o
+all: $(obj)
 
-bitrev.o:	bitrev.c stdlib/bitrev.h
-	$(CROSS)$(CC) $(CFLAGS) -o bitrev.o -c bitrev.c
+rbtree.o:
+	$(CROSS)$(CC) $(CFLAGS) -o rbtree.o -c $(ktree)/stdlib/rbtree.c
 
-memset.o:	memset.c stdlib/memset.h
-	$(CROSS)$(CC) $(CFLAGS) -o memset.o -c memset.c
+bitrev.o:
+	$(CROSS)$(CC) $(CFLAGS) -o bitrev.o -c $(ktree)/stdlib/bitrev.c
 
-qsort.o:	qsort.c stdlib/qsort.h
-	$(CROSS)$(CC) $(CFLAGS) -o qsort.o -c qsort.c
+memset.o:
+	$(CROSS)$(CC) $(CFLAGS) -o memset.o -c $(ktree)/stdlib/memset.c
 
-string.o:	string.c stdlib/string.h
-	$(CROSS)$(CC) $(CFLAGS) -o string.o -c string.c
+qsort.o:
+	$(CROSS)$(CC) $(CFLAGS) -o qsort.o -c $(ktree)/stdlib/qsort.c
 
-syscall.o:	syscall.c stdlib/syscall.h
-	$(CROSS)$(CC) $(CFLAGS) -o syscall.o -c syscall.c
+string.o:
+	$(CROSS)$(CC) $(CFLAGS) -o string.o -c $(ktree)/stdlib/string.c
 
-interrupts.o:	interrupts.c stdlib/interrupts.h
-	$(CROSS)$(CC) $(CFLAGS) -o interrupts.o -c interrupts.c
+syscall.o:
+	$(CROSS)$(CC) $(CFLAGS) -o syscall.o -c $(ktree)/stdlib/syscall.c
 
-time.o:	time.c stdlib/time.h
-	$(CROSS)$(CC) $(CFLAGS) -o time.o -c time.c
+interrupts.o:
+	$(CROSS)$(CC) $(CFLAGS) -o interrupts.o -c $(ktree)/stdlib/interrupts.c
 
-serial.o:	serial.c stdlib/serial.h
-	$(CROSS)$(CC) $(CFLAGS) -o serial.o -c serial.c
+time.o:
+	$(CROSS)$(CC) $(CFLAGS) -o time.o -c $(ktree)/stdlib/time.c
 
-printk.o:	printk.c stdlib/printk.h
-	$(CROSS)$(CC) $(CFLAGS) -o printk.o -c printk.c
+serial.o:
+	$(CROSS)$(CC) $(CFLAGS) -o serial.o -c $(ktree)/stdlib/serial.c
+
+printk.o:
+	$(CROSS)$(CC) $(CFLAGS) -o printk.o -c $(ktree)/stdlib/printk.c
+
+.PHONY: all

@@ -1,7 +1,7 @@
 #ifndef _GIC400_H_
 #define _GIC400_H_
 
-#include "../stdlib./h"
+#include "../stdlib.h"
 
 extern uint32_t num_interrupts;
 

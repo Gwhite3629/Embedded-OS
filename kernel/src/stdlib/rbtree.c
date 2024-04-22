@@ -10,165 +10,6 @@ static const struct rb_augment_callbacks dummy_callbacks = {
 	.rotate = dummy_rotate
 };
 
-void rb_insert_color(rb_node *node, rb_root *root)
-{
-	__rb_insert(node, root, dummy_rotate);
-}
-EXPORT(rb_insert_color);
-
-void rb_erase(rb_node *node, rb_root *root)
-{
-	struct rb_node *rebalance;
-	rebalance = __rb_erase_augmented(node, root, &dummy_callbacks);
-	if (rebalance)
-		____rb_erase_color(rebalance, root, dummy_rotate);
-}
-EXPORT(rb_erase);
-
-rb_node *rb_next(const rb_node *node)
-{
-    rb_node *parent;
-
-	if (RB_EMPTY_NODE(node))
-		return NULL;
-
-	/*
-	 * If we have a right-hand child, go down and then left as far
-	 * as we can.
-	 */
-	if (node->rb_right) {
-		node = node->rb_right;
-		while (node->rb_left)
-			node = node->rb_left;
-		return (struct rb_node *)node;
-	}
-
-	/*
-	 * No right-hand children. Everything down and left is smaller than us,
-	 * so any 'next' node must be in the general direction of our parent.
-	 * Go up the tree; any time the ancestor is a right-hand child of its
-	 * parent, keep going up. First time it's a left-hand child of its
-	 * parent, said parent is our 'next' node.
-	 */
-	while ((parent = rb_parent(node)) && node == parent->rb_right)
-		node = parent;
-
-	return parent;
-}
-EXPORT(rb_next);
-
-rb_node *rb_prev(const rb_node *node)
-{
-    rb_node *parent;
-
-	if (RB_EMPTY_NODE(node))
-		return NULL;
-
-	/*
-	 * If we have a left-hand child, go down and then right as far
-	 * as we can.
-	 */
-	if (node->rb_left) {
-		node = node->rb_left;
-		while (node->rb_right)
-			node = node->rb_right;
-		return (struct rb_node *)node;
-	}
-
-	/*
-	 * No left-hand children. Go up till we find an ancestor which
-	 * is a right-hand child of its parent.
-	 */
-	while ((parent = rb_parent(node)) && node == parent->rb_left)
-		node = parent;
-
-	return parent;
-}
-EXPORT(rb_prev);
-
-rb_node *rb_first(const rb_root *root)
-{
-    rb_node	*n;
-
-	n = root->rb_node;
-	if (!n)
-		return NULL;
-	while (n->rb_left)
-		n = n->rb_left;
-	return n;
-}
-EXPORT(rb_first);
-
-rb_node *rb_last(const rb_root *root)
-{
-	rb_node	*n;
-
-	n = root->rb_node;
-	if (!n)
-		return NULL;
-	while (n->rb_right)
-		n = n->rb_right;
-	return n;
-}
-EXPORT(rb_last);
-
-static struct rb_node *rb_left_deepest_node(const struct rb_node *node)
-{
-	for (;;) {
-		if (node->rb_left)
-			node = node->rb_left;
-		else if (node->rb_right)
-			node = node->rb_right;
-		else
-			return (struct rb_node *)node;
-	}
-}
-
-rb_node *rb_first_postorder(const rb_root *root)
-{
-    if (!root->rb_node)
-		return NULL;
-
-	return rb_left_deepest_node(root->rb_node);
-}
-EXPORT(rb_first_postorder);
-
-rb_node *rb_next_postorder(const rb_node *node)
-{
-	const struct rb_node *parent;
-	if (!node)
-		return NULL;
-	parent = rb_parent(node);
-
-	/* If we're sitting on node, we've already seen our children */
-	if (parent && node == parent->rb_left && parent->rb_right) {
-		/* If we are the parent's left node, go to the parent's right
-		 * node then all the way down to the left */
-		return rb_left_deepest_node(parent->rb_right);
-	} else
-		/* Otherwise we are the parent's right node, and the parent
-		 * should be next */
-		return (struct rb_node *)parent;
-}
-EXPORT(rb_next_postorder);
-
-void rb_replace_node(rb_node *victim, rb_node *new,
-			    rb_root *root)
-{
-	struct rb_node *parent = rb_parent(victim);
-
-	/* Copy the pointers/colour from the victim to the replacement */
-	*new = *victim;
-
-	/* Set the surrounding nodes to point to the replacement */
-	if (victim->rb_left)
-		rb_set_parent(victim->rb_left, new);
-	if (victim->rb_right)
-		rb_set_parent(victim->rb_right, new);
-	__rb_change_child(victim, new, parent, root);
-}
-EXPORT(rb_replace_node);
-
 static inline void rb_set_black(rb_node *rb)
 {
 	rb->__rb_parent_color |= RB_BLACK;
@@ -510,6 +351,165 @@ ____rb_erase_color(rb_node *parent, rb_root *root,
 	}
 }
 
+void rb_insert_color(rb_node *node, rb_root *root)
+{
+	__rb_insert(node, root, dummy_rotate);
+}
+EXPORT(rb_insert_color);
+
+void rb_erase(rb_node *node, rb_root *root)
+{
+	struct rb_node *rebalance;
+	rebalance = __rb_erase_augmented(node, root, &dummy_callbacks);
+	if (rebalance)
+		____rb_erase_color(rebalance, root, dummy_rotate);
+}
+EXPORT(rb_erase);
+
+rb_node *rb_next(const rb_node *node)
+{
+    rb_node *parent;
+
+	if (RB_EMPTY_NODE(node))
+		return NULL;
+
+	/*
+	 * If we have a right-hand child, go down and then left as far
+	 * as we can.
+	 */
+	if (node->rb_right) {
+		node = node->rb_right;
+		while (node->rb_left)
+			node = node->rb_left;
+		return (struct rb_node *)node;
+	}
+
+	/*
+	 * No right-hand children. Everything down and left is smaller than us,
+	 * so any 'next' node must be in the general direction of our parent.
+	 * Go up the tree; any time the ancestor is a right-hand child of its
+	 * parent, keep going up. First time it's a left-hand child of its
+	 * parent, said parent is our 'next' node.
+	 */
+	while ((parent = rb_parent(node)) && node == parent->rb_right)
+		node = parent;
+
+	return parent;
+}
+EXPORT(rb_next);
+
+rb_node *rb_prev(const rb_node *node)
+{
+    rb_node *parent;
+
+	if (RB_EMPTY_NODE(node))
+		return NULL;
+
+	/*
+	 * If we have a left-hand child, go down and then right as far
+	 * as we can.
+	 */
+	if (node->rb_left) {
+		node = node->rb_left;
+		while (node->rb_right)
+			node = node->rb_right;
+		return (struct rb_node *)node;
+	}
+
+	/*
+	 * No left-hand children. Go up till we find an ancestor which
+	 * is a right-hand child of its parent.
+	 */
+	while ((parent = rb_parent(node)) && node == parent->rb_left)
+		node = parent;
+
+	return parent;
+}
+EXPORT(rb_prev);
+
+rb_node *rb_first(const rb_root *root)
+{
+    rb_node	*n;
+
+	n = root->rb_node;
+	if (!n)
+		return NULL;
+	while (n->rb_left)
+		n = n->rb_left;
+	return n;
+}
+EXPORT(rb_first);
+
+rb_node *rb_last(const rb_root *root)
+{
+	rb_node	*n;
+
+	n = root->rb_node;
+	if (!n)
+		return NULL;
+	while (n->rb_right)
+		n = n->rb_right;
+	return n;
+}
+EXPORT(rb_last);
+
+static struct rb_node *rb_left_deepest_node(const struct rb_node *node)
+{
+	for (;;) {
+		if (node->rb_left)
+			node = node->rb_left;
+		else if (node->rb_right)
+			node = node->rb_right;
+		else
+			return (struct rb_node *)node;
+	}
+}
+
+rb_node *rb_first_postorder(const rb_root *root)
+{
+    if (!root->rb_node)
+		return NULL;
+
+	return rb_left_deepest_node(root->rb_node);
+}
+EXPORT(rb_first_postorder);
+
+rb_node *rb_next_postorder(const rb_node *node)
+{
+	const struct rb_node *parent;
+	if (!node)
+		return NULL;
+	parent = rb_parent(node);
+
+	/* If we're sitting on node, we've already seen our children */
+	if (parent && node == parent->rb_left && parent->rb_right) {
+		/* If we are the parent's left node, go to the parent's right
+		 * node then all the way down to the left */
+		return rb_left_deepest_node(parent->rb_right);
+	} else
+		/* Otherwise we are the parent's right node, and the parent
+		 * should be next */
+		return (struct rb_node *)parent;
+}
+EXPORT(rb_next_postorder);
+
+void rb_replace_node(rb_node *victim, rb_node *new,
+			    rb_root *root)
+{
+	struct rb_node *parent = rb_parent(victim);
+
+	/* Copy the pointers/colour from the victim to the replacement */
+	*new = *victim;
+
+	/* Set the surrounding nodes to point to the replacement */
+	if (victim->rb_left)
+		rb_set_parent(victim->rb_left, new);
+	if (victim->rb_right)
+		rb_set_parent(victim->rb_right, new);
+	__rb_change_child(victim, new, parent, root);
+}
+EXPORT(rb_replace_node);
+
 void __rb_erase_color(rb_node *parent, rb_root *root,
 	void (*augment_rotate)(rb_node *old, rb_node *new))
 {
@@ -523,18 +523,3 @@ void __rb_insert_augmented(rb_node *node, rb_root *root,
 	__rb_insert(node, root, augment_rotate);
 }
 EXPORT(__rb_insert_augmented);
-
-void rb_insert_color(rb_node *node, rb_root *root)
-{
-	__rb_insert(node, root, dummy_rotate);
-}
-EXPORT_SYMBOL(rb_insert_color);
-
-void rb_erase(rb_node *node, rb_root *root)
-{
-	rb_node *rebalance;
-	rebalance = __rb_erase_augmented(node, root, &dummy_callbacks);
-	if (rebalance)
-		____rb_erase_color(rebalance, root, dummy_rotate);
-}
-EXPORT_SYMBOL(rb_erase);

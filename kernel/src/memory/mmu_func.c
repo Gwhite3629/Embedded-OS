@@ -1,6 +1,6 @@
 #include <memory/mmu_func.h>
 
-static void tlb_invalidate_all(void) {
+void tlb_invalidate_all(void) {
     uint32_t reg=0;
 
 	/* TLBIALL */
@@ -8,7 +8,7 @@ static void tlb_invalidate_all(void) {
 		: : "r" (reg) : "memory");
 }
 
-static void icache_invalidate_all(void) {
+void icache_invalidate_all(void) {
 	uint32_t reg=0;
 
 	/* ICIALLU */

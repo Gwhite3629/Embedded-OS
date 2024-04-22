@@ -3,8 +3,6 @@
 
 #include "types.h"
 
-err_t handle_irq_event(irq_t * q);
-
 // Int indicates number for verification
 // Void * indicates pointer to data structure for relevant irq
 typedef err_t (*irq_handler_t)(int, void *);
@@ -15,6 +13,8 @@ typedef struct irq_t {
     lock_t irq_lock;
     void *handler_data;
 } irq_t;
+
+err_t handle_irq_event(irq_t * q);
 
 static inline uint32_t get_CPSR(void)
 {

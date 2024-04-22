@@ -1,5 +1,6 @@
 #include <memory/malloc.h>
 #include <memory/mmu.h>
+#include <memory/hardware_reserve.h>
 #include <stdlib.h>
 
 const char *stat_names[12] = {
@@ -214,7 +215,7 @@ inline void destroy(heap_t *h)
     if (h) {
         for (int i = h->n_regions; i > 0; i--) {
             if (h->regions[i-1]->base_addr) {
-                free(h->regions[i-1]->base_addr);
+                relinquish((long)h->regions[i-1]->base_addr, h->regions[i-1]->alloc_size/ALIGN);
             }
         }
     }
@@ -321,7 +322,7 @@ inline heap_t *grow_kheap(heap_t *h)
     memcpy(((char *)new_h.regions + REGION_ARR), ((char *)h->regions + REGION_ARR), (h->n_regions-1)*REGION_ARR);
     memcpy((heap_t *)kheap.chunks[2]->addr, &new_h, HEAP_INFO_SIZE);
 
-    free(h->regions[0]->base_addr);
+    relinquish((long)h->regions[0]->base_addr, h->regions[0]->alloc_size/ALIGN);
 
     h = (heap_t *)(kheap.chunks[2]->addr);
 

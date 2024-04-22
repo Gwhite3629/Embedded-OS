@@ -8,8 +8,8 @@
 
 struct rb_augment_callbacks {
 	void (*propagate)(rb_node *node, rb_node *stop);
-	void (*copy)(rb_node *old, rb_node *new);
-	void (*rotate)(rb_node *old, rb_node *new);
+	void (*copy)(rb_node *oldN, rb_node *newN);
+	void (*rotate)(rb_node *oldN, rb_node *newN);
 };
 
 #define	RB_RED		0
@@ -46,11 +46,11 @@ extern rb_node *rb_last(const rb_root *root);
 extern rb_node *rb_first_postorder(const rb_root *node);
 extern rb_node *rb_next_postorder(const rb_node *node);
 
-extern void rb_replace_node(rb_node *victim, rb_node *new,
+extern void rb_replace_node(rb_node *victim, rb_node *newN,
 			    rb_root *root);
 
 extern void __rb_insert_augmented(rb_node *node, rb_root *root,
-	void (*augment_rotate)(rb_node *old, rb_node *new));
+	void (*augment_rotate)(rb_node *oldN, rb_node *newN));
 
 static inline void
 rb_insert_augmented(struct rb_node *node, struct rb_root *root,
@@ -58,6 +58,43 @@ rb_insert_augmented(struct rb_node *node, struct rb_root *root,
 {
 	__rb_insert_augmented(node, root, augment->rotate);
 }
+
+static inline void
+__rb_change_child(rb_node *oldN, rb_node *newN,
+		  rb_node *parent, rb_root *root)
+{
+	if (parent) {
+		if (parent->rb_left == oldN)
+			WRITE_ONCE(parent->rb_left, newN);
+		else
+			WRITE_ONCE(parent->rb_right, newN);
+	} else
+		WRITE_ONCE(root->rb_node, newN);
+}
+
+static inline void rb_set_parent(rb_node *rb, rb_node *p)
+{
+	rb->__rb_parent_color = rb_color(rb) | (unsigned long)p;
+}
+
+static inline void rb_set_parent_color(rb_node *rb,
+				       rb_node *p, int color)
+{
+	rb->__rb_parent_color = (unsigned long)p | color;
+}
+
+static inline void rb_link_node(rb_node *node, rb_node *parent, rb_node **rb_link)
+{
+	node->__rb_parent_color = (unsigned long)parent;
+	node->rb_left = node->rb_right = (rb_node *)(0);
+
+	*rb_link = node;
+}
+
+#define rb_entry_safe(ptr, type, member) \
+	({ typeof(ptr) ____ptr = (ptr); \
+	   ____ptr ? rb_entry(____ptr, type, member) : NULL; \
+	})
 
 static inline struct rb_node *
 __rb_erase_augmented(rb_node *node, rb_root *root,
@@ -81,16 +118,16 @@ __rb_erase_augmented(rb_node *node, rb_root *root,
 		__rb_change_child(node, child, parent, root);
 		if (child) {
 			child->__rb_parent_color = pc;
-			rebalance = NULL;
+			rebalance = (rb_node *)NULL;
 		} else
-			rebalance = __rb_is_black(pc) ? parent : NULL;
+			rebalance = __rb_is_black(pc) ? parent : (rb_node *)NULL;
 		tmp = parent;
 	} else if (!child) {
 		/* Still case 1, but this time the child is node->rb_left */
 		tmp->__rb_parent_color = pc = node->__rb_parent_color;
 		parent = __rb_parent(pc);
 		__rb_change_child(node, tmp, parent, root);
-		rebalance = NULL;
+		rebalance = (rb_node *)NULL;
 		tmp = parent;
 	} else {
 		struct rb_node *successor = child, *child2;
@@ -149,17 +186,20 @@ __rb_erase_augmented(rb_node *node, rb_root *root,
 
 		if (child2) {
 			rb_set_parent_color(child2, parent, RB_BLACK);
-			rebalance = NULL;
+			rebalance = (rb_node *)NULL;
 		} else {
-			rebalance = rb_is_black(successor) ? parent : NULL;
+			rebalance = rb_is_black(successor) ? parent : (rb_node *)NULL;
 		}
 		successor->__rb_parent_color = pc;
 		tmp = successor;
 	}
 
-	augment->propagate(tmp, NULL);
+	augment->propagate(tmp, (rb_node *)NULL);
 	return rebalance;
 }
+
+extern void __rb_erase_color(struct rb_node *parent, struct rb_root *root,
+	void (*augment_rotate)(struct rb_node *oldN, struct rb_node *newN));
 
 static inline void
 rb_erase_augmented(rb_node *node, rb_root *root,
@@ -169,43 +209,6 @@ rb_erase_augmented(rb_node *node, rb_root *root,
 	if (rebalance)
 		__rb_erase_color(rebalance, root, augment->rotate);
 }
-
-static inline void rb_set_parent(rb_node *rb, rb_node *p)
-{
-	rb->__rb_parent_color = rb_color(rb) | (unsigned long)p;
-}
-
-static inline void rb_set_parent_color(rb_node *rb,
-				       rb_node *p, int color)
-{
-	rb->__rb_parent_color = (unsigned long)p | color;
-}
-
-static inline void
-__rb_change_child(rb_node *old, rb_node *new,
-		  rb_node *parent, rb_root *root)
-{
-	if (parent) {
-		if (parent->rb_left == old)
-			WRITE_ONCE(parent->rb_left, new);
-		else
-			WRITE_ONCE(parent->rb_right, new);
-	} else
-		WRITE_ONCE(root->rb_node, new);
-}
-
-static inline void rb_link_node(rb_node *node, rb_node *parent, rb_node **rb_link)
-{
-	node->__rb_parent_color = (unsigned long)parent;
-	node->rb_left = node->rb_right = (rb_node *)(0);
-
-	*rb_link = node;
-}
-
-#define rb_entry_safe(ptr, type, member) \
-	({ typeof(ptr) ____ptr = (ptr); \
-	   ____ptr ? rb_entry(____ptr, type, member) : NULL; \
-	})
 
 static inline void
 rb_add(rb_node *node, rb_root *tree,
@@ -308,7 +311,7 @@ hash(char *name)
 {
 	unsigned long val = 5381;
 	int c;
-	while (c = *name++) {
+	while ((c = *name++)) {
 		val = ((val << 5) + val) + c;
 	}
 	return val;

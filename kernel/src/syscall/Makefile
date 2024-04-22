@@ -1,6 +1,13 @@
-CFLAGS += KINCLUDE
+CFLAGS += $(KINCLUDE)
 
-obj := syscalls.o
+obj := syscalls.o swi_handler.o
 
-syscalls.o:	syscalls.c syscall/syscalls.h
-	$(CROSS)$(CC) $(CFLAGS) -o syscalls.o -c syscalls.c
+all: $(obj)
+
+syscalls.o:	
+	$(CROSS)$(CC) $(CFLAGS) -o syscalls.o -c $(ktree)/syscall/syscalls.c
+
+swi_handler.o:
+	$(CROSS)$(AS) $(ASFLAGS) -o swi_handler.o $(ktree)/syscall/swi_handler.S
+
+.PHONY: all

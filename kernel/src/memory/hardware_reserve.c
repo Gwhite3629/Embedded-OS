@@ -1,5 +1,4 @@
 #include <stdlib.h>
-
 #include <memory/hardware_reserve.h>
 
 #define MAX_MEMORY (1024*1024*1024)     // 1GB
@@ -16,13 +15,13 @@ static unsigned long MEMORY_MAP[MAX_MEMORY/CHUNK_SIZE/32];
 static uint32_t MAX_CHUNK = 0;
 
 #define mark_used(chunk) \
-    set_bit(MEMORY_MAP, chunk)
+    set_bit((MEMORY_MAP), chunk)
 
 #define mark_free(chunk) \
-    clear_bit(MEMORY_MAP, chunk)
+    clear_bit((MEMORY_MAP), (chunk))
 
 #define test_used(chunk) \
-    get_bit(MEMORY_MAP, chunk)
+    get_bit((MEMORY_MAP), (chunk))
 
 static int init(unsigned long memory_total,
                 unsigned long memory_kernel) {
@@ -57,7 +56,7 @@ static unsigned long find_free(int n_chunks, unsigned long start, unsigned long 
     for (i=start; i<end; i++) {
         if (!test_used(i)) {
             for(j=0;j<n_chunks;j++) {
-                if (test_used(i+j)) break;
+                if (test_used((i+j))) break;
             }
             if ((j==n_chunks) && (i+j<end)) {
                 return i;
@@ -86,7 +85,6 @@ uint32_t mem_total(void)
 unsigned long reserve(uint32_t n_chunks, uint32_t type)
 {
     unsigned long first_chunk;
-    int n_chunks;
     unsigned long i;
     unsigned long start,end;
 

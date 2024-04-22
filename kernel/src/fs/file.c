@@ -87,9 +87,9 @@ err_t f_open (FILE* fp, const char* path, uint8_t mode)
 				fs->dflag = 1;
 				if (cl != 0) {						/* Remove the cluster chain if exist */
 					sector = fs->current_access;
-					ret = remove_chain(&dj.fs, cl, 0);
+					ret = remove_chain(dj.fs, cl, 0);
 					if (ret == E_NOERR) {
-						ret = move_acess(fs, sector);
+						ret = move_access(fs, sector);
 						fs->lac = cl - 1;		/* Reuse the cluster hole */
 					}
 				}
@@ -125,7 +125,7 @@ err_t f_open (FILE* fp, const char* path, uint8_t mode)
 				bcs = (uint32_t)fs->csize * SECTOR_SIZE;	/* Cluster size in byte */
 				cluster = fp->fs->sclust;				/* Follow the cluster chain */
 				for (ofs = fp->fs->objsize; ret == E_NOERR && ofs > bcs; ofs -= bcs) {
-					cluster = get_entry(&fp->fs, cluster);
+					cluster = get_entry(fp->fs, cluster);
 					if (cluster <= 1) ret = E_FINT;
 					if (cluster == 0xFFFFFFFF) ret = E_DISKERR;
 				}
@@ -157,7 +157,7 @@ err_t f_close (FILE* fp)
 
     ret = f_sync(fp);
     if (ret == E_NOERR) {
-        ret = validate(&fp->fs, &fs);
+        ret = validate(fp->fs, &fs);
         if (ret == E_NOERR) {
             fp->fs = 0;
             mutex_give();
@@ -174,7 +174,7 @@ err_t f_sync (FILE* fp)
     uint32_t tm;
     uint8_t *dir;
 
-    ret = validate(&fp->fs, &fs);
+    ret = validate(fp->fs, &fs);
     if (ret == E_NOERR) {
         if (fp->flags & FA_MODIFIED) {
             if (fp->flags * FA_DIRTY) {
@@ -213,19 +213,19 @@ err_t f_read (FILE* fp, void* buff, unsigned int btr, unsigned int* br)
     uint8_t *rbuff = (uint8_t *)buff;
 
     *br = 0;
-    ret = validate(&fp->fs, &fs);
+    ret = validate(fp->fs, &fs);
     if (ret != E_NOERR || (ret = (err_t)fp->err) != E_NOERR) return ret;
     if (!(fp->flags & FA_READ)) return ret;
     rem = fp->fs->objsize - fp->fptr;
     if (btr > rem) btr = (uint32_t)rem;
 
-    if (; btr > 0; btr -= cnt, *br += cnt, rbuff += cnt, fp->fptr += cnt) {
+    for (; btr > 0; btr -= cnt, *br += cnt, rbuff += cnt, fp->fptr += cnt) {
         if (fp->fptr % SECTOR_SIZE == 0) {
             csector = (uint32_t)(fp->fptr / SECTOR_SIZE & (fs->csize - 1));
             if (csector == 0) {
                 cluster = fp->fs->sclust;
             } else {
-                cluster = get_entry(&fp->fs, fp->cluster);
+                cluster = get_entry(fp->fs, fp->cluster);
             }
             if (cluster < 2) return E_FINT;
             if (cluster == 0xFFFFFFFF) return E_DISKERR;
@@ -252,7 +252,7 @@ err_t f_read (FILE* fp, void* buff, unsigned int btr, unsigned int* br)
                 if (sd_write(fp->buf, fp->sector, 1) != E_NOERR) return E_FINT;
                 fp->flags &= (uint8_t)~FA_DIRTY;
             }
-            if (disk_read(fp->buf, sector, 1) != E_NOERR) return E_DISKERR;
+            if (sd_read(fp->buf, sector, 1) != E_NOERR) return E_DISKERR;
         }
         fp->sector = sector;
     }
@@ -274,15 +274,15 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
     const uint8_t *wbuff = (const uint8_t *)buff;
 
     *bw = 0;
-    ret = validate(&fp->fs, &fs);
+    ret = validate(fp->fs, &fs);
     if (ret != E_NOERR || (ret = (err_t)fp->err) != E_NOERR) return ret;
     if (!(fp->flags & FA_WRITE)) return E_DENIED;
-    if ((uint32_t)(fp->fptr + btw) < (uint32_t)f->fptr) {
+    if ((uint32_t)(fp->fptr + btw) < (uint32_t)fp->fptr) {
         btw = (uint32_t)(0xFFFFFFFF - (uint32_t)fp->fptr);
     }
 
     for (; btw > 0; btw -= cnt, *bw += cnt, wbuff += cnt, fp->fptr += cnt,
-        fp->fs->obkjsize = (fp->fptr > fp->fs->objsize) ? fp->fptr :
+        fp->fs->objsize = (fp->fptr > fp->fs->objsize) ? fp->fptr :
         fp->fs->objsize) {
         if (fp->fptr % SECTOR_SIZE == 0) {
             csector = (uint32_t)(fp->fptr / SECTOR_SIZE) & (fs->csize - 1);
@@ -290,10 +290,10 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
                 if (fp->fptr == 0) {
                     cluster = fp->fs->sclust;
                     if (cluster == 0) {
-                        cluster = create_chain(&fp->fs, 0);
+                        cluster = create_chain(fp->fs, 0);
                     }
                 } else {
-                    cluster = create_chain(&fp->fs, fp->cluster);
+                    cluster = create_chain(fp->fs, fp->cluster);
                 }
                 if (cluster == 0) break;
                 if (cluster == 1) return E_FINT;
@@ -301,9 +301,9 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
                 fp->cluster = cluster;
                 if (fp->fs->sclust == 0) fp->fs->sclust = cluster;
             }
-            if (fp->flags & FA_DIRY) {
-                if (sd_write(fp->buf, fp->sect, 1) != E_NOERR) return E_DISKERR;
-                fp-flags &= (uint8_t)~FA_DIRTY;
+            if (fp->flags & FA_DIRTY) {
+                if (sd_write(fp->buf, fp->sector, 1) != E_NOERR) return E_DISKERR;
+                fp->flags &= (uint8_t)~FA_DIRTY;
             }
             sector = c2s(fs, fp->cluster);
             if (sector == 0) return E_FINT;
@@ -346,14 +346,14 @@ err_t f_stat (const char* path, FILEINFO* fno)
     err_t ret;
     DIR dj;
     
-    ret = mount_volume(&path, &dj.fs);
+    ret = mount_volume(&path, &dj.fs, 0);
     if (ret == E_NOERR) {
-        ret = follow_path(&dj, path);
+        ret = dir_follow_path(&dj, path);
         if (ret == E_NOERR) {
             if (dj.fn[11] & 0x80) {
                 ret = E_INVALID_F;
             } else {
-                if (fno) get_fileinfo(&dj, fno);
+                if (fno) dir_getfileinfo(&dj, fno);
             }
         }
     }
@@ -373,7 +373,7 @@ err_t f_getfree (const char* path, uint32_t* nclst, FS** fatfs)
     ret = mount_volume(&path, &fs, 0);
     if (ret == E_NOERR) {
         *fatfs = fs;
-        if (fs->nfs <= fs->n_entries - 2) {
+        if (fs->nfc <= fs->n_entries - 2) {
             *nclst = fs->nfc;
         } else {
             nfree = 0;
@@ -382,7 +382,7 @@ err_t f_getfree (const char* path, uint32_t* nclst, FS** fatfs)
             i = 0;
             do {
                 if (i == 0) {
-                    ret = move_access(fs, sect++);
+                    ret = move_access(fs, sector++);
                     if (ret != E_NOERR) break;
                 }
                 if ((load_full(fs->current_access + i) & 0x0FFFFFFF) == 0)
@@ -413,7 +413,7 @@ err_t f_unlink (const char* path)
     if (ret == E_NOERR) {
         dj.fs = fs;
         ret = follow_path(&dj, path);
-        if (ret == E_NOERR && (dj.fs[11] & 0x20)) {
+        if (ret == E_NOERR && (dj.fn[11] & 0x20)) {
             ret = E_INVALID_F;
         }
         if (ret == E_NOERR) {
@@ -440,7 +440,7 @@ err_t f_unlink (const char* path)
             if (ret == E_NOERR) {
                 ret = dir_remove(&dj);
                 if (ret == E_NOERR && dcluster != 0) {
-                    ret = remove_chain(&dj.fs, dcluster, 0);
+                    ret = remove_chain(dj.fs, dcluster, 0);
                 }
                 if (ret == E_NOERR) ret = sync_fs(fs);
             }
@@ -451,7 +451,7 @@ err_t f_unlink (const char* path)
 }
 
 /* Rename/Move a file or directory */
-err_t f_rename (const char *path_old, const char *path_new);
+err_t f_rename (const char *path_old, const char *path_new)
 {
     err_t ret;
     FS *fs;
@@ -524,7 +524,7 @@ err_t f_mkdir (const char* path)
         }
         if (ret == E_NOFILE) {
             Sfs = fs;
-            dcl = create_chain(*Sfs, 0);
+            dcl = create_chain(Sfs, 0);
             ret = E_NOERR;
             if (dcl == 0) ret = E_FDENIED;
             if (dcl == 1) ret = E_FINT;
@@ -556,7 +556,7 @@ err_t f_mkdir (const char* path)
                 ret = sync_fs(fs);
             }
         } else {
-            remove_chain(&Sfs, dcl, 0);
+            remove_chain(Sfs, dcl, 0);
         }
     }
 
@@ -574,7 +574,7 @@ err_t f_opendir (DIR* dp, const char* path)
     ret = mount_volume(&path, &fs, 0);
     if (ret == E_NOERR) {
         dp->fs = fs;
-        ret = follow_path(dp, path);
+        ret = dir_follow_path(dp, path);
         if (ret == E_NOERR) {
             if (!(dp->fn[11] & 0x80)) {
                 if (dp->fs->attr & A_DIR) {
@@ -601,7 +601,7 @@ err_t f_closedir (DIR* dp)
     err_t ret;
     FS *fs;
 
-    ret = validate(&dp->fs, &fs);
+    ret = validate(dp->fs, &fs);
     if (ret == E_NOERR) {
         dp->fs = 0;
     }
@@ -615,7 +615,7 @@ err_t f_readdir (DIR* dp, FILEINFO* fno)
     err_t ret;
     FS *fs;
 
-    ret = validate(&dp->fs, *fs);
+    ret = validate(dp->fs, &fs);
     if (ret == E_NOERR) {
         if (!fno) {
             ret = dir_set_idx(dp, 0);

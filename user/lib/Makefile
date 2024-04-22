@@ -2,17 +2,21 @@ CFLAGS += UINCLUDE
 
 obj-u := memset.o printf.o qsort.o string.o syscalls.o
 
-memset.o:	memset.c memset.h
-	$(CROSS)$(CC) $(CFLAGS) -o memset.o -c memset.c
+all: $(obj-u)
 
-printf.o:	printf.c printf.h
-	$(CROSS)$(CC) $(CFLAGS) -o printf.o -c printf.c
+memset.o:
+	$(CROSS)$(CC) $(CFLAGS) -o memset.o -c $(utree)/lib/memset.c
 
-qsort.o:	qsort.c qsort.h
-	$(CROSS)$(CC) $(CFLAGS) -o qsort.o -c qsort.c
+printf.o:
+	$(CROSS)$(CC) $(CFLAGS) -o printf.o -c $(utree)/lib/printf.c
 
-string.o:	string.c string.h
-	$(CROSS)$(CC) $(CFLAGS) -o string.o -c string.c
+qsort.o:
+	$(CROSS)$(CC) $(CFLAGS) -o qsort.o -c $(utree)/lib/qsort.c
 
-syscalls.o:	syscalls.c syscalls.h
-	$(CROSS)$(CC) $(CFLAGS) -o syscalls.o -c syscalls.c
+string.o:
+	$(CROSS)$(CC) $(CFLAGS) -o string.o -c $(utree)/lib/string.c
+
+syscalls.o:
+	$(CROSS)$(CC) $(CFLAGS) -o syscalls.o -c $(utree)/lib/syscalls.c
+
+.PHONY: all
