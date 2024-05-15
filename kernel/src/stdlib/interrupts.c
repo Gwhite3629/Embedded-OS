@@ -3,11 +3,11 @@
 err_t handle_irq_event(irq_t * q)
 {
     err_t ret = E_NOERR;
-    lock(&q->irq_lock);
+    acquire(&q->irq_lock);
 
     ret = q->func(q->irq, q->handler_data);
 
-    unlock(&q->irq_lock);
+    release(&q->irq_lock);
     return ret;
 }
 

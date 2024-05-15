@@ -1,4 +1,4 @@
-CFLAGS += UINCLUDE
+CFLAGS += $(UINCLUDE)
 
 obj-u := memset.o printf.o qsort.o string.o syscalls.o
 

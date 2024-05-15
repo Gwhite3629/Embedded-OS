@@ -64,4 +64,9 @@ static inline int ilog2(unsigned long v)
 
 #define EXPORT(x)
 
+static inline void cpu_relax(void)
+{
+	asm volatile("yield" ::: "memory");
+}
+
 #endif // _EXTRA_H_

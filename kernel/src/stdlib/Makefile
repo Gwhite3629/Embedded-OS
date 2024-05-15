@@ -1,7 +1,10 @@
 CFLAGS += $(KINCLUDE)
-obj := rbtree.o bitrev.o memset.o qsort.o string.o syscall.o interrupts.o time.o serial.o printk.o
+obj := lock.o rbtree.o bitrev.o memset.o qsort.o string.o syscall.o interrupts.o time.o serial.o printk.o
 
 all: $(obj)
+
+lock.o:
+	$(CROSS)$(CC) $(CFLAGS) -o lock.o -c $(ktree)/stdlib/lock.c
 
 rbtree.o:
 	$(CROSS)$(CC) $(CFLAGS) -o rbtree.o -c $(ktree)/stdlib/rbtree.c

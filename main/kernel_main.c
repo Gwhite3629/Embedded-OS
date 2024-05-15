@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <drivers/gic400.h>
+#include "../user/src/shell.h"
 #include "bootscreen.h"
 
 void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
@@ -6,11 +8,11 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
     (void) r0;
 
     timer_init();
-    gic400_init();
+    gic400_init((void *)0xFF840000UL);
 
     enable_interrupts();
 
-    open_init();
+    uart_init();
 
     printk("\nWaiting for serial port to be ready (press any key)\n");
 	uart_getc();

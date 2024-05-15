@@ -1,6 +1,6 @@
 #include "stdlib/bitmap.h"
 #include "stdlib/bsearch.h"
-#include "stdlib/compact.h"
+//#include "stdlib/compact.h"
 #include "stdlib/container_of.h"
 #include "stdlib/delay.h"
 #include "stdlib/err.h"
@@ -20,3 +20,4 @@
 #include "stdlib/interrupts.h"
 #include "stdlib/serial.h"
 #include "stdlib/printk.h"
+#include "stdlib/types.h"

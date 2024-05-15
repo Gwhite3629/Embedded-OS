@@ -10,4 +10,7 @@ $(obj):
 	for i in $(obj); do \
 		$(MAKE) -f $$i/Makefile; \
 	done
+
+export obj
+
 .PHONY: $(obj)

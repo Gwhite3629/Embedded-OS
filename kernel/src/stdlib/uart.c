@@ -1,6 +1,14 @@
 #include "../../include/stdlib/uart.h"
 #include "../../include/stdlib/string.h"
 
+volatile uint32_t *devs[5] = {
+    UARTAPP0,
+    UARTAPP1,
+    UARTAPP2,
+    UARTAPP3,
+    UARTAPP4
+};
+
 int open_UART(const char *dev, uint32_t baud)
 {
     int dnum = -1;

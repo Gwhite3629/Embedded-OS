@@ -176,13 +176,7 @@ void init_debug(void);
 // Application UART 4
 #define UARTAPP4        ((volatile uint32_t *) 0x80072000)
 
-volatile uint32_t *devs[5] = {
-    UARTAPP0,
-    UARTAPP1,
-    UARTAPP2,
-    UARTAPP3,
-    UARTAPP4
-};
+extern volatile uint32_t *devs[5];
 
 // Application UART register locations (Base addresses for fields)
 #define UART_CTRL0      0x00        // Receive DMA control register

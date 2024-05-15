@@ -1,9 +1,10 @@
 #include <stddef.h>
-#include <stdint.h>
-#include "../../shell.h"
-#include "../include/memset.h"
-#include "../include/string.h"
-#include "../include/accctrl.h"
+#include "shell.h"
+#include <memset.h>
+#include <string.h>
+#include <types.h>
+#include <syscalls.h>
+#include <printf.h>
 
 int putchar(char c) {
     int ret = 0;

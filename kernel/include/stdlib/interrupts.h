@@ -27,7 +27,7 @@ static inline uint32_t get_CPSR(void)
 
 static inline void set_CPSR(uint32_t new_cpsr)
 {
-    asm volatile ("mrs CPSR_cxsf,%0"::"r"(new_cpsr));
+    asm volatile ("msr CPSR_cxsf,%0"::"r"(new_cpsr));
 }
 
 static inline void enable_interrupts(void)

@@ -1,8 +1,7 @@
 #include <stddef.h>
-#include <stdint.h>
 #include <stdarg.h>
-#include "../include/syscalls.h"
-#include "../include/printf.h"
+#include <syscalls.h>
+#include <printf.h>
 
 #define MAX_PRINT_SIZE 256
 

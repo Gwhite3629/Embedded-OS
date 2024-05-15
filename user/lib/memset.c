@@ -1,3 +1,5 @@
+#include <types.h>
+
 void *memset(void *dest, char val, size_t n)
 {
     uint32_t i;

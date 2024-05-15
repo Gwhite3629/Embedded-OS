@@ -1,5 +1,5 @@
-#include "../../include/stdlib/string.h"
-#include "../../include/stdlib/err.h"
+#include <string.h>
+#include <err.h>
 
 void *memcpy(void *dest, const void *src, size_t n)
 {

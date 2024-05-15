@@ -1,0 +1,418 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+                0x0000000000008000                . = 0x8000
+                0x0000000000008000                __start = .
+                0x0000000000008000                __text_start = .
+
+.text           0x0000000000008000     0x655c
+ *(.text.boot)
+ *(.text)
+ .text          0x0000000000008000       0x78 kernel_main.o
+                0x0000000000008000                kernel_main
+ .text          0x0000000000008078        0x0 ./bitrev.o
+ .text          0x0000000000008078     0x1458 ./fat32.o
+                0x00000000000080f0                get_fattime
+                0x00000000000080f4                sync_access
+                0x000000000000817c                move_access
+                0x00000000000081dc                sync_fs
+                0x00000000000082ec                c2s
+                0x0000000000008314                get_entry
+                0x00000000000083e0                set_entry
+                0x00000000000084b0                remove_chain
+                0x000000000000857c                create_chain
+                0x0000000000008734                dir_clear
+                0x0000000000008804                dir_set_idx
+                0x00000000000089c8                dir_next
+                0x0000000000008b10                dir_alloc
+                0x0000000000008c04                dir_read
+                0x0000000000008d00                dir_find
+                0x0000000000008de4                dir_register
+                0x0000000000008e94                dir_remove
+                0x0000000000008f18                dir_getfileinfo
+                0x000000000000901c                dir_create_name
+                0x0000000000009124                dir_follow_path
+                0x000000000000923c                get_ldnumber
+                0x0000000000009294                check_fs
+                0x00000000000092d4                find_volume
+                0x00000000000093c4                mount_volume
+                0x00000000000094b0                validate
+ .text          0x00000000000094d0     0x12ec ./file.o
+                0x00000000000094d0                f_mount
+                0x000000000000958c                f_open
+                0x0000000000009938                f_sync
+                0x0000000000009a5c                f_close
+                0x0000000000009ab4                f_read
+                0x0000000000009cc8                f_write
+                0x0000000000009f70                f_stat
+                0x0000000000009fe0                f_getfree
+                0x000000000000a0e4                f_unlink
+                0x000000000000a228                f_rename
+                0x000000000000a3ec                f_mkdir
+                0x000000000000a600                f_opendir
+                0x000000000000a6f0                f_closedir
+                0x000000000000a71c                f_readdir
+ .text          0x000000000000a7bc      0x104 ./gic400.o
+                0x000000000000a7bc                gic400_init
+ .text          0x000000000000a8c0      0x1d0 ./hardware_reserve.o
+                0x000000000000a8c0                sum_free
+                0x000000000000a8c8                mem_total
+                0x000000000000a8d0                reserve
+                0x000000000000aa14                relinquish
+                0x000000000000aa8c                memory_init
+ .text          0x000000000000aa90       0x9c ./interrupts.o
+                0x000000000000aa90                handle_irq_event
+                0x000000000000aac8                undefined_handler
+                0x000000000000aadc                prefetch_handler
+                0x000000000000aaf0                data_handler
+                0x000000000000ab04                fiq_handler
+                0x000000000000ab18                reset_error
+ .text          0x000000000000ab2c       0x78 ./kernel_main.o
+ .text          0x000000000000aba4      0x128 ./lock.o
+                0x000000000000aba4                init_lock
+                0x000000000000abbc                remove_lock
+                0x000000000000abe4                acquire
+                0x000000000000ac38                release
+                0x000000000000ac94                wait_acquire
+ .text          0x000000000000accc      0xffc ./malloc.o
+                0x000000000000ad54                create
+                0x000000000000b144                destroy
+                0x000000000000b1a0                grow_kheap
+                0x000000000000b3e8                create_region
+                0x000000000000b614                alloc
+                0x000000000000b80c                cull
+                0x000000000000bbe4                change
+ .text          0x000000000000bcc8       0x24 ./memset.o
+                0x000000000000bcc8                memset
+ .text          0x000000000000bcec      0x1a8 ./mmu.o
+                0x000000000000bcec                map_table
+                0x000000000000bd34                map_table_entry
+                0x000000000000bd48                map_page
+                0x000000000000be48                get_kernel_page
+                0x000000000000be54                get_user_page
+                0x000000000000be8c                free_page
+ .text          0x000000000000be94      0x11c ./mmu_func.o
+                0x000000000000be94                tlb_invalidate_all
+                0x000000000000bea0                icache_invalidate_all
+                0x000000000000beac                disable_l1_dcache
+                0x000000000000bebc                invalidate_l1_dcache
+                0x000000000000bf54                enable_l1_dcache
+                0x000000000000bf64                flush_icache
+                0x000000000000bf7c                flush_dcache
+ .text          0x000000000000bfb0      0x1e8 ./printf.o
+                0x000000000000bfb0                printf
+ .text          0x000000000000c198      0x198 ./printk.o
+                0x000000000000c198                printk
+ .text          0x000000000000c330      0x14c ./proc.o
+                0x000000000000c330                store_context
+                0x000000000000c348                load_context
+                0x000000000000c360                proc_insert
+                0x000000000000c39c                proc_remove
+                0x000000000000c3cc                proc_construct
+ .text          0x000000000000c47c      0x400 ./qsort.o
+                0x000000000000c47c                quicksort
+ .text          0x000000000000c87c      0x8e4 ./rbtree.o
+                0x000000000000caec                rb_insert_color
+                0x000000000000cc88                rb_erase
+                0x000000000000cddc                rb_next
+                0x000000000000ce3c                rb_prev
+                0x000000000000ce9c                rb_first
+                0x000000000000cec4                rb_last
+                0x000000000000ceec                rb_first_postorder
+                0x000000000000cf20                rb_next_postorder
+                0x000000000000cf68                rb_replace_node
+                0x000000000000cfdc                __rb_erase_color
+                0x000000000000cfe0                __rb_insert_augmented
+ .text          0x000000000000d160      0xb88 ./sd.o
+                0x000000000000d370                sd_status
+                0x000000000000d414                sd_ioctl
+                0x000000000000d5d4                sd_init
+                0x000000000000d928                sd_read
+                0x000000000000dafc                sd_write
+ .text          0x000000000000dce8      0x154 ./serial.o
+                0x000000000000dce8                uart_init
+                0x000000000000dd64                uart_putc
+                0x000000000000dd80                uart_getc
+                0x000000000000dda0                uart_getc_noblock
+                0x000000000000ddc8                uart_write
+ .text          0x000000000000de3c      0x19c ./shell.o
+                0x000000000000de3c                putchar
+                0x000000000000de5c                interpret
+                0x000000000000df14                shell
+ .text          0x000000000000dfd8      0x210 ./string.o
+                0x000000000000dfd8                memcpy
+                0x000000000000dfdc                memmove
+                0x000000000000dfe4                strlen
+                0x000000000000e00c                strncmp
+                0x000000000000e050                strncpy
+                0x000000000000e0ac                strncat
+                0x000000000000e148                memcmp
+                0x000000000000e184                strlcpy
+ .text          0x000000000000e1e8       0x40 ./swi_handler.o
+                0x000000000000e1e8                swi_handler
+ .text          0x000000000000e228        0x0 ./syscall.o
+ .text          0x000000000000e228      0x140 ./syscalls.o
+                0x000000000000e228                serial_write
+                0x000000000000e248                serial_read
+                0x000000000000e260                write
+                0x000000000000e294                read
+                0x000000000000e2c8                open
+                0x000000000000e2f0                close
+                0x000000000000e304                malloc
+                0x000000000000e328                free
+                0x000000000000e33c                time
+ .text          0x000000000000e368      0x1f4 ./time.o
+                0x000000000000e410                timer_init
+                0x000000000000e448                wait_cycles
+                0x000000000000e464                read_current_timer
+                0x000000000000e49c                register_current_timer_delay
+                0x000000000000e558                __bad_udelay
+
+.glue_7         0x000000000000e55c        0x0
+ .glue_7        0x000000000000e55c        0x0 linker stubs
+
+.glue_7t        0x000000000000e55c        0x0
+ .glue_7t       0x000000000000e55c        0x0 linker stubs
+
+.vfp11_veneer   0x000000000000e55c        0x0
+ .vfp11_veneer  0x000000000000e55c        0x0 linker stubs
+
+.v4_bx          0x000000000000e55c        0x0
+ .v4_bx         0x000000000000e55c        0x0 linker stubs
+
+.iplt           0x000000000000e55c        0x0
+ .iplt          0x000000000000e55c        0x0 kernel_main.o
+                0x000000000000f000                . = ALIGN (0x1000)
+                0x000000000000f000                __text_end = .
+                0x000000000000f000                __rodata_start = .
+
+.rodata         0x000000000000f000      0x100
+ *(.rodata)
+ .rodata        0x000000000000f000      0x100 ./bitrev.o
+                0x000000000000f000                byte_rev_table
+
+.rodata.str1.4  0x000000000000f100      0x16f
+ .rodata.str1.4
+                0x000000000000f100       0x3d kernel_main.o
+ *fill*         0x000000000000f13d        0x3 
+ .rodata.str1.4
+                0x000000000000f140       0x1c ./hardware_reserve.o
+ .rodata.str1.4
+                0x000000000000f15c       0x92 ./interrupts.o
+ .rodata.str1.4
+                0x000000000000f1ee       0x3d ./kernel_main.o
+ *fill*         0x000000000000f1ee        0x2 
+ .rodata.str1.4
+                0x000000000000f1f0       0x2a ./malloc.o
+ *fill*         0x000000000000f21a        0x2 
+ .rodata.str1.4
+                0x000000000000f21c       0x53 ./shell.o
+                                         0x5b (size before relaxing)
+
+.rel.dyn        0x000000000000f270        0x0
+ .rel.iplt      0x000000000000f270        0x0 kernel_main.o
+                0x0000000000010000                . = ALIGN (0x1000)
+                0x0000000000010000                __rodata_end = .
+                0x0000000000010000                __data_start = .
+
+.data           0x0000000000010000      0x384
+ *(.data)
+ .data          0x0000000000010000      0x1a0 kernel_main.o
+                0x0000000000010000                bootmsg
+ .data          0x00000000000101a0        0x0 ./bitrev.o
+ .data          0x00000000000101a0        0x0 ./fat32.o
+ .data          0x00000000000101a0        0x0 ./file.o
+ .data          0x00000000000101a0        0x0 ./gic400.o
+ .data          0x00000000000101a0        0x0 ./hardware_reserve.o
+ .data          0x00000000000101a0        0x0 ./interrupts.o
+ .data          0x00000000000101a0      0x1a0 ./kernel_main.o
+ .data          0x0000000000010340        0x0 ./lock.o
+ .data          0x0000000000010340       0x34 ./malloc.o
+                0x0000000000010340                ret
+                0x0000000000010344                stat_names
+ .data          0x0000000000010374        0x0 ./memset.o
+ .data          0x0000000000010374        0x0 ./mmu.o
+ .data          0x0000000000010374        0x0 ./mmu_func.o
+ .data          0x0000000000010374        0x0 ./printf.o
+ .data          0x0000000000010374        0x0 ./printk.o
+ .data          0x0000000000010374        0x0 ./proc.o
+ .data          0x0000000000010374        0x0 ./qsort.o
+ .data          0x0000000000010374        0x0 ./rbtree.o
+ .data          0x0000000000010374        0x0 ./sd.o
+ .data          0x0000000000010374        0x0 ./serial.o
+ .data          0x0000000000010374        0x0 ./shell.o
+ .data          0x0000000000010374        0x0 ./string.o
+ .data          0x0000000000010374        0x0 ./swi_handler.o
+ .data          0x0000000000010374        0x0 ./syscall.o
+ .data          0x0000000000010374        0x0 ./syscalls.o
+ .data          0x0000000000010374       0x10 ./time.o
+                0x0000000000010374                arm_delay_ops
+
+.igot.plt       0x0000000000010384        0x0
+ .igot.plt      0x0000000000010384        0x0 kernel_main.o
+                0x0000000000011000                . = ALIGN (0x1000)
+                0x0000000000011000                __data_end = .
+                0x0000000000011000                __bss_start = .
+
+.bss            0x0000000000011000     0xc608
+                0x0000000000011000                bss = .
+ *(.bss)
+ .bss           0x0000000000011000        0x0 kernel_main.o
+ .bss           0x0000000000011000        0x0 ./bitrev.o
+ .bss           0x0000000000011000        0xc ./fat32.o
+                0x0000000000011000                FatFs
+                0x0000000000011004                Mutex
+ .bss           0x000000000001100c        0x0 ./file.o
+ .bss           0x000000000001100c        0x4 ./gic400.o
+                0x000000000001100c                num_interrupts
+ .bss           0x0000000000011010     0x8008 ./hardware_reserve.o
+ .bss           0x0000000000019018        0x0 ./interrupts.o
+ .bss           0x0000000000019018        0x0 ./kernel_main.o
+ .bss           0x0000000000019018        0x0 ./lock.o
+ .bss           0x0000000000019018        0x4 ./malloc.o
+                0x0000000000019018                global_heap
+ .bss           0x000000000001901c        0x0 ./memset.o
+ .bss           0x000000000001901c        0x0 ./mmu.o
+ .bss           0x000000000001901c        0x0 ./mmu_func.o
+ .bss           0x000000000001901c        0x0 ./printf.o
+ .bss           0x000000000001901c        0x0 ./printk.o
+ .bss           0x000000000001901c     0x45b8 ./proc.o
+                0x000000000001901c                current_proc
+                0x000000000001d5d0                first_proc
+ .bss           0x000000000001d5d4        0x4 ./qsort.o
+                0x000000000001d5d4                error
+ .bss           0x000000000001d5d8        0x0 ./rbtree.o
+ .bss           0x000000000001d5d8       0x18 ./sd.o
+                0x000000000001d5d8                sd_hv
+                0x000000000001d5dc                sd_err
+                0x000000000001d5e0                sd_rca
+                0x000000000001d5e4                sd_scr
+                0x000000000001d5ec                sd_ocr
+ .bss           0x000000000001d5f0        0x0 ./serial.o
+ .bss           0x000000000001d5f0        0x4 ./shell.o
+ .bss           0x000000000001d5f4        0x4 ./string.o
+ .bss           0x000000000001d5f8        0x0 ./swi_handler.o
+ .bss           0x000000000001d5f8        0x0 ./syscall.o
+ .bss           0x000000000001d5f8        0x0 ./syscalls.o
+ .bss           0x000000000001d5f8       0x10 ./time.o
+                0x000000000001d600                lpj_fine
+                0x000000000001d604                tick_counter
+                0x000000000001e000                . = ALIGN (0x1000)
+                0x000000000001e000                __bss_end = .
+                0x000000000001e000                __end = .
+LOAD kernel_main.o
+LOAD ./bitrev.o
+LOAD ./fat32.o
+LOAD ./file.o
+LOAD ./gic400.o
+LOAD ./hardware_reserve.o
+LOAD ./interrupts.o
+LOAD ./kernel_main.o
+LOAD ./lock.o
+LOAD ./malloc.o
+LOAD ./memset.o
+LOAD ./mmu.o
+LOAD ./mmu_func.o
+LOAD ./printf.o
+LOAD ./printk.o
+LOAD ./proc.o
+LOAD ./qsort.o
+LOAD ./rbtree.o
+LOAD ./sd.o
+LOAD ./serial.o
+LOAD ./shell.o
+LOAD ./string.o
+LOAD ./swi_handler.o
+LOAD ./syscall.o
+LOAD ./syscalls.o
+LOAD ./time.o
+OUTPUT(kernel7.elf elf32-littlearm)
+LOAD linker stubs
+
+.comment        0x0000000000000000       0x33
+ .comment       0x0000000000000000       0x33 kernel_main.o
+                                         0x34 (size before relaxing)
+ .comment       0x0000000000000033       0x34 ./bitrev.o
+ .comment       0x0000000000000033       0x34 ./fat32.o
+ .comment       0x0000000000000033       0x34 ./file.o
+ .comment       0x0000000000000033       0x34 ./gic400.o
+ .comment       0x0000000000000033       0x34 ./hardware_reserve.o
+ .comment       0x0000000000000033       0x34 ./interrupts.o
+ .comment       0x0000000000000033       0x34 ./kernel_main.o
+ .comment       0x0000000000000033       0x34 ./lock.o
+ .comment       0x0000000000000033       0x34 ./malloc.o
+ .comment       0x0000000000000033       0x34 ./memset.o
+ .comment       0x0000000000000033       0x34 ./mmu.o
+ .comment       0x0000000000000033       0x34 ./mmu_func.o
+ .comment       0x0000000000000033       0x34 ./printf.o
+ .comment       0x0000000000000033       0x34 ./printk.o
+ .comment       0x0000000000000033       0x34 ./proc.o
+ .comment       0x0000000000000033       0x34 ./qsort.o
+ .comment       0x0000000000000033       0x34 ./rbtree.o
+ .comment       0x0000000000000033       0x34 ./sd.o
+ .comment       0x0000000000000033       0x34 ./serial.o
+ .comment       0x0000000000000033       0x34 ./shell.o
+ .comment       0x0000000000000033       0x34 ./string.o
+ .comment       0x0000000000000033       0x34 ./syscall.o
+ .comment       0x0000000000000033       0x34 ./syscalls.o
+ .comment       0x0000000000000033       0x34 ./time.o
+
+.ARM.attributes
+                0x0000000000000000       0x33
+ .ARM.attributes
+                0x0000000000000000       0x35 kernel_main.o
+ .ARM.attributes
+                0x0000000000000035       0x3b ./bitrev.o
+ .ARM.attributes
+                0x0000000000000070       0x35 ./fat32.o
+ .ARM.attributes
+                0x00000000000000a5       0x35 ./file.o
+ .ARM.attributes
+                0x00000000000000da       0x35 ./gic400.o
+ .ARM.attributes
+                0x000000000000010f       0x35 ./hardware_reserve.o
+ .ARM.attributes
+                0x0000000000000144       0x35 ./interrupts.o
+ .ARM.attributes
+                0x0000000000000179       0x35 ./kernel_main.o
+ .ARM.attributes
+                0x00000000000001ae       0x35 ./lock.o
+ .ARM.attributes
+                0x00000000000001e3       0x35 ./malloc.o
+ .ARM.attributes
+                0x0000000000000218       0x35 ./memset.o
+ .ARM.attributes
+                0x000000000000024d       0x35 ./mmu.o
+ .ARM.attributes
+                0x0000000000000282       0x35 ./mmu_func.o
+ .ARM.attributes
+                0x00000000000002b7       0x35 ./printf.o
+ .ARM.attributes
+                0x00000000000002ec       0x35 ./printk.o
+ .ARM.attributes
+                0x0000000000000321       0x35 ./proc.o
+ .ARM.attributes
+                0x0000000000000356       0x35 ./qsort.o
+ .ARM.attributes
+                0x000000000000038b       0x35 ./rbtree.o
+ .ARM.attributes
+                0x00000000000003c0       0x35 ./sd.o
+ .ARM.attributes
+                0x00000000000003f5       0x35 ./serial.o
+ .ARM.attributes
+                0x000000000000042a       0x35 ./shell.o
+ .ARM.attributes
+                0x000000000000045f       0x35 ./string.o
+ .ARM.attributes
+                0x0000000000000494       0x29 ./swi_handler.o
+ .ARM.attributes
+                0x00000000000004bd       0x3b ./syscall.o
+ .ARM.attributes
+                0x00000000000004f8       0x35 ./syscalls.o
+ .ARM.attributes
+                0x000000000000052d       0x35 ./time.o

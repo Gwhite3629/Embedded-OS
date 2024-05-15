@@ -69,7 +69,7 @@ err_t proc_queue(proc_t *p);    // Puts proc in queue, sets idle -> waiting
 
 proc_t *proc_construct(void)
 {
-    error = E_NOERR;
+    ret = E_NOERR;
     int i;
     int pid = -1;
 
@@ -84,7 +84,7 @@ proc_t *proc_construct(void)
     }
 
     if (pid == -1) {
-        error = E_NOSTART;
+        ret = E_NOSTART;
         return NULL;
     }
 

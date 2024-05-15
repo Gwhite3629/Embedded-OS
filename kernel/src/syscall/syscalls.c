@@ -3,6 +3,7 @@
 #include "../../include/memory/malloc.h"
 #include "../../include/syscalls/syscalls.h"
 #include "../../include/fs/file.h"
+#include "../../include/stdlib/time.h"
 
 err_t swi_handler_c(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
 {
@@ -52,6 +53,16 @@ err_t swi_handler_c(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
         case SYS_FREE:
             cull(current_proc->heap, (void *)r0);
             ret = E_NOERR;
+            break;
+
+        case SYS_TIME:
+            if (r0 == 0) {
+                printk("Invalid write address\n");
+                ret = E_INVALID;
+            } else {
+                (*(int *)(r0)) = tick_counter;
+                ret = tick_counter;
+            }
             break;
     }
 

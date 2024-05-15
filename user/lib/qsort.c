@@ -1,6 +1,6 @@
-#include "../include/types.h"
-#include "../include/err.h"
-#include "../include/qsort.h"
+#include <types.h>
+#include <err.h>
+#include <qsort.h>
 
 #define SWAP(a, b, size)                \
     do {                                \

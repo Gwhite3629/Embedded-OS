@@ -1,7 +1,10 @@
 #ifndef _FAT32_H_
 #define _FAT32_H_
 
-#include "../stdlib.h"
+#include <stdlib.h>
+
+#include "../stdlib/lock.h"
+#include "../stdlib/types.h"
 
 #define __packed __attribute__((packed))
 
@@ -9,7 +12,7 @@
 
 #define MAX_VOL 16
 
-lock_t Mutex;
+extern lock_t Mutex;
 
 typedef struct Bios_Parameter_Block {
     uint8_t BS_jmpBoot[3];      // Jump instruction to boot code
@@ -100,7 +103,7 @@ typedef struct {
 
 typedef uint32_t FAT32_ENTRY;
 
-FS *FatFs[1];
+extern FS *FatFs[1];
 
 // FAT32 entry values
 #define SET_FREE(ENTRY) ((ENTRY) |= 0x0000000)
@@ -254,5 +257,7 @@ static void store_cluster(FS *fs, uint8_t *dir, uint32_t v)
     dir[DIR_FstClusHi + 1] = (uint8_t)((v >> 16) & 0xFF);
     dir[DIR_FstClusHi + 0] = (uint8_t)((v >> 24) & 0xFF);
 }
+
+uint32_t get_fattime(void);
 
 #endif // _FAT32_H_

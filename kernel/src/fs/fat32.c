@@ -2,9 +2,14 @@
 #include <drivers/sd.h>
 #include <stdlib.h>
 
-extern lock_t Mutex;
+lock_t Mutex;
 
-extern FS *FatFs[1];
+FS *FatFs[1];
+
+uint32_t get_fattime(void)
+{
+    
+}
 
 err_t sync_access(FS *fs)
 {

@@ -15,7 +15,7 @@ static err_t sd_int(unsigned int mask)
 
     int cnt = 1000000;
     while (!((readl(EMMC_INTERRUPT)) & m) && cnt--) {
-        wait_msec(1);
+        udelay(1000);
     }
     r = readl(EMMC_INTERRUPT);
     if (cnt <= 0 || (r & INT_CMD_TIMEOUT) || (r & INT_DATA_TIMEOUT)) {
@@ -40,7 +40,7 @@ static err_t sd_clk(unsigned int f)
     int cnt = 100000;
 
     while (((readl(EMMC_STATUS)) & (SR_CMD_INHIBIT | SR_DAT_INHIBIT)) && cnt--) {
-        wait_msec(1);
+        udelay(1000);
     }
     
     if (cnt <= 0) {
@@ -48,7 +48,7 @@ static err_t sd_clk(unsigned int f)
     }
 
     writel(readl(EMMC_CONTROL1) & ~C1_CLK_EN, EMMC_CONTROL1);
-    wait_msec(10);
+    udelay(10000);
     x = c - 1;
     if (!x) 
         s = 0;
@@ -73,12 +73,12 @@ static err_t sd_clk(unsigned int f)
         h = (d & 0x300) >> 2;
     d = (((d & 0x0FF) << 8) | h);
     writel((readl(EMMC_CONTROL1) & 0xFFFF003f) | d, EMMC_CONTROL1);
-    wait_msec(10);
+    udelay(10000);
     writel(readl(EMMC_CONTROL1) | C1_CLK_EN, EMMC_CONTROL1);
-    wait_msec(10);
+    udelay(10000);
     cnt = 10000;
     while (!(readl(EMMC_CONTROL1) & C1_CLK_STABLE) && cnt--) {
-        wait_msec(10);
+        udelay(10000);
     }
     if (cnt <= 0) {
         return E_NOT_READY;
@@ -106,8 +106,8 @@ err_t sd_ioctl(unsigned int cmd, unsigned int arg)
     (*EMMC_ARG1) = arg;
     (*EMMC_CMDTM) = cmd;
     
-    if (cmd == CMD_SEND_OP_COND) wait_msec(1000);
-    else if (cmd == CMD_SEND_IF_COND || cmd == CMD_APP_CMD) wait_msec(100);
+    if (cmd == CMD_SEND_OP_COND) udelay(1000000);
+    else if (cmd == CMD_SEND_IF_COND || cmd == CMD_APP_CMD) udelay(100000);
 
     if ((r = sd_int(INT_CMD_DONE))) {
         sd_err = r;
@@ -148,9 +148,9 @@ err_t sd_init(void)
     writel(r, GPIO_GPFSEL4);
 
     writel(2, GPIO_GPPUD);
-    wait_cycles(150);
+    udelay(150000);
     writel((1 << 15), GPIO_GPPUDCLK1);
-    wait_cycles(150);
+    udelay(150000);
     writel(0, GPIO_GPPUD);
     writel(0, GPIO_GPPUDCLK1);
 
@@ -165,9 +165,9 @@ err_t sd_init(void)
     writel(4, GPIO_GPFSEL4);
 
     writel(2, GPIO_GPPUD);
-    wait_cycles(150);
+    udelay(150000);
     writel((1 << 16) | (1 << 17), GPIO_GPPUDCLK1);
-    wait_cycles(150);
+    udelay(150000);
     writel(0, GPIO_GPPUD);
     writel(0, GPIO_GPPUDCLK1);
 
@@ -177,9 +177,9 @@ err_t sd_init(void)
     writel(r, GPIO_GPFSEL5);
 
     writel(2, GPIO_GPPUD);
-    wait_cycles(150);
+    udelay(150000);
     writel((1 << 18) | (1 << 19) | (1 << 20) | (1 << 21), GPIO_GPPUDCLK1);
-    wait_cycles(150);
+    udelay(150000);
     writel(0, GPIO_GPPUD);
     writel(0, GPIO_GPPUDCLK1);
 
@@ -190,13 +190,13 @@ err_t sd_init(void)
     writel(readl(EMMC_CONTROL1) | C1_SRST_HC, EMMC_CONTROL1);
     cnt = 10000;
     do {
-        wait_msec(10);
+        udelay(10000);
     } while (((readl(EMMC_CONTROL1)) & C1_SRST_HC) && cnt--);
     if (cnt <= 0) {
         return E_TIMEOUT;
     }
     writel(readl(EMMC_CONTROL1) | C1_CLK_INTLEN | C1_TOUNIT_MAX, EMMC_CONTROL1);
-    wait_msec(10);
+    udelay(10000);
 
     // Set Frequency
     if ((r = sd_clk(400000)) != E_NOERR) return r;
@@ -214,7 +214,7 @@ err_t sd_init(void)
     cnt = 6;
     r = 0;
     while (!(r & ACMD41_CMD_COMPLETE) && cnt--) {
-        wait_cycles(400);
+        udelay(400000);
         r = sd_cmd(CMD_SEND_OP_COND, ACMD41_ARG_HC);
         if (sd_err != E_TIMEOUT && sd_err != E_NOERR) {
             return sd_err;
@@ -245,7 +245,7 @@ err_t sd_init(void)
         if ((readl(EMMC_STATUS)) & SR_READ_AVAILABLE)
             sd_scr[r++] = (*EMMC_DATA);
         else 
-            wait_msec(1);
+            udelay(1000);
     }
 
     if (r != 2) return E_TIMEOUT;
@@ -265,7 +265,7 @@ err_t sd_status(unsigned int mask)
 {
     int cnt = 1000000;
     while (((readl(EMMC_STATUS)) & mask) && !((readl(EMMC_INTERRUPT)) & INT_ERROR_MASK) && cnt--) {
-        wait_msec(1);
+        udelay(1000);
     }
     return (cnt <= 0 || ((readl(EMMC_INTERRUPT)) * INT_ERROR_MASK)) ? E_NOT_READY : E_NOERR;
 }

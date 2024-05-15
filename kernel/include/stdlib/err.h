@@ -7,9 +7,7 @@
 
 #define NLIST ((DLL *) 0)
 
-#define err_t int32_t
-
-err_t error;
+typedef int err_t;
 
 #define E_NOERR     0x1000  // No error
 #define E_PANIC     0x0001  // Panic signal for commisioner
@@ -69,5 +67,8 @@ err_t error;
 #define E_FINT      0x0304  // Internal error
 #define E_INVALID_F 0x0305  // Invalid file
 #define E_FDENIED   0x0306  // Denied access
+
+// Timer errors
+#define E_NXIO      0x0400
 
 #endif  // _ERR_H_

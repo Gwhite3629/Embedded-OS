@@ -42,6 +42,9 @@
 #define SYS_PMALLOC   0x0017  // Process malloc
 #define SYS_FREE      0x0018  // Free from heap
 
+// TIME
+#define SYS_TIME      0x0100  // Get time
+
 err_t call(uint32_t SCALL);
 
 #endif  // _SYSCALL_H_

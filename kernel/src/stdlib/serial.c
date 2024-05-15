@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <drivers/io.h>
 #include <stdlib.h>
 
 void uart_init(void) {

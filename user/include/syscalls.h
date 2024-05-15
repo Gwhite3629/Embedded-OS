@@ -12,4 +12,5 @@ FILE *open(const char *filename, uint8_t mode);
 err_t close(FILE *fd);
 void *malloc(unsigned int n);
 void free(void *p);
+int time(void);
 #endif // _SYSCALLS_H_

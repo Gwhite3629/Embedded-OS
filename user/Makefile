@@ -1,8 +1,11 @@
-obj-u = $(utree)lib/
-obj-u += $(utree)src/
+obj-u = $(utree)/lib
+obj-u += $(utree)/src
 
-$(obj):
-	for i in $(obj); do \
+$(obj-u):
+	for i in $(obj-u); do \
 		$(MAKE) -f $$i/Makefile; \
 	done
-.PHONY: $(obj)
+
+export obj-u
+
+.PHONY: $(obj-u)

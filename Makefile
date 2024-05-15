@@ -6,6 +6,7 @@ srctree := ..
 
 ktree := $(srctree)/kernel/src
 utree := $(srctree)/user
+mtree := $(srctree)/main
 
 KBUILD_OUTPUT := build
 saved-output := $(KBUILD_OUTPUT)
@@ -20,7 +21,7 @@ _all:
 
 export CROSS CC AS CFLAGS LFLAGS ASFLAGS
 export KINCLUDE UINCLUDE
-export ktree utree
+export ktree utree mtree
 
 $(if $(KBUILD_OUTPUT),, \
      $(error failed to create output directory "$(saved-output)"))
@@ -28,7 +29,7 @@ $(if $(KBUILD_OUTPUT),, \
 PHONY += $(MAKECMDGOALS) sub-make
 PHONY += all
 
-all: __build_kernel __build_user kernel7.img kernel7l.img
+all: __build_kernel __build_user __build_main
 
 $(filter-out _all sub-make $(ktree)/Makefile, $(MAKECMDGOALS)) _all: sub-make
 	@:
@@ -36,6 +37,10 @@ $(filter-out _all sub-make $(ktree)/Makefile, $(MAKECMDGOALS)) _all: sub-make
 sub-make:
 	$(MAKE) -C $(KBUILD_OUTPUT) KBUILD_SRC=$(ktree) \
 	-f $(ktree)/Makefile $(filter-out _all sub-make,$(MAKECMDGOALS))
+	$(MAKE) -C $(KBUILD_OUTPUT) UBUILD_SRC=$(utree) \
+	-f $(utree)/Makefile $(filter-out _all sub-make,$(MAKECMDGOALS))
+	$(MAKE) -C $(KBUILD_OUTPUT) MBUILD_SRC=$(mtree) \
+	-f $(mtree)/Makefile $(filter-out _all sub-make,$(MAKECMDGOALS))
 
 PHONY += $(MAKECMDGOALS) __build_kernel
 
@@ -57,14 +62,13 @@ __build_user:
 		$(MAKE) -f $(utree)/Makefile $$i; \
 	done
 
-kernel7l.img:	kernel7.elf
-	$(CROSS)objcopy kernel7.elf -O binary kernel7.img
+PHONY += $(MAKECMDGOALS) __build_main
 
-kernel7.elf:	kernel_main.o \
-	$(obj) $(obj-u)
-	$(CROSS)ld $(LFLAGS) \
-		kernel_main.o $(obj) $(obj-u) \
-		-Map kernel7.map -o kernel7.elf
+$(filter-out __build_main, $(MAKECMDGOALS)): __build_main
+
+__build_main:
+	$(MAKE) -f $(mtree)/Makefile
+	
 
 clean:
 	rm -rf $(saved-output)

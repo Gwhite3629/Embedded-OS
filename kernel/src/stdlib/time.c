@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <drivers/io.h>
 
+int tick_counter = 0;
+
 int timer_init(void)
 {
     uint32_t old;
@@ -39,6 +41,83 @@ void wait_cycles(unsigned int n)
             );
         }
     }
+}
+
+struct arm_delay_ops arm_delay_ops = {
+	.delay		= __loop_delay,
+	.const_udelay	= __loop_const_udelay,
+	.udelay		= __loop_udelay,
+};
+
+static const struct delay_timer *delay_timer;
+static bool delay_calibrated;
+static u64 delay_res;
+
+unsigned long lpj_fine;
+
+int read_current_timer(unsigned long *timer_val)
+{
+	if (!delay_timer)
+		return E_NXIO;
+
+	*timer_val = delay_timer->read_current_timer();
+	return 0;
+}
+
+static inline u64 cyc_to_ns(u64 cyc, u32 mult, u32 shift)
+{
+	return (cyc * mult) >> shift;
+}
+
+static void __timer_delay(unsigned long cycles)
+{
+	cycles_t start = get_cycles();
+
+	while ((get_cycles() - start) < cycles)
+		cpu_relax();
+}
+
+static void __timer_const_udelay(unsigned long xloops)
+{
+	unsigned long long loops = xloops;
+	loops *= arm_delay_ops.ticks_per_jiffy;
+	__timer_delay(loops >> UDELAY_SHIFT);
+}
+
+static void __timer_udelay(unsigned long usecs)
+{
+	__timer_const_udelay(usecs * UDELAY_MULT);
+}
+
+void register_current_timer_delay(const struct delay_timer *timer)
+{
+	u32 new_mult, new_shift;
+	u64 res;
+
+	clocks_calc_mult_shift(&new_mult, &new_shift, timer->freq,
+			       NSEC_PER_SEC, 3600);
+	res = cyc_to_ns(1ULL, new_mult, new_shift);
+
+	if (res > 1000) {
+		return;
+	}
+
+	if (!delay_calibrated && (!delay_res || (res < delay_res))) {
+		delay_timer			= timer;
+		lpj_fine			= timer->freq / HZ;
+		delay_res			= res;
+
+		/* cpufreq may scale loops_per_jiffy, so keep a private copy */
+		arm_delay_ops.ticks_per_jiffy	= lpj_fine;
+		arm_delay_ops.delay		= __timer_delay;
+		arm_delay_ops.const_udelay	= __timer_const_udelay;
+		arm_delay_ops.udelay		= __timer_udelay;
+	}
+}
+
+void __bad_udelay(void)
+{
+    return;
 }
 /*
 void wait_msec(unsigned int n)

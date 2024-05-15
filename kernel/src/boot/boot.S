@@ -11,39 +11,39 @@
 .equ	CPSR_MODE_ABORT,	        0x17
 .equ	CPSR_MODE_UNDEFINED,	        0x1b
 .equ	CPSR_MODE_SYSTEM,	        0x1f
-.equ	CPSR_MODE_FIQ_DISABLE,	        (1 << 6)@ F set, FIQ disabled
-.equ	CPSR_MODE_IRQ_DISABLE,	        (1 << 7)@ I set, IRQ disabled
-.equ	CPSR_MODE_ABORT_DISABLE,        (1 << 8)@ A set, ABT disabled
+.equ	CPSR_MODE_FIQ_DISABLE,	        (1 << 6)// F set, FIQ disabled
+.equ	CPSR_MODE_IRQ_DISABLE,	        (1 << 7)// I set, IRQ disabled
+.equ	CPSR_MODE_ABORT_DISABLE,        (1 << 8)// A set, ABT disabled
 
 /* SCTLR_EL1, system control register */
-.equ    SCTLR_RESERVED          (3 << 28) | (3 << 22) | (1 << 20) | (1 << 11)
-.equ    SCTLR_EE_LITTLE_ENDIAN  (0 << 25)
-.equ    SCTLR_EOE_LITTLE_ENDIAN (0 << 24)
-.equ    SCTLR_I_CACHE_DISABLED  (0 << 12)
-.equ    SCTLR_D_CACHE_DISABLED  (0 << 2)
-.equ    SCTLR_MMU_DISABLED      (0 << 0)
-.equ    SCTLR_MMU_ENABLED       (1 << 0)
-.equ    SCTLR_VALUE_MMU_DISABLED (SCTLR_RESERVED | SCTLR_EE_LITTLE_ENDIAN | SCTLR_I_CACHE_DISABLED | SCTLR_D_CACHE_DISABLED | SCTLR_MMU_DISABLED)
+.equ    SCTLR_RESERVED,          (3 << 28) | (3 << 22) | (1 << 20) | (1 << 11)
+.equ    SCTLR_EE_LITTLE_ENDIAN,  (0 << 25)
+.equ    SCTLR_EOE_LITTLE_ENDIAN, (0 << 24)
+.equ    SCTLR_I_CACHE_DISABLED,  (0 << 12)
+.equ    SCTLR_D_CACHE_DISABLED,  (0 << 2)
+.equ    SCTLR_MMU_DISABLED,      (0 << 0)
+.equ    SCTLR_MMU_ENABLED,       (1 << 0)
+.equ    SCTLR_VALUE_MMU_DISABLED, (SCTLR_RESERVED | SCTLR_EE_LITTLE_ENDIAN | SCTLR_I_CACHE_DISABLED | SCTLR_D_CACHE_DISABLED | SCTLR_MMU_DISABLED)
 
 /* HCR_EL2, hypervisor config register */
-.equ HCR_RW                     (1 << 31)
-.equ HCR_VALUE                  HCR_RW
+.equ HCR_RW,                     (1 << 31)
+.equ HCR_VALUE,                  HCR_RW
 
 /* SCR_EL3, secure config register */
-.equ SCR_RESERVED               (3 << 4)
-.equ SCR_RW                     (1 << 10)
-.equ SCR_NS                     (1 << 0)
-.equ SCR_VALUE                  (SCR_RESERVED | SCR_RW | SCR_NS)
+.equ SCR_RESERVED,               (3 << 4)
+.equ SCR_RW,                     (1 << 10)
+.equ SCR_NS,                     (1 << 0)
+.equ SCR_VALUE,                  (SCR_RESERVED | SCR_RW | SCR_NS)
 
 /* SPSR */
-.equ SPSR_MASK_ALL              (7 << 6)
-.equ SPSR_EL1h                  (5 << 0)
-.equ SPSR_VALUE                 (SPSR_MASK_ALL | SPSR_EL1h)
+.equ SPSR_MASK_ALL,              (7 << 6)
+.equ SPSR_EL1h,                  (5 << 0)
+.equ SPSR_VALUE,                 (SPSR_MASK_ALL | SPSR_EL1h)
 
 /* ESR_EL1, exception syndrome register */
-.equ ESR_ELx_EC_SHIFT           26
-.equ ESR_ELx_EC_SVC64           0x15
-.equ ESR_ELx_EC_DABT_LOW        0x24
+.equ ESR_ELx_EC_SHIFT,           26
+.equ ESR_ELx_EC_SVC64,           0x15
+.equ ESR_ELx_EC_DABT_LOW,        0x24
 
 .section ".text.boot"
 
@@ -66,6 +66,7 @@ unused_handler_addr:		.word	undef_handler
 interrupt_addr:			.word	interrupt_handler
 fast_interrupt_addr:		.word	fiq_handler
 
+reset:
         mov     sp, #0x8000
         mov	r3, #(CPSR_MODE_IRQ | CPSR_MODE_IRQ_DISABLE | CPSR_MODE_FIQ_DISABLE )
 	msr	cpsr_c, r3

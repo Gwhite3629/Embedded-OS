@@ -142,3 +142,18 @@ void free(void *p)
         : "r"(r7), "0"(r0)
         : "memory");
 }
+
+int time(void)
+{
+    int ticks = 0;
+    register r7 __asm__("r7") = SYS_TIME;
+    register r0 __asm__("r0") = (long)&ticks;
+
+    asm volatile(
+        "svc #0\n"
+        : "=r"(r0)
+        : "r"(r7), "0"(r0)
+        : "memory");
+
+    return ticks;
+}

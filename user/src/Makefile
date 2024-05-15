@@ -1,4 +1,4 @@
-CFLAGS += UINCLUDE
+CFLAGS += $(UINCLUDE)
 
 obj-u := shell.o
 

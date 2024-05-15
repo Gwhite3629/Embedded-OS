@@ -1,7 +1,7 @@
-#include "../../include/stdlib.h"
-#include "../../include/fs/fat32.h"
-#include "../../include/fs/file.h"
-#include "../../include/drivers/sd.h"
+#include <stdlib.h>
+#include <fs/fat32.h>
+#include <fs/file.h>
+#include <drivers/sd.h>
 
 extern lock_t Mutex;
 
@@ -183,7 +183,7 @@ err_t f_sync (FILE* fp)
                 fp->flags &= (uint8_t)~FA_DIRTY;
             }
             tm = get_fattime();
-			ret = move_window(fs, fp->dir_sector);
+			ret = move_access(fs, fp->dir_sector);
 			if (ret == E_NOERR) {
 				dir = fp->dir_ptr;
 				dir[DIR_Attr] |= A_ARCHIVE;						/* Set archive attribute to indicate that the file has been changed */
@@ -206,10 +206,10 @@ err_t f_read (FILE* fp, void* buff, unsigned int btr, unsigned int* br)
 {
     err_t ret;
     FS *fs;
-    uint32_t cluster;
-    uint16_t sector;
-    size_t rem;
-    uint32_t cnt, cc, csector;
+    uint32_t cluster = 0;
+    uint16_t sector = 0;
+    size_t rem = 0;
+    uint32_t cnt = 0, cc = 0, csector = 0;
     uint8_t *rbuff = (uint8_t *)buff;
 
     *br = 0;
@@ -268,9 +268,9 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
 {
     err_t ret;
     FS *fs;
-    uint32_t cluster;
-    uint16_t sector;
-    uint32_t cnt, cc, csector;
+    uint32_t cluster = 0;
+    uint16_t sector = 0;
+    uint32_t cnt = 0, cc = 0, csector = 0;
     const uint8_t *wbuff = (const uint8_t *)buff;
 
     *bw = 0;
@@ -366,9 +366,9 @@ err_t f_getfree (const char* path, uint32_t* nclst, FS** fatfs)
 {
     err_t ret;
     FS *fs;
-    uint32_t nfree, cluster, stat;
-    uint16_t sector;
-    uint32_t i;
+    uint32_t nfree = 0, cluster = 0, stat = 0;
+    uint16_t sector = 0;
+    uint32_t i = 0;
 
     ret = mount_volume(&path, &fs, 0);
     if (ret == E_NOERR) {
@@ -412,7 +412,7 @@ err_t f_unlink (const char* path)
     ret = mount_volume(&path, &fs, FA_WRITE);
     if (ret == E_NOERR) {
         dj.fs = fs;
-        ret = follow_path(&dj, path);
+        ret = dir_follow_path(&dj, path);
         if (ret == E_NOERR && (dj.fn[11] & 0x20)) {
             ret = E_INVALID_F;
         }
@@ -457,15 +457,15 @@ err_t f_rename (const char *path_old, const char *path_new)
     FS *fs;
     DIR djo, djn;
     uint8_t buf[32], *dir;
-    uint16_t sector;
+    uint16_t sector = 0;
 
     get_ldnumber(&path_new);
-    ret = follow_path(&djo, path_old);
+    ret = dir_follow_path(&djo, path_old);
     if (ret == E_NOERR && (djo.fn[11] & (0x80 | 0x20))) ret = E_INVALID_F;
     if (ret == E_NOERR) {
         memcpy(buf, djo.dir, 32);
         memcpy(&djn, &djo, sizeof(DIR));
-        ret = follow_path(&djn, path_new);
+        ret = dir_follow_path(&djn, path_new);
         if (ret == E_NOERR) {
             ret = (djn.fs->sclust == djo.fs->sclust && djn.dptr == djo.dptr) ?
             E_NOFILE : E_FDENIED;
@@ -512,12 +512,12 @@ err_t f_mkdir (const char* path)
     FS *fs;
     FS *Sfs;
     DIR dj;
-    uint32_t dcl, pcl, tm;
+    uint32_t dcl = 0, pcl = 0, tm = 0;
 
     ret = mount_volume(&path, &fs, FA_WRITE);
     if (ret == E_NOERR) {
         dj.fs = fs;
-        ret = follow_path(&dj, path);
+        ret = dir_follow_path(&dj, path);
         if (ret == E_NOERR) ret = E_EXIST;
         if (dj.fn[11] & 0x20) {
             ret = E_INVALID_F;
@@ -529,7 +529,7 @@ err_t f_mkdir (const char* path)
             if (dcl == 0) ret = E_FDENIED;
             if (dcl == 1) ret = E_FINT;
             if (dcl == 0xFFFFFFFF) ret = E_DISKERR;
-            tm = GET_FATTIME();
+            tm = get_fattime();
             if (ret == E_NOERR) {
                 ret = dir_clear(fs, dcl);
                 if (ret == E_NOERR) {
@@ -623,7 +623,7 @@ err_t f_readdir (DIR* dp, FILEINFO* fno)
             ret = dir_read(dp, 0);
             if (ret == E_NOFILE) ret = E_NOERR;
             if (ret == E_NOERR) {
-                get_fileinfo(dp, fno);
+                dir_getfileinfo(dp, fno);
                 ret = dir_next(dp, 0);
                 if (ret == E_NOFILE) ret = E_NOERR;
             }
