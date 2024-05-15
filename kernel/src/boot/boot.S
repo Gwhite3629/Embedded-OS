@@ -1,5 +1,5 @@
-#include "../../include/memory/mmu.h"
-#include "../../include/stdlib.h"
+#include <memory/mmu_func.h>
+#include <stdlib.h>
 
 /* System definitions, from ARM ARM */
 
@@ -45,99 +45,102 @@
 .equ ESR_ELx_EC_SVC64,           0x15
 .equ ESR_ELx_EC_DABT_LOW,        0x24
 
+#define LOCAL_CONTROL   0xff800000
+#define LOCAL_PRESCALER 0xff800008
+#define OSC_FREQ        54000000
+#define MAIN_STACK      0x400000
+
 .section ".text.boot"
 
 .globl _start
 _start:
-        ldr	pc, reset_addr
-	ldr	pc, undefined_instruction_addr
-	ldr	pc, software_interrupt_addr
-	ldr	pc, prefetch_abort_addr
-	ldr	pc, data_abort_addr
-	ldr	pc, unused_handler_addr
-	ldr	pc, interrupt_addr
-	ldr	pc, fast_interrupt_addr
-reset_addr:			.word	reset
-undefined_instruction_addr:	.word	undef_handler
-software_interrupt_addr:	.word	swi_handler
-prefetch_abort_addr:		.word	abort_handler
-data_abort_addr:		.word	abort_handler
-unused_handler_addr:		.word	undef_handler
-interrupt_addr:			.word	interrupt_handler
-fast_interrupt_addr:		.word	fiq_handler
+    ldr x0, =LOCAL_CONTROL
+    str wzr, [x0]
+    mov w1, 0x80000000
+    str w1, [x0, #(LOCAL_PRESCALER - LOCAL_CONTROL)]
 
-reset:
-        mov     sp, #0x8000
-        mov	r3, #(CPSR_MODE_IRQ | CPSR_MODE_IRQ_DISABLE | CPSR_MODE_FIQ_DISABLE )
-	msr	cpsr_c, r3
-	mov	sp, #0x4000
+    ldr x0, =OSC_FREQ
+    msr cntfrq_el0, x0
+    msr cntvoff_el2, xzr
 
-        mov	r3, #(CPSR_MODE_SVC | CPSR_MODE_IRQ_DISABLE | CPSR_MODE_FIQ_DISABLE )
-	msr	cpsr_c, r3
-        ldr	r3, =_start
-	mov	r4, #0x0000
-	/* Quick way to copy 256 bytes of memory */
-	ldmia	r3!,{r5, r6, r7, r8, r9, r10, r11, r12}
-	stmia	r4!,{r5, r6, r7, r8, r9, r10, r11, r12}
-	ldmia	r3!,{r5, r6, r7, r8, r9, r10, r11, r12}
-	stmia	r4!,{r5, r6, r7, r8, r9, r10, r11, r12}
+    mrs x1, mpidr_el1
+    and x1, x1, #3
+    cbz x1, 2f
 
-        mrs     x0, mpidr_el1
-        and     x0, x0,#0xFF
-        cbz     x0, master
-        b       proc_hang
+    adr x5, spin_cpu0
 
-proc_hang:
-        b       proc_hang
+1:
+    wfe
+    ldr x4, [x5, x1, lsl #3]
+    cbz x4, 1b
 
-master:
-        ldr     x0, =SCTLR_VALUE_MMU_DISABLED
-        msr     sctlr_el1, x0
+    ldr x2, =__stack_start
+    lsl x1, x1, #9
+    add x3, x2, x1
+    mov sp, x3
 
-        ldr     x0, =HCR_VALUE
-        msr     hcr_el2, x0
+    mov x0, #0
+    mov x1, #0
+    mov x2, #0
+    mov x3, #0
+    br x4
+    b 1b
 
-        ldr     x0, =SCR_VALUE
-        msr     scr_el3, x0
+2:
+    mov x0, #0x33ff
+    msr cptr_el3, x0
+    mov x0, #3 << 20
+    msr cpacr_el1, x0
 
-        ldr     x0, =SPSR_VALUE
-        msr     spsr_el3, x0
 
-        adr     x0, el1_entry
-        msr     elr_el3, x0
 
-        eret
+    ldr     x0, =SCTLR_VALUE_MMU_DISABLED
+    msr     sctlr_el1, x0
+
+    ldr     x0, =HCR_VALUE
+    msr     hcr_el2, x0
+
+    ldr     x0, =SCR_VALUE
+    msr     scr_el3, x0
+
+    ldr     x0, =SPSR_VALUE
+    msr     spsr_el3, x0
+
+    adr     x0, el1_entry
+    msr     elr_el3, x0
+
+    eret
 
 el1_entry:
-        adr     x0, bss_begin
-        adr     x1, bss_end
-        sub     x1, x1, x0
-        bl      memzero
+    adr     x0, bss_begin
+    adr     x1, bss_end
+    sub     x1, x1, x0
+    bl      memzero
 
-        bl      __create_page_tables
+    bl      __create_page_tables
 
-        mov     x0, #VA_START
-        add     sp, x0, #LOW_MEMORY
+    mov     x0, #VA_START
+    add     sp, x0, #LOW_MEMORY
 
-        adrp    x0, pg_dir
-        msr     ttbr1_el1, x0
+    adrp    x0, pg_dir
+    msr     ttbr1_el1, x0
 
-        ldr     x0, =(TCR_VALUE)
-        msr     tcr_el1, x0
+    ldr     x0, =(TCR_VALUE)
+    msr     tcr_el1, x0
 
-        ldr     x0, =(MAIR_VALUE)
-        msr     mair_el1, x0
+    ldr     x0, =(MAIR_VALUE)
+    msr     mair_el1, x0
 
-        ldr     x2, =kernel_main
+    ldr     x2, =kernel_main
 
-        mov     x0, #SCTLR_MMU_ENABLED
-        msr     sctlr_el1, x0
+    mov     x0, #SCTLR_MMU_ENABLED
+    msr     sctlr_el1, x0
 
-        br x2
+    br x2
 
 
 
-        .macro	create_pgd_entry, tbl, virt, tmp1, tmp2
+    .macro	create_pgd_entry, tbl, virt, tmp1, tmp2
 	create_table_entry \tbl, \virt, PGD_SHIFT, \tmp1, \tmp2
 	create_table_entry \tbl, \virt, PUD_SHIFT, \tmp1, \tmp2
 	.endm
@@ -166,28 +169,35 @@ el1_entry:
 	b.ls	9999b
 	.endm
 
-sx
-
 __create_page_tables:
-        mov     x29, x30
+    mov     x29, x30
 
-        adrp    x0, pg_dir
-        mov     x1, #PG_DIR_SIZE
-        bl memzero
+    adrp    x0, pg_dir
+    mov     x1, #PG_DIR_SIZE
+    bl memzero
 
-        adrp    x0, pg_dir
-        mov     x1, #VA_START
-        create_pgd_entry x0, x1, x2, x3
+    adrp    x0, pg_dir
+    mov     x1, #VA_START
+    create_pgd_entry x0, x1, x2, x3
 
-        mov     x1, xzr
-        mov     x2, #VA_START
-        ldr     x3, =(VA_START + IO_BASE - SECTION_SIZE)
-        create_block_map x0, x1, x2, x3, MM_FLAGS, x4
+    mov     x1, xzr
+    mov     x2, #VA_START
+    ldr     x3, =(VA_START + IO_BASE - SECTION_SIZE)
+    create_block_map x0, x1, x2, x3, MM_FLAGS, x4
 
-        mov     x1, #IO_BASE
-        ldr     x2, =(VA_START + IO_BASE)
-        ldr     x3, =(VA_START + MEM_SIZE - SECTION_SIZE)
-        create_block_map x0, x1, x2, x3, MM_DEVICE_FLAGS, x4
+    mov     x1, #IO_BASE
+    ldr     x2, =(VA_START + IO_BASE)
+    ldr     x3, =(VA_START + MEM_SIZE - SECTION_SIZE)
+    create_block_map x0, x1, x2, x3, MM_DEVICE_FLAGS, x4
 
-        mov x30, x29
-        ret
+    mov x30, x29
+    ret
+
+.ltorg
+
+.org 0x110
+.globl spin_cpu0
+spin_cpu0:
+    .quad 0
+
+

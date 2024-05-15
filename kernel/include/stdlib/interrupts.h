@@ -16,33 +16,12 @@ typedef struct irq_t {
 
 err_t handle_irq_event(irq_t * q);
 
-static inline uint32_t get_CPSR(void)
-{
-    uint32_t temp;
+void init_vectors(void);
 
-    asm volatile ("mrs %0, CPSR":"=r" (temp):);
+void enable_interrupts(void);
 
-    return temp;
-}
+void disable_interrupts(void);
 
-static inline void set_CPSR(uint32_t new_cpsr)
-{
-    asm volatile ("msr CPSR_cxsf,%0"::"r"(new_cpsr));
-}
-
-static inline void enable_interrupts(void)
-{
-    uint32_t temp;
-    temp = get_CPSR();
-    set_CPSR(temp & ~0x80);
-}
-
-static inline uint32_t disable_interrupts(void)
-{
-    uint32_t temp;
-    temp = get_CPSR();
-    set_CPSR(temp | 0x80);
-    return temp;
-}
+void interrupt_barrier(void);
 
 #endif // _INTERRUPTS_H_

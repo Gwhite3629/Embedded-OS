@@ -10,6 +10,8 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
     timer_init();
     gic400_init((void *)0xFF840000UL);
 
+    init_vectors();
+    interrupt_barrier();
     enable_interrupts();
 
     uart_init();
@@ -21,13 +23,13 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
 	printk("\x1b[2J");
 	printk(bootmsg);
 
-    asm volatile(
-        "msr CPSR_c, #0xDF\n"   /* System mode, like user but has privelege */
-        "mov sp, #0x00002000\n"
-        "msr CPSR_c, #0xD3\n"   /* Back to Supervisor mode */
-        : /* output */
-        : /* input */
-        : "memory");            /* clobbers */
+//    asm volatile(
+//        "msr CPSR_c, #0xDF\n"   /* System mode, like user but has privelege */
+//        "mov sp, #0x00002000\n"
+//        "msr CPSR_c, #0xD3\n"   /* Back to Supervisor mode */
+//        : /* output */
+//        : /* input */
+//        : "memory");            /* clobbers */
 
     /* Switch to userspace */
 
