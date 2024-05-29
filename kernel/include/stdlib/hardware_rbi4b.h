@@ -1,10 +1,10 @@
 #ifndef _HARDWARE_RPI4B_H_
 #define _HARDWARE_RPI4B_H_
 
-#define CASTA(X) ((X))
+#define CASTA(X) ((uint32_t *)(X))
 #define CASTV(X) ((X))
 
-#define IO_BASE CASTA(0x80000000)
+#define IO_BASE CASTA(0xfe000000)
 #define MEM_SIZE CASTA(0x200000000)
 
 /* Values from the BCM2835-ARM-Peripherals.pdf manual */

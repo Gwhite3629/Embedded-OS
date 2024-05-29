@@ -45,7 +45,7 @@ int write(FILE *fd, const void *buff, unsigned int count)
     register long r0 __asm__("r0") = (long)(fd);
     register long r1 __asm__("r1") = (long)buff;
     register long r2 __asm__("r2") = count;
-    register long r3 __asm__("r3") = &ret;
+    register long r3 __asm__("r3") = (long)&ret;
 
     asm volatile(
         "svc #0\n"
@@ -67,7 +67,7 @@ int read(FILE *fd, void *buff, unsigned int count)
     register long r0 __asm__("r0") = (long)(fd);
     register long r1 __asm__("r1") = (long)buff;
     register long r2 __asm__("r2") = count;
-    register long r3 __asm__("r3") = &ret;
+    register long r3 __asm__("r3") = (long)&ret;
 
     asm volatile(
         "svc #0\n"
@@ -117,7 +117,7 @@ err_t close(FILE *fd)
 
 void *malloc(unsigned int n)
 {
-    void *ptr;
+    void *ptr = NULL;
     register long r7 __asm__("r7") = SYS_MALLOC;
 	register long r0 __asm__("r0") = (long)ptr;
     register long r1 __asm__("r1") = n;
@@ -146,8 +146,8 @@ void free(void *p)
 int time(void)
 {
     int ticks = 0;
-    register r7 __asm__("r7") = SYS_TIME;
-    register r0 __asm__("r0") = (long)&ticks;
+    register long r7 __asm__("r7") = SYS_TIME;
+    register long r0 __asm__("r0") = (long)&ticks;
 
     asm volatile(
         "svc #0\n"

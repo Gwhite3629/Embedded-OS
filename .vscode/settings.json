@@ -16,6 +16,8 @@
         "string": "c",
         "string_view": "c",
         "mmu.h": "c",
-        "syscalls.h": "c"
+        "syscalls.h": "c",
+        "shell.h": "c",
+        "gic400.h": "c"
     }
 }

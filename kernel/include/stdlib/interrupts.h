@@ -14,6 +14,10 @@ typedef struct irq_t {
     void *handler_data;
 } irq_t;
 
+extern irq_t IRQ_LIST[1];
+
+void handle_irq(void);
+
 err_t handle_irq_event(irq_t * q);
 
 void init_vectors(void);

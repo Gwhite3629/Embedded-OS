@@ -9,7 +9,9 @@ proc_t *current_proc;
 
 static proc_t all_procs[MAX_PROCESSES];
 
-void store_context(unsigned int *regs)
+
+void store_context(unsigned int *regs);
+/*
 {
     asm volatile (
         "mov    r2, %[save]\n"
@@ -22,8 +24,10 @@ void store_context(unsigned int *regs)
         :
     );
 }
+*/
 
-void load_context(unsigned int *regs)
+void load_context(unsigned int *regs);
+/*
 {
     asm volatile (
         "mov r2, %[restore]\n"
@@ -36,8 +40,10 @@ void load_context(unsigned int *regs)
         :
     );
 }
+*/
 
-err_t proc_insert(proc_t *p)
+err_t proc_insert(proc_t *p);
+/*
 {
     err_t ret = E_NOERR;
 
@@ -53,8 +59,10 @@ err_t proc_insert(proc_t *p)
 
     return ret;
 }
+*/
 
-err_t proc_remove(void)
+err_t proc_remove(void);
+/*
 {
     err_t ret = E_NOERR;
 
@@ -64,6 +72,7 @@ err_t proc_remove(void)
 
     return ret;
 }
+*/
 
 err_t proc_queue(proc_t *p);    // Puts proc in queue, sets idle -> waiting
 
@@ -117,4 +126,8 @@ err_t proc_sleep(proc_t *p);             // Puts proc in sleep, sets (any) -> sl
 
 err_t proc_sweep();                      // Sweeps to look for stale processes and clean
 
-void proc_exit(proc_t *p, err_t err);              // Exit proc on error
+// Exit proc on error
+void proc_exit(proc_t *p, err_t err)
+{
+    return;
+}

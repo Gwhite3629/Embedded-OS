@@ -70,13 +70,13 @@ typedef struct MM_T {
     int n_kernel_pages;
 } MM_t;
 
-void tlb_invalidate_all(void);
-void icache_invalidate_all(void);
-void disable_l1_dcache(void);
-void invalidate_l1_dcache(void);
-void enable_l1_dcache(void);
-void flush_icache(void);
-void flush_dcache(uint32_t start_addr, uint32_t end_addr);
+//void tlb_invalidate_all(void);
+//void icache_invalidate_all(void);
+//void disable_l1_dcache(void);
+//void invalidate_l1_dcache(void);
+//void enable_l1_dcache(void);
+//void flush_icache(void);
+//void flush_dcache(uint32_t start_addr, uint32_t end_addr);
 
 
 #endif // _MMU_FUNC_H_

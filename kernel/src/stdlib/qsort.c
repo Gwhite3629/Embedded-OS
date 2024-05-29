@@ -118,8 +118,9 @@ void quicksort (
     run_ptr = base_ptr + size;
     while ((run_ptr += size) <= end_ptr) {
         tmp_ptr = run_ptr - size;
-        while ((*cmp) ((void *) run_ptr, (void *) tmp_ptr, arg) < 0)
+        while ((*cmp) ((void *) run_ptr, (void *) tmp_ptr, arg) < 0) {
             tmp_ptr -= size;
+        }
 
 	    tmp_ptr += size;
         if (tmp_ptr != run_ptr) {

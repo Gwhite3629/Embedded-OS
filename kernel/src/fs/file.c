@@ -86,7 +86,7 @@ err_t f_open (FILE* fp, const char* path, uint8_t mode)
 				store_full(dj.dir + DIR_FileSize, 0);
 				fs->dflag = 1;
 				if (cl != 0) {						/* Remove the cluster chain if exist */
-					sector = fs->current_access;
+					sector = (uint16_t)(*fs->current_access);
 					ret = remove_chain(dj.fs, cl, 0);
 					if (ret == E_NOERR) {
 						ret = move_access(fs, sector);
@@ -136,15 +136,16 @@ err_t f_open (FILE* fp, const char* path, uint8_t mode)
 						ret = E_FINT;
 					} else {
 						fp->sector = sector + (uint32_t)(ofs / SECTOR_SIZE);
-        				if (sd_read(fp->buf, fp->sector, 1) != E_NOERR)
+        				if (sd_read((char *)fp->buf, fp->sector, 1) != E_NOERR)
                             ret = E_FINT;
                     }
                 }
             }
         }
     }
-    if (ret != E_NOERR)
+    if (ret != E_NOERR) {
         fp->fs = 0;	/* Invalidate file object on error */
+    }
 
 	return ret;
 }	
@@ -177,8 +178,8 @@ err_t f_sync (FILE* fp)
     ret = validate(fp->fs, &fs);
     if (ret == E_NOERR) {
         if (fp->flags & FA_MODIFIED) {
-            if (fp->flags * FA_DIRTY) {
-                if (sd_write(fp->buf, fp->sector, 1) != E_NOERR)
+            if (fp->flags & FA_DIRTY) {
+                if (sd_write((char *)fp->buf, fp->sector, 1) != E_NOERR)
                     return ret;
                 fp->flags &= (uint8_t)~FA_DIRTY;
             }
@@ -239,7 +240,7 @@ err_t f_read (FILE* fp, void* buff, unsigned int btr, unsigned int* br)
             if (csector + cc > fs->csize) {
                 cc = fs->csize - csector;
             }
-            if (sd_read(rbuff, sector, cc) != E_NOERR) return E_FINT;
+            if (sd_read((char *)rbuff, sector, cc) != E_NOERR) return E_FINT;
             if ((fp->flags & FA_DIRTY) && fp->sector - sector < cc) {
                 memcpy(rbuff + ((fp->sector - sector) * SECTOR_SIZE), fp->buf,
                 SECTOR_SIZE);
@@ -249,10 +250,10 @@ err_t f_read (FILE* fp, void* buff, unsigned int btr, unsigned int* br)
         }
         if (fp->sector != sector) {
             if (fp->flags & FA_DIRTY) {
-                if (sd_write(fp->buf, fp->sector, 1) != E_NOERR) return E_FINT;
+                if (sd_write((char *)fp->buf, fp->sector, 1) != E_NOERR) return E_FINT;
                 fp->flags &= (uint8_t)~FA_DIRTY;
             }
-            if (sd_read(fp->buf, sector, 1) != E_NOERR) return E_DISKERR;
+            if (sd_read((char *)fp->buf, sector, 1) != E_NOERR) return E_DISKERR;
         }
         fp->sector = sector;
     }
@@ -302,7 +303,7 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
                 if (fp->fs->sclust == 0) fp->fs->sclust = cluster;
             }
             if (fp->flags & FA_DIRTY) {
-                if (sd_write(fp->buf, fp->sector, 1) != E_NOERR) return E_DISKERR;
+                if (sd_write((char *)fp->buf, fp->sector, 1) != E_NOERR) return E_DISKERR;
                 fp->flags &= (uint8_t)~FA_DIRTY;
             }
             sector = c2s(fs, fp->cluster);
@@ -313,7 +314,7 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
                 if (csector + cc > fs->csize) {
                     cc = fs->csize - csector;
                 }
-                if (sd_write(wbuff, sector, cc) != E_NOERR) return E_DISKERR;
+                if (sd_write((char *)wbuff, sector, cc) != E_NOERR) return E_DISKERR;
                 if (fp->sector - sector < cc) {
                     memcpy(fp->buf, wbuff + ((fp->sector - sector) *
                     SECTOR_SIZE), SECTOR_SIZE);
@@ -324,7 +325,7 @@ err_t f_write (FILE* fp, const void* buff, unsigned int btw, unsigned int* bw)
             }
             if (fp->sector != sector &&
                 fp->fptr < fp->fs->objsize &&
-                sd_read(fp->buf, sector, 1) != E_NOERR) {
+                sd_read((char *)fp->buf, sector, 1) != E_NOERR) {
                 return E_DISKERR;
             }
             fp->sector = sector;
@@ -454,7 +455,7 @@ err_t f_unlink (const char* path)
 err_t f_rename (const char *path_old, const char *path_new)
 {
     err_t ret;
-    FS *fs;
+    FS *fs = NULL;
     DIR djo, djn;
     uint8_t buf[32], *dir;
     uint16_t sector = 0;
@@ -509,8 +510,8 @@ err_t f_rename (const char *path_old, const char *path_new)
 err_t f_mkdir (const char* path)
 {
     err_t ret;
-    FS *fs;
-    FS *Sfs;
+    FS *fs = NULL;
+    FS *Sfs = NULL;
     DIR dj;
     uint32_t dcl = 0, pcl = 0, tm = 0;
 

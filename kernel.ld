@@ -1,61 +1,39 @@
 /* Barebones ARM/Raspberry Pi Standalone (kernel) linker script */
 /* http://wiki.osdev.org/Raspberry_Pi_Bare_Bones		*/
-
-/* Entry point */
-ENTRY(_start)
  
 SECTIONS
 {
-	/* Sets current address to 0x8000 */
-	. = 0x8000;
-	/* Sets start and text_start to the current address (0x8000) */
-	__start = .;
-
-
 	/************************ Text Section ********************/
-	__text_start = .;
-	.text :
-	{
-		/* Put boot section first */
-		KEEP(*(.text.boot))
-		/* Then put .text */
-		*(.text)
-	}
-	/* align to page size */
-	. = ALIGN(4096); 
-	__text_end = .;
+	.text : { KEEP(*(.text.boot)) *(.text .text.* .gnu.linkonce.t*) }
 
 	/****************** Read-Only Data Section ********************/
-	__rodata_start = .;
-	.rodata :
-	{
-		/* Include all rodata sections */
-		*(.rodata)
-	}
-	. = ALIGN(4096); /* align to page size */
-	__rodata_end = .;
+	.rodata : { *(.rodata .rodata.* .gnu.linkonce.r*) }
 
 
 	/****************** Data Section ********************/
-	__data_start = .;
-	.data :
-	{
-		/* Include all data sections */
-		*(.data)
-	}
-	. = ALIGN(4096); /* align to page size */
-	__data_end = .;
+	PROVIDE(_data = .);
+	.data : { *(.data .data.* .gnu.linkonce.d*) }
  
 	/****************** BSS Section ********************/
-	__bss_start = .;
-	.bss :
+	.bss (NOLOAD) :
 	{
-		bss = .;
-		*(.bss)
+		. = ALIGN(16);
+		__bss_start = .;
+		*(.bss .bss.*)
+		*(COMMON)
+		__bss_end = .;
+		__bss_size = (__bss_end - __bss_start)>>3;
 	}
-	. = ALIGN(4096); /* align to page size */
-	__bss_end = .;
-
+	pg_dir = .;
+	.cpu1Stack :
+	{
+		. = ALIGN(16);
+		__stack_start = .;
+		. = . + 512;
+		__cpu1_stack = .;
+	}
 	/****************** End of executable **************/
 	__end = .;
+
+	/DISCARD/ : { *(.comment) *(.gnu*) *(.note*) *(.eh_frame*) }
 }

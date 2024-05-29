@@ -1,6 +1,6 @@
 CFLAGS += $(KINCLUDE)
 
-obj := hardware_reserve.o mmu.o mmu_func.o malloc.o
+obj := hardware_reserve.o mmu.o malloc.o #mmu_func.o
 
 all: $(obj)
 
@@ -10,8 +10,8 @@ hardware_reserve.o:
 mmu.o:
 	$(CROSS)$(CC) $(CFLAGS) -o mmu.o -c $(ktree)/memory/mmu.c
 
-mmu_func.o:
-	$(CROSS)$(CC) $(CFLAGS) -o mmu_func.o -c $(ktree)/memory/mmu_func.c
+##mmu_func.o:
+##	$(CROSS)$(CC) $(CFLAGS) -o mmu_func.o -c $(ktree)/memory/mmu_func.c
 
 malloc.o:
 	$(CROSS)$(CC) $(CFLAGS) -o malloc.o -c $(ktree)/memory/malloc.c

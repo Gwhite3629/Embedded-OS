@@ -12,12 +12,12 @@
 
 	// Note, because it's a pain to find, the Linux equivelent is in
 	//	entry-armv.S and entry-common.S
-
+/*
 swi_handler:
-	ldr     sp,=current_process	// get pointer to current process
-        ldr     sp,[sp]			// and de-reference (sp==current_process)
+	//ldr     sp,=current_process	// get pointer to current process
+    //ldr     sp,[sp]			// and de-reference (sp==current_process)
 
-	stmia	sp,{r0-lr}^		// Save all user registers r0-lr
+	//stmia	sp,{r0-lr}^		// Save all user registers r0-lr
 					// (the ^ means user registers)
 
 	str	lr,[sp,#60]		// store saved PC on stack
@@ -48,4 +48,15 @@ swi_handler:
 	// Restore saved values.  The ^ means to restore the userspace registers
 	ldmia	sp, {r0-lr}^
 	movs	pc, lr
+*/
 
+swi_handler:
+	stp x0, x1, [sp, #-16]!
+	stp x2, x3, [sp, #-16]!
+
+	bl swi_handler_c
+
+	ldp x2, x3, [sp], #16
+	ldp x0, x1, [sp], #16
+
+	eret

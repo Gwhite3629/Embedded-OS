@@ -9,7 +9,7 @@
 
 #define err_t int32_t
 
-err_t error;
+extern err_t error;
 
 #define E_NOERR     0x1000  // No error
 #define E_PANIC     0x0001  // Panic signal for commisioner

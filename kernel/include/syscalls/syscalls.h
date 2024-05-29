@@ -45,6 +45,6 @@
 // TIME
 #define SYS_TIME      0x0100  // Get time
 
-err_t call(uint32_t SCALL);
+err_t swi_handler_c(uint64_t r0, uint64_t r1, uint64_t r2, uint64_t r3);
 
 #endif  // _SYSCALL_H_

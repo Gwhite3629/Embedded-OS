@@ -8,7 +8,7 @@ FS *FatFs[1];
 
 uint32_t get_fattime(void)
 {
-    
+    return 0;
 }
 
 err_t sync_access(FS *fs)
@@ -16,14 +16,14 @@ err_t sync_access(FS *fs)
     err_t ret = E_NOERR;
 
     if (fs->dflag) {
-        ret = sd_write(fs->current_access, fs->current_sector, 1);
+        ret = sd_write((char *)fs->current_access, fs->current_sector, 1);
         if (ret != E_NOERR) {
             return E_FAILDEV;
         }
         fs->dflag = 0;
         if (fs->current_sector - fs->fbase < fs->fsize) {
             if (fs->n_fats == 2)
-                sd_write(fs->current_access, fs->current_sector + fs->fsize, 1);
+                sd_write((char *)fs->current_access, fs->current_sector + fs->fsize, 1);
         }
     }
 
@@ -37,7 +37,7 @@ err_t move_access(FS *fs, uint32_t sector)
     if (sector != fs->current_sector) {
         ret = sync_access(fs);
         if (ret == E_NOERR) {
-            ret = sd_read(fs->current_access, sector, 1);
+            ret = sd_read((char *)fs->current_access, sector, 1);
             if (ret != E_NOERR) {
                 sector = (uint32_t)0 - 1;
                 ret = E_FAILDEV;
@@ -74,10 +74,10 @@ err_t sync_fs(FS *fs)
             store_half(fs->current_access + 510, 0xAA55);
 
             fs->current_sector = fs->vbase + 1;
-            sd_write(fs->current_access, fs->current_sector, 1);
+            sd_write((char *)fs->current_access, fs->current_sector, 1);
             fs->fsiflag = 0;
         }
-        ret = sd_ioctl(CTRL_SYNC, NULL);
+        ret = sd_ioctl(CTRL_SYNC, 0);
     }
 
     return ret;
@@ -220,7 +220,7 @@ err_t dir_clear(FS *fs, uint32_t n)
     fs->current_sector = sector;
     memset(fs->current_access, 0, SECTOR_SIZE);
     buff = fs->current_access;
-    for (i = 0; i < fs->csize && sd_write(buff, sector + i, 1) > 0; i ++);
+    for (i = 0; i < fs->csize && sd_write((char *)buff, sector + i, 1) > 0; i ++);
     return (i == fs->csize) ? E_NOERR : E_FAILDEV;
 }
 
@@ -288,7 +288,7 @@ err_t dir_next(DIR *dir, int stretch)
                     if (cluster == 0) return E_NOFREE;
                     if (cluster == 1) return E_FSINT;
                     if (cluster == 0xFFFFFFFF) return E_FAILDEV;
-                    if (dir_clear(dir, cluster) != E_NOERR) return E_FAILDEV;
+                    if (dir_clear(dir->fs, cluster) != E_NOERR) return E_FAILDEV;
                 }
                 dir->cluster = cluster;
                 dir->sector = c2s(fs, cluster);
@@ -370,7 +370,7 @@ err_t dir_find(DIR *dir)
             break;
         }
         fs->attr = dir->dir[DIR_Attr] & A_MASK;
-        if (!(dir->dir[DIR_Attr] & A_VOL) && !memcmp(dir->dir, dir->fn, 11)) break;
+        if (!(dir->dir[DIR_Attr] & A_VOL) && !memcmp((char *)dir->dir, (char *)dir->fn, 11)) break;
         ret = dir_next(dir, 0);
     } while (ret == E_NOERR);
 
@@ -498,7 +498,7 @@ err_t dir_follow_path(DIR *dir, const char *path)
     while (IsSeparator(*path)) path++;
     fs->sclust = 0;
     if ((unsigned int)*path < ' ') {
-        dir->fn[11] == 0x80;
+        dir->fn[11] = 0x80;
         ret = dir_set_idx(dir, 0);
     } else {
         for (;;) {
@@ -563,7 +563,7 @@ uint32_t check_fs(FS *fs, uint16_t sector)
     sign = load_half(fs->current_access + 510);
     b = fs->current_access[0];
     if (b == 0xEB || b == 0xE9 || b == 0xE8) {
-        if (sign == 0xAA55 && !memcmp(fs->current_access + 82, "FAT32   ", 8)) {
+        if (sign == 0xAA55 && !memcmp((char *)(fs->current_access + 82), "FAT32   ", 8)) {
             return 0;
         }
         w = load_half(fs->current_access + 11);

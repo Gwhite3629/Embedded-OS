@@ -1,24 +1,24 @@
-#define S_INV_EL1t      0x0
-#define I_INV_EL1t      0x1
-#define F_INV_EL1t      0x2
-#define E_INV_EL1t      0x3
+.equ S_INV_EL1t,      0x0
+.equ I_INV_EL1t,      0x1
+.equ F_INV_EL1t,      0x2
+.equ E_INV_EL1t,      0x3
 
-#define S_INV_EL1h      0x4
-#define I_INV_EL1h      0x5
-#define F_INV_EL1h      0x6
-#define E_INV_EL1h      0x7
+.equ S_INV_EL1h,      0x4
+.equ I_INV_EL1h,      0x5
+.equ F_INV_EL1h,      0x6
+.equ E_INV_EL1h,      0x7
 
-#define S_INV_EL0_64    0x8
-#define I_INV_EL0_64    0x9
-#define F_INV_EL0_64    0xA
-#define E_INV_EL0_64    0xB
+.equ S_INV_EL0_64,    0x8
+.equ I_INV_EL0_64,    0x9
+.equ F_INV_EL0_64,    0xA
+.equ E_INV_EL0_64,    0xB
 
-#define S_INV_EL0_32    0xC
-#define I_INV_EL0_32    0xD
-#define F_INV_EL0_32    0xE
-#define E_INV_EL0_32    0xF
+.equ S_INV_EL0_32,    0xC
+.equ I_INV_EL0_32,    0xD
+.equ F_INV_EL0_32,    0xE
+.equ E_INV_EL0_32,    0xF
 
-#define S_FRAME_SIZE    256
+.equ S_FRAME_SIZE,    256
 
 .macro k_entry
     sub sp,     sp,     #S_FRAME_SIZE
@@ -100,7 +100,9 @@ vectors:
     ventry  E_EL0_32
 
 S_EL1t:
-    handle_invalid  S_INV_EL1t
+    k_entry
+    bl  swi_handler
+    k_exit
 
 I_EL1t:
     handle_invalid  I_INV_EL1t
@@ -113,7 +115,9 @@ E_EL1t:
 
 
 S_EL1h:
-    handle_invalid  S_INV_EL1h
+    k_entry
+    bl  swi_handler
+    k_exit
 
 I_EL1h:
     k_entry
@@ -128,7 +132,9 @@ E_EL1h:
 
 
 S_EL0_64:
-    handle_invalid  S_INV_EL0_64
+    k_entry
+    bl  swi_handler
+    k_exit
 
 I_EL0_64:
     handle_invalid  I_INV_EL0_64
@@ -141,10 +147,10 @@ E_EL0_64:
 
 
 S_EL0_32:
-    handle_invalid  S_INV_ELO_32
+    handle_invalid  S_INV_EL0_32
 
 I_EL0_32:
-    handle_invlaid  I_INV_EL0_32
+    handle_invalid  I_INV_EL0_32
 
 F_EL0_32:
     handle_invalid  F_INV_EL0_32
@@ -155,4 +161,3 @@ E_EL0_32:
 
 .globl proc_hang
 proc_hang: b proc_hang
-

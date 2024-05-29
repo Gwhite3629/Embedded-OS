@@ -5,7 +5,7 @@
 #include "../../include/fs/file.h"
 #include "../../include/stdlib/time.h"
 
-err_t swi_handler_c(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
+err_t swi_handler_c(uint64_t r0, uint64_t r1, uint64_t r2, uint64_t r3)
 {
     register long r7 asm ("r7");
 
@@ -13,7 +13,7 @@ err_t swi_handler_c(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
 
     switch(r7) {
         case SYS_PEXIT:
-            proc_exit(r0, E_NOERR);
+            proc_exit((proc_t *)r0, E_NOERR);
             break;
 
         case SYS_SREAD:
@@ -44,14 +44,14 @@ err_t swi_handler_c(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
             break;
 
         case SYS_MALLOC:
-            r0 = alloc(current_proc->heap, (int)r1);
-            if (r0 == NULL) {
+            r0 = (uint64_t)alloc(current_proc->heap, (int)r1);
+            if ((uint32_t *)r0 == NULL) {
                 ret = E_NOMEM;
             }
             break;
 
         case SYS_FREE:
-            cull(current_proc->heap, (void *)r0);
+            cull(current_proc->heap, (uint32_t *)r0);
             ret = E_NOERR;
             break;
 
@@ -60,12 +60,11 @@ err_t swi_handler_c(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
                 printk("Invalid write address\n");
                 ret = E_INVALID;
             } else {
-                (*(int *)(r0)) = tick_counter;
+                (*((uint32_t *)(r0))) = (uint32_t)tick_counter;
                 ret = tick_counter;
             }
             break;
     }
 
     return ret;
-}
-    
+};

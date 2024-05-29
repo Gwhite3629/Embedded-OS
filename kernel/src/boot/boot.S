@@ -1,5 +1,5 @@
 #include <memory/mmu_func.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 
 /* System definitions, from ARM ARM */
 
@@ -20,10 +20,13 @@
 .equ    SCTLR_EE_LITTLE_ENDIAN,  (0 << 25)
 .equ    SCTLR_EOE_LITTLE_ENDIAN, (0 << 24)
 .equ    SCTLR_I_CACHE_DISABLED,  (0 << 12)
+.equ    SCTLR_I_CACHE_ENABLED,   (1 << 12)
 .equ    SCTLR_D_CACHE_DISABLED,  (0 << 2)
+.equ    SCTLR_D_CACHE_ENABLED,   (1 << 2)
 .equ    SCTLR_MMU_DISABLED,      (0 << 0)
 .equ    SCTLR_MMU_ENABLED,       (1 << 0)
 .equ    SCTLR_VALUE_MMU_DISABLED, (SCTLR_RESERVED | SCTLR_EE_LITTLE_ENDIAN | SCTLR_I_CACHE_DISABLED | SCTLR_D_CACHE_DISABLED | SCTLR_MMU_DISABLED)
+.equ    SCTLR_VALUE_MMU_ENABLED, (SCTLR_RESERVED | SCTLR_EE_LITTLE_ENDIAN | SCTLR_I_CACHE_ENABLED | SCTLR_D_CACHE_ENABLED | SCTLR_MMU_ENABLED)
 
 /* HCR_EL2, hypervisor config register */
 .equ HCR_RW,                     (1 << 31)
@@ -45,10 +48,70 @@
 .equ ESR_ELx_EC_SVC64,           0x15
 .equ ESR_ELx_EC_DABT_LOW,        0x24
 
-#define LOCAL_CONTROL   0xff800000
-#define LOCAL_PRESCALER 0xff800008
-#define OSC_FREQ        54000000
-#define MAIN_STACK      0x400000
+.equ LOCAL_CONTROL,   0xff800000
+.equ LOCAL_PRESCALER, 0xff800008
+.equ OSC_FREQ,        54000000
+.equ MAIN_STACK,      0x400000
+
+.equ MAX_BASES, 64
+
+// ARM MMU values
+.equ MT_DEVICE,       0x0
+.equ MT_NORMAL,       0x1
+.equ MT_DEVICE_FLAGS, 0x00
+.equ MT_NORMAL_FLAGS, 0x44
+.equ MAIR_VALUE,      (MT_DEVICE_FLAGS << (8 * MT_DEVICE)) | (MT_NORMAL_FLAGS << (8 * MT_NORMAL))
+
+.equ MM_FLAGS,        (MM_TYPE_BLOCK | (MT_NORMAL << 2) | MM_ACCESS)
+.equ MM_DEVICE_FLAGS, (MM_TYPE_BLOCK | (MT_DEVICE << 2) | MM_ACCESS)
+.equ MM_PTE_FLAGS,    (MM_TYPE_PAGE  | (MT_NORMAL << 2) | MM_ACCESS | MM_ACCESS_PERM)
+
+.equ TCR_T0SZ,			(64 - 48) 
+.equ TCR_T1SZ,			((64 - 48) << 16)
+.equ TCR_TG0_4K,			(0 << 14)
+.equ TCR_TG1_4K,			(2 << 30)
+.equ TCR_VALUE,			(TCR_T0SZ | TCR_T1SZ | TCR_TG0_4K | TCR_TG1_4K)
+
+.equ EXT_MEM_ADDR, 0x40000000
+
+.equ EXT_MEM_SIZE, 0x40000000
+
+.equ VA_START, 0xffff000000000000
+
+.equ PAGE_MASK, 0xfffffffffffff000
+
+.equ PAGE_SHIFT, 12
+
+.equ TABLE_SHIFT, 9
+
+.equ SECTION_SHIFT, (PAGE_SHIFT + TABLE_SHIFT)
+
+.equ PAGE_SIZE, (1 << PAGE_SHIFT) // 4096 bytes
+
+.equ TABLE_SIZE, (1 << TABLE_SHIFT) // 512 entries
+
+.equ SECTION_SIZE, (1 << SECTION_SHIFT)
+
+.equ PG_DIR_SIZE, (3 * PAGE_SIZE)
+
+.equ LOW_MEMORY, (2 * SECTION_SIZE)
+.equ HIGH_MEMORY, IO_BASE
+                                    
+.equ LVL3_SHIFT, (PAGE_SHIFT + 3 * TABLE_SHIFT)
+.equ LVL2_SHIFT, (PAGE_SHIFT + 2 * TABLE_SHIFT)
+.equ LVL1_SHIFT, (PAGE_SHIFT + 1 * TABLE_SHIFT)
+.equ LVL0_SHIFT, (PAGE_SHIFT + 0 * TABLE_SHIFT)
+
+.equ MM_TYPE_TABLE, 0x3
+.equ MM_TYPE_PAGE, 0x3
+.equ MM_TYPE_BLOCK, 0x1
+
+.equ MM_ACCESS,       (0x1 << 10)
+.equ MM_ACCESS_PERM,  (0x1 << 6)
+
+.equ IO_BASE, 0xfe000000
+
+.equ MEM_SIZE, 0x200000000
 
 .section ".text.boot"
 
@@ -63,38 +126,13 @@ _start:
     msr cntfrq_el0, x0
     msr cntvoff_el2, xzr
 
-    mrs x1, mpidr_el1
-    and x1, x1, #3
-    cbz x1, 2f
-
-    adr x5, spin_cpu0
-
-1:
-    wfe
-    ldr x4, [x5, x1, lsl #3]
-    cbz x4, 1b
-
-    ldr x2, =__stack_start
-    lsl x1, x1, #9
-    add x3, x2, x1
-    mov sp, x3
-
-    mov x0, #0
-    mov x1, #0
-    mov x2, #0
-    mov x3, #0
-    br x4
-    b 1b
-
 2:
     mov x0, #0x33ff
     msr cptr_el3, x0
     mov x0, #3 << 20
-    msr cpacr_el1, x0
+    //msr cpacr_el1, x0
 
-
-
-    ldr     x0, =SCTLR_VALUE_MMU_DISABLED
+    ldr     x0, =SCTLR_VALUE_MMU_ENABLED
     msr     sctlr_el1, x0
 
     ldr     x0, =HCR_VALUE
@@ -112,12 +150,16 @@ _start:
     eret
 
 el1_entry:
-    adr     x0, bss_begin
-    adr     x1, bss_end
-    sub     x1, x1, x0
-    bl      memzero
+    ldr     x1, =__bss_start
+    ldr     w2, =__bss_size
+3:  cbz     w2, 5f
+    str     xzr, [x1], #8
+    sub     w2, w2, #1
+    cbnz    w2, 3b
 
-    bl      __create_page_tables
+    mov     sp, #MAIN_STACK
+
+4:  bl      __create_page_tables
 
     mov     x0, #VA_START
     add     sp, x0, #LOW_MEMORY
@@ -131,34 +173,31 @@ el1_entry:
     ldr     x0, =(MAIR_VALUE)
     msr     mair_el1, x0
 
-    ldr     x2, =kernel_main
+5:  bl  kernel_main
 
-    mov     x0, #SCTLR_MMU_ENABLED
-    msr     sctlr_el1, x0
+    b   2b
 
-    br x2
-
-
+.ltorg
 
     .macro	create_pgd_entry, tbl, virt, tmp1, tmp2
-	create_table_entry \tbl, \virt, PGD_SHIFT, \tmp1, \tmp2
-	create_table_entry \tbl, \virt, PUD_SHIFT, \tmp1, \tmp2
+	create_table_entry \tbl, \virt, LVL3_SHIFT, \tmp1, \tmp2
+	create_table_entry \tbl, \virt, LVL2_SHIFT, \tmp1, \tmp2
 	.endm
 
 	.macro	create_table_entry, tbl, virt, shift, tmp1, tmp2
 	lsr	\tmp1, \virt, #\shift
-	and	\tmp1, \tmp1, #PTRS_PER_TABLE - 1			// table index
+	and	\tmp1, \tmp1, #TABLE_SIZE - 1			// table index
 	add	\tmp2, \tbl, #PAGE_SIZE
-	orr	\tmp2, \tmp2, #MM_TYPE_PAGE_TABLE	
+	orr	\tmp2, \tmp2, #MM_TYPE_TABLE	
 	str	\tmp2, [\tbl, \tmp1, lsl #3]
 	add	\tbl, \tbl, #PAGE_SIZE					// next level table page
 	.endm
 
 	.macro	create_block_map, tbl, phys, start, end, flags, tmp1
 	lsr	\start, \start, #SECTION_SHIFT
-	and	\start, \start, #PTRS_PER_TABLE - 1			// table index
+	and	\start, \start, #TABLE_SIZE - 1			// table index
 	lsr	\end, \end, #SECTION_SHIFT
-	and	\end, \end, #PTRS_PER_TABLE - 1				// table end index
+	and	\end, \end, #TABLE_SIZE - 1				// table end index
 	lsr	\phys, \phys, #SECTION_SHIFT
 	mov	\tmp1, #\flags
 	orr	\phys, \tmp1, \phys, lsl #SECTION_SHIFT			// table entry
@@ -193,11 +232,13 @@ __create_page_tables:
     mov x30, x29
     ret
 
-.ltorg
-
-.org 0x110
 .globl spin_cpu0
 spin_cpu0:
     .quad 0
 
-
+.globl memzero
+memzero:
+        str     xzr, [x0], #8
+        subs    x1, x1, #8
+        b.gt    memzero
+        ret

@@ -1,6 +1,8 @@
-#include <stddef.h>
+//#include <stddef.h>
 #include "shell.h"
+//#include <memset.h>
 #include <memset.h>
+//#include <string.h>
 #include <string.h>
 #include <types.h>
 #include <syscalls.h>
@@ -12,7 +14,7 @@ int putchar(char c) {
 
     buffer[0] = c;
 
-    ret = serial_write((uint32_t)buffer, 1);
+    ret = serial_write((uint32_t *)buffer, 1);
 
     return ret;
 }

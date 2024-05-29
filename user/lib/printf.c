@@ -1,9 +1,11 @@
-#include <stddef.h>
+//#include <stddef.h>
 #include <stdarg.h>
 #include <syscalls.h>
 #include <printf.h>
 
 #define MAX_PRINT_SIZE 256
+
+err_t error;
 
 int printf(char *string,...) {
 

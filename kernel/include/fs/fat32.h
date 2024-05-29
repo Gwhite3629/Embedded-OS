@@ -1,7 +1,7 @@
 #ifndef _FAT32_H_
 #define _FAT32_H_
 
-#include <stdlib.h>
+#include "../stdlib.h"
 
 #include "../stdlib/lock.h"
 #include "../stdlib/types.h"
@@ -44,7 +44,7 @@ typedef struct Bios_Parameter_Block {
     char BS_FilSysType[8];      // "FAT32"
     uint8_t RSRVD[420];         // Reserved, 0
     uint16_t Signature_Word;    // Hi: 0xAA, lo: 0x55
-} BPB __packed;
+} __packed BPB;
 
 typedef struct FAT32_FS {
     uint8_t is_mounted;

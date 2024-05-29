@@ -5,6 +5,7 @@ err_t init_lock(lock_t *lock)
 {
     lock->owner = -1;
     lock->acquired = 0;
+    return E_NOERR;
 }
 
 void remove_lock(lock_t *lock)

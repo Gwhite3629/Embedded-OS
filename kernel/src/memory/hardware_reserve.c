@@ -98,7 +98,7 @@ unsigned long reserve(uint32_t n_chunks, uint32_t type)
         end=MAX_CHUNK;
     } else {
         printk("Unknown allocation type %d\n", type);
-        return NULL;
+        return 0;
     }
 
     acquire(&MEM_LOCK);
@@ -108,18 +108,18 @@ unsigned long reserve(uint32_t n_chunks, uint32_t type)
     if (first_chunk < 0) {
         printk("Failed to allocate %d chunks\n", n_chunks);
         release(&MEM_LOCK);
-        return NULL;
+        return 0;
     }
 
     for (i = 0; i < n_chunks; i++) {
-        mark_used(first_chunk + i);
+        mark_used((first_chunk + i));
     }
 
     release(&MEM_LOCK);
 
     memset((void *)(first_chunk*CHUNK_SIZE),0,n_chunks*CHUNK_SIZE);
 
-    return (void *)(first_chunk*CHUNK_SIZE);
+    return (unsigned long)(first_chunk*CHUNK_SIZE);
 }
 
 
@@ -130,10 +130,10 @@ int32_t relinquish(unsigned long start, uint32_t n_chunks)
 
     first_chunk=(int)start/CHUNK_SIZE;
 
-    memset(start, 'V', n_chunks*CHUNK_SIZE);
+    memset((uint64_t *)start, 'V', n_chunks*CHUNK_SIZE);
 
     for (i = 0; i < n_chunks; i++) {
-        mark_free(first_chunk + i);
+        mark_free((first_chunk + i));
     }
 
     return 0;

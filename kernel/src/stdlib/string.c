@@ -2,12 +2,40 @@
 
 void *memcpy(void *dest, const void *src, size_t n)
 {
+    char *bsrc = (char *)src;
+    char *bdest = (char *)dest;
 
+    if (bdest == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        bdest[i] = bsrc[i];
+    }
+
+    return bdest;
 }
 
 void *memmove(void *dest, const void *src, size_t n)
 {
+    char *bsrc = (char *)src;
+    char *bdest = (char *)dest;
 
+    if (bdest == NULL) {
+        return NULL;
+    }
+
+    char temp[n];
+
+    for (size_t i = 0; i < n; i++) {
+        temp[i] = bsrc[i];
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        bdest[i] = temp[i];
+    }
+
+    return bdest;
 }
 
 int strlen(const char *s1)

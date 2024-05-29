@@ -7,14 +7,11 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
 {
     (void) r0;
 
-    timer_init();
-    gic400_init((void *)0xFF840000UL);
-
-    init_vectors();
-    interrupt_barrier();
-    enable_interrupts();
-
     uart_init();
+    init_vectors();
+    gic400_init((void *)0xFF840000UL);
+    enable_interrupts();
+    timer_init();
 
     printk("\nWaiting for serial port to be ready (press any key)\n");
 	uart_getc();
@@ -34,13 +31,11 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
     /* Switch to userspace */
 
     asm volatile(
-        "mov r0, #0x10\n"
-        "msr SPSR, r0\n"
-        "mov lr, %[shell_addr]\n"
-        "movs pc, lr\n"
+        "mov x30, %[shell_addr]\n"
+        "eret\n"
         : /* output */
         : [shell_addr] "r"((long)&shell) /* input */
-        : "r0", "lr", "memory");    /* clobbers */
+        : "memory");    /* clobbers */
 
 	/* Enter our "shell" */
 	shell();

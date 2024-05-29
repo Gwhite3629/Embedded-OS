@@ -267,7 +267,7 @@ err_t sd_status(unsigned int mask)
     while (((readl(EMMC_STATUS)) & mask) && !((readl(EMMC_INTERRUPT)) & INT_ERROR_MASK) && cnt--) {
         udelay(1000);
     }
-    return (cnt <= 0 || ((readl(EMMC_INTERRUPT)) * INT_ERROR_MASK)) ? E_NOT_READY : E_NOERR;
+    return (cnt <= 0 || ((readl(EMMC_INTERRUPT)) & INT_ERROR_MASK)) ? E_NOT_READY : E_NOERR;
 }
 
 err_t sd_read(char *buff, uint16_t sector, size_t n)

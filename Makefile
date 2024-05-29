@@ -15,7 +15,7 @@ KBUILD_OUTPUT := $(shell mkdir -p $(KBUILD_OUTPUT)\
 					&& /bin/pwd)
 
 KINCLUDE := -I$(srctree)/kernel/include
-UINCLUDE := -I$(srctree)/user/include
+UINCLUDE := -I$(srctree)/user/include -I$(srctree)/kernel/include/stdlib
 
 _all:
 
@@ -45,7 +45,7 @@ sub-make:
 PHONY += $(MAKECMDGOALS) __build_kernel
 
 $(filter-out __build_kernel, $(MAKECMDGOALS)): __build_kernel
-	@:
+	@:	
 
 __build_kernel:
 	for i in $(MAKECMDGOALS); do \
@@ -65,10 +65,7 @@ __build_user:
 PHONY += $(MAKECMDGOALS) __build_main
 
 $(filter-out __build_main, $(MAKECMDGOALS)): __build_main
+	@:
 
 __build_main:
 	$(MAKE) -f $(mtree)/Makefile
-	
-
-clean:
-	rm -rf $(saved-output)

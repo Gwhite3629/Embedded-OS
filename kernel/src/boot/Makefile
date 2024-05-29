@@ -1,8 +1,13 @@
 CFLAGS += $(KINCLUDE)
 
-obj = boot.o
+obj := boot.o irqentry.o
 
-$(obj):
-	$(CROSS)$(AS) $(ASFLAGS) -o $(obj) $(ktree)/boot/boot.S
+all: $(obj)
+
+boot.o:
+	$(CROSS)$(AS) $(ASFLAGS) -o boot.o $(ktree)/boot/boot.S
+
+irqentry.o:
+	$(CROSS)$(AS) $(ASFLAGS) -o irqentry.o $(ktree)/boot/irqentry.S
 
 .PHONY: $(obj)

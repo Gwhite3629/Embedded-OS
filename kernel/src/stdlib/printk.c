@@ -65,7 +65,7 @@ int printk(char *string,...) {
 
 	va_end(ap);
 
-	uart_write(buffer, buffer_pointer);
+	uart_write((unsigned char *)buffer, buffer_pointer);
 
 	return buffer_pointer;
 }
