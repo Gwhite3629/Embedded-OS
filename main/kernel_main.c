@@ -1,17 +1,16 @@
-#include <stdlib.h>
-#include <drivers/gic400.h>
-#include "../user/src/shell.h"
+#include <stdlib.h/serial.h>
+#include <stdlib.h/interrupts.h>
 #include "bootscreen.h"
 
-void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
+void main()
 {
-    (void) r0;
-
     uart_init();
-    init_vectors();
-    gic400_init((void *)0xFF840000UL);
-    enable_interrupts();
+    uart_write("UART FINISHED\n", 14);
     timer_init();
+    uart_write("TIMER FINISHED\n", 15);
+    init_vectors();
+    enable_interrupts();
+    uart_write("INTERRUPTS FINISHED\n", 20);
 
     printk("\nWaiting for serial port to be ready (press any key)\n");
 	uart_getc();
@@ -30,13 +29,13 @@ void kernel_main(uint32_t r0, uint32_t r1, uint32_t r2)
 
     /* Switch to userspace */
 
-    asm volatile(
-        "mov x30, %[shell_addr]\n"
-        "eret\n"
-        : /* output */
-        : [shell_addr] "r"((long)&shell) /* input */
-        : "memory");    /* clobbers */
+//    asm volatile(
+//        "mov x30, %[shell_addr]\n"
+//        "eret\n"
+//        : /* output */
+//        : [shell_addr] "r"((long)&shell) /* input */
+//        : "memory");    /* clobbers */
 
 	/* Enter our "shell" */
-	shell();
+    while(1);
 }

@@ -1,7 +1,7 @@
 #ifndef _HARDWARE_RPI4B_H_
 #define _HARDWARE_RPI4B_H_
 
-#define CASTA(X) ((uint32_t *)(X))
+#define CASTA(X) ((uint64_t *)(X))
 #define CASTV(X) ((X))
 
 #define IO_BASE CASTA(0xfe000000)
@@ -328,6 +328,5 @@
 #define UART0_ITOP	CASTA(UART0_BASE + 0x88)
 /* TDR = Test Data Register */
 #define UART0_TDR	CASTA(UART0_BASE + 0x8C)
-
 
 #endif

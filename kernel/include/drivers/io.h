@@ -2,6 +2,7 @@
 #define _IO_H_
 
 #include "../stdlib/types.h"
+#include "../stdlib/hardware_rbi4b.h"
 
 #define __raw_writel __raw_writel
 static inline void __raw_writel(u32 val, volatile void __iomem *addr)
@@ -32,8 +33,33 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
 #define __iormb()		do { } while (0)
 #define __iowmb()		do { } while (0)
 
-#define writel(v,c)		({ __iowmb(); writel_relaxed(v,c); })
+//#define writel(v,c)		({ __iowmb(); writel_relaxed(v,c); })
 
-#define readl(c)		({ u32 __v = readl_relaxed(c); __iormb(); __v; })
+//#define readl(c)		({ u32 __v = readl_relaxed(c); __iormb(); __v; })
+
+static inline void writel(uint32_t data, uint64_t *address)
+{
+	asm volatile("str %[data], [%[address]]" :
+		: [address]"r"(address), [data]"r"(data));
+}
+
+static inline uint32_t readl(uint64_t *address)
+{
+	uint32_t data;
+	asm volatile("ldr %[data], [%[address]]" :
+		[data]"=r"(data) : [address]"r"(address));
+	return data;
+}
+
+static inline void chip_write(uint32_t data, void * address)
+{
+	writel(data, (IO_BASE + (uint64_t)address));
+}
+
+static inline uint32_t chip_read(void * address)
+{
+	return readl((IO_BASE + (uint64_t)address));
+}
+
 
 #endif // _IO_H_

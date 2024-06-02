@@ -100,12 +100,15 @@ vectors:
     ventry  E_EL0_32
 
 S_EL1t:
-    k_entry
-    bl  swi_handler
-    k_exit
+    handle_invalid S_INV_EL1t
+#    k_entry
+#    bl  swi_handler
+#    k_exit
 
 I_EL1t:
-    handle_invalid  I_INV_EL1t
+    k_entry
+    bl  handle_irq
+    k_exit
 
 F_EL1t:
     handle_invalid  F_INV_EL1t
@@ -115,9 +118,10 @@ E_EL1t:
 
 
 S_EL1h:
-    k_entry
-    bl  swi_handler
-    k_exit
+    handle_invalid S_INV_EL1h
+#    k_entry
+#    bl  swi_handler
+#    k_exit
 
 I_EL1h:
     k_entry
@@ -132,12 +136,15 @@ E_EL1h:
 
 
 S_EL0_64:
-    k_entry
-    bl  swi_handler
-    k_exit
+    handle_invalid S_INV_EL0_64
+#    k_entry
+#    bl  swi_handler
+#    k_exit
 
 I_EL0_64:
-    handle_invalid  I_INV_EL0_64
+    k_entry
+    bl  handle_irq
+    k_exit
 
 F_EL0_64:
     handle_invalid  F_INV_EL0_64
@@ -147,10 +154,15 @@ E_EL0_64:
 
 
 S_EL0_32:
-    handle_invalid  S_INV_EL0_32
+    handle_invalid S_INV_EL0_32
+#    k_entry
+#    bl  swi_handler
+#    k_exit
 
 I_EL0_32:
-    handle_invalid  I_INV_EL0_32
+    k_entry
+    bl  handle_irq
+    k_exit
 
 F_EL0_32:
     handle_invalid  F_INV_EL0_32
