@@ -1,7 +1,7 @@
 #ifndef _HARDWARE_RPI4B_H_
 #define _HARDWARE_RPI4B_H_
 
-#define CASTA(X) ((uint64_t *)(X))
+#define CASTA(X) ((X))
 #define CASTV(X) ((X))
 
 #define IO_BASE CASTA(0xfe000000)
@@ -18,7 +18,7 @@
 /* GPIO */
 /********/
 
-#define GPIO_BASE	CASTA(0x200000)
+#define GPIO_BASE	IO_BASE + CASTA(0x200000)
 
 /* GPFSEL = Function Select Registers */
 /*   Each reg 3 groups of 10 */
@@ -96,7 +96,7 @@
 /* Note Pi4 does things differently */
 
 			/*7e00b000 */
-#define IRQ_BASE	CASTA(0xb000)
+#define IRQ_BASE	IO_BASE + CASTA(0xb000)
 
 
 /* Pi1/Pi2/Pi3 */
@@ -153,7 +153,7 @@
 /*********/
 /* Section 14 */
 			/*7e00b000 */
-#define TIMER_BASE	CASTA(0xb000)
+#define TIMER_BASE	IO_BASE + CASTA(0xb000)
 /* LOAD = Value to Count Down from */
 #define TIMER_LOAD	CASTA(TIMER_BASE+0x400)
 /* VALUE = Current timer Value */
@@ -185,7 +185,7 @@
 /********/
 			/*7e00b000 */
 			/*7e201000 */
-#define UART0_BASE	CASTA(0x201000)
+#define UART0_BASE	IO_BASE + CASTA(0x201000)
 /* DR = Data register */
 /* On write, write 8-bits to send */
 /* On receive, get 12-bits:       */

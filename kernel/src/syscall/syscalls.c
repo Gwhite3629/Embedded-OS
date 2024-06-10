@@ -21,7 +21,7 @@ err_t swi_handler_c(uint64_t r0, uint64_t r1, uint64_t r2, uint64_t r3)
             break;
 
         case SYS_SWRITE:
-            ret = uart_write((void *)r0, (unsigned int)r1);
+            uart_write((void *)r0, (unsigned int)r1);
             break;
 
         case SYS_FREAD:

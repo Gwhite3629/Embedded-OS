@@ -1,10 +1,10 @@
-//make#include <stddef.h>
+//#include <stddef.h>
 #include <drivers/io.h>
 #include <stdlib.h>
 
 void uart_init(void) {
 
-	uint32_t old;
+	unsigned int old;
 
 	//Disable UART
 	chip_write(0x0, UART0_CR);
@@ -65,45 +65,45 @@ void uart_init(void) {
 
 void uart_putc(unsigned char byte) {
 
-	/* Check Flags Register */
-	/* And wait until FIFO not full */
+	// Check Flags Register 
+	// And wait until FIFO not full 
 	while ( chip_read(UART0_FR) & UART0_FR_TXFF ) {
 	}
 
-	/* Write our data byte out to the data register */
+	// Write our data byte out to the data register 
 	chip_write(byte, UART0_DR);
 }
 
 unsigned char uart_getc(void) {
 
-	/* Check Flags Register */
-	/* Wait until Receive FIFO is not empty */
+	// Check Flags Register 
+	// Wait until Receive FIFO is not empty 
 	while ( chip_read(UART0_FR) & UART0_FR_RXFE ) {
 	}
 
-	/* Read and return the received data */
-	/* Note we are ignoring the top 4 error bits */
+	// Read and return the received data 
+	// Note we are ignoring the top 4 error bits 
 
 	return chip_read(UART0_DR);
 }
 
 int32_t uart_getc_noblock(void) {
 
-	/* Check Flags Register */
+	// Check Flags Register 
 
-	/* Return 0 if Receive FIFO is empty */
+	// Return 0 if Receive FIFO is empty 
 	if ( chip_read(UART0_FR) & UART0_FR_RXFE ) {
 		return 0;
 	}
 
-	/* Read and return the received data */
-	/* Note we are ignoring the top 4 error bits */
+	// Read and return the received data 
+	// Note we are ignoring the top 4 error bits 
 
 	return (chip_read(UART0_DR))&0xff;
 }
 
 
-/* write a series of bytes to the serial port */
+// write a series of bytes to the serial port 
 uint32_t uart_write(const unsigned char* buffer, size_t size) {
 
 	size_t i;

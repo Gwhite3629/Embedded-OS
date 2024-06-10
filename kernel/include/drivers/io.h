@@ -39,26 +39,32 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
 
 static inline void writel(uint32_t data, uint64_t *address)
 {
+	/*
 	asm volatile("str %[data], [%[address]]" :
 		: [address]"r"(address), [data]"r"(data));
+	*/
+	*(volatile uint32_t *)address = data;
 }
 
 static inline uint32_t readl(uint64_t *address)
 {
+	/*
 	uint32_t data;
 	asm volatile("ldr %[data], [%[address]]" :
 		[data]"=r"(data) : [address]"r"(address));
 	return data;
+	*/
+	return *(volatile uint32_t *)address;
 }
 
-static inline void chip_write(uint32_t data, void * address)
+static inline void chip_write(unsigned int data, void * address)
 {
-	writel(data, (IO_BASE + (uint64_t)address));
+	*(volatile unsigned int *)address = data;
 }
 
-static inline uint32_t chip_read(void * address)
+static inline uint32_t chip_read(long address)
 {
-	return readl((IO_BASE + (uint64_t)address));
+	return *((volatile unsigned int *)((unsigned int *)address));
 }
 
 

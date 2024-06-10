@@ -14,7 +14,7 @@ err_t handle_irq_event(irq_t * q)
     err_t ret = E_NOERR;
 	uint32_t pending;
 
-	pending = chip_read((uint64_t *)IRQ0_PENDING2);
+	pending = chip_read(IRQ0_PENDING2);
     //acquire(&q->irq_lock);
 
     //ret = q->func(q->irq, q->handler_data);
@@ -25,8 +25,8 @@ err_t handle_irq_event(irq_t * q)
 		printk("Unknown Interrupt %x\n", pending);
 	} else {
 		tick_counter++;
-		chip_write(0x1, (uint64_t *)TIMER_IRQ_CLEAR);
-		chip_write(0xffffffffUL, (uint64_t *)GICD_ICPENDR0);
+		chip_write(0x1, TIMER_IRQ_CLEAR);
+		chip_write(0xffffffffUL, GICD_ICPENDR0);
 	}
     return ret;
 }

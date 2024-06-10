@@ -9,8 +9,9 @@ kernel_main.o:
 
 kernel8.img: $(obj) $(obj-u)
 	$(CROSS)ld $(LFLAGS) \
-	boot.o interrupts.o memset.o printk.o \
-	proc.o serial.o time.o string.o kernel_main.o irqentry.o \
+	boot.o time.o printk.o serial.o string.o \
+	interrupts.o irqentry.o gic400.o \
+	memset.o kernel_main.o \
 	-o kernel8.elf
 	$(CROSS)objcopy -O binary kernel8.elf kernel8.img
 
