@@ -18,6 +18,12 @@
         "mmu.h": "c",
         "syscalls.h": "c",
         "shell.h": "c",
-        "gic400.h": "c"
+        "gic400.h": "c",
+        "malloc.h": "c",
+        "random": "c",
+        "*.tcc": "c",
+        "vector": "c",
+        "memory": "c",
+        "file.h": "c"
     }
 }

@@ -54,15 +54,15 @@ extern int ret;
 
 #define new(ptr, size, type) \
     ptr = (type *)alloc(global_heap, size*sizeof(type)); \
-    VALID(ptr, MEM_CODE, ALLOCATION_ERROR);
+    VALID(ptr, E_NOMEM);
 
 #define alt(ptr, size, type) \
     ptr = (type *)change(global_heap, ptr, size*sizeof(type)); \
-    VALID(ptr, MEM_CODE, ALLOCATION_ERROR);
+    VALID(ptr, E_NOMEM);
 
 #define del(ptr) \
     cull(global_heap, ptr); \
-    VALID(global_heap, MEM_CODE, ALLOCATION_ERROR);
+    VALID(global_heap, E_NOMEM);
 
 heap_t *create(int alignment, int size);
 
@@ -79,5 +79,7 @@ void cull(heap_t *h, void *ptr);
 void clean(heap_t *h);
 
 void *change(heap_t *h, void *ptr, int size);
+
+extern heap_t *global_heap;
 
 #endif // _MALLOC_H_

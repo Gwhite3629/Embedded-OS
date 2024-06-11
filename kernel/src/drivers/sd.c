@@ -14,18 +14,18 @@ static err_t sd_int(unsigned int mask)
     unsigned int m = mask | INT_ERROR_MASK;
 
     int cnt = 1000000;
-    while (!((readl(EMMC_INTERRUPT)) & m) && cnt--) {
+    while (!((chip_read(EMMC_INTERRUPT)) & m) && cnt--) {
         udelay(1000);
     }
-    r = readl(EMMC_INTERRUPT);
+    r = chip_read(EMMC_INTERRUPT);
     if (cnt <= 0 || (r & INT_CMD_TIMEOUT) || (r & INT_DATA_TIMEOUT)) {
-        writel(r, EMMC_INTERRUPT);
+        chip_write(r, EMMC_INTERRUPT);
         return E_TIMEOUT;
     } else if (r & INT_ERROR_MASK) {
-        writel(r, EMMC_INTERRUPT);
+        chip_write(r, EMMC_INTERRUPT);
         return E_NOT_READY;
     }
-    writel(mask, EMMC_INTERRUPT);
+    chip_write(mask, EMMC_INTERRUPT);
     return E_NOERR;
 }
 
@@ -39,7 +39,7 @@ static err_t sd_clk(unsigned int f)
 
     int cnt = 100000;
 
-    while (((readl(EMMC_STATUS)) & (SR_CMD_INHIBIT | SR_DAT_INHIBIT)) && cnt--) {
+    while (((chip_read(EMMC_STATUS)) & (SR_CMD_INHIBIT | SR_DAT_INHIBIT)) && cnt--) {
         udelay(1000);
     }
     
@@ -47,7 +47,7 @@ static err_t sd_clk(unsigned int f)
         return E_TIMEOUT;
     }
 
-    writel(readl(EMMC_CONTROL1) & ~C1_CLK_EN, EMMC_CONTROL1);
+    chip_write(chip_read(EMMC_CONTROL1) & ~C1_CLK_EN, EMMC_CONTROL1);
     udelay(10000);
     x = c - 1;
     if (!x) 
@@ -72,12 +72,12 @@ static err_t sd_clk(unsigned int f)
     if (sd_hv > HOST_SPEC_V2)
         h = (d & 0x300) >> 2;
     d = (((d & 0x0FF) << 8) | h);
-    writel((readl(EMMC_CONTROL1) & 0xFFFF003f) | d, EMMC_CONTROL1);
+    chip_write((chip_read(EMMC_CONTROL1) & 0xFFFF003f) | d, EMMC_CONTROL1);
     udelay(10000);
-    writel(readl(EMMC_CONTROL1) | C1_CLK_EN, EMMC_CONTROL1);
+    chip_write(chip_read(EMMC_CONTROL1) | C1_CLK_EN, EMMC_CONTROL1);
     udelay(10000);
     cnt = 10000;
-    while (!(readl(EMMC_CONTROL1) & C1_CLK_STABLE) && cnt--) {
+    while (!(chip_read(EMMC_CONTROL1) & C1_CLK_STABLE) && cnt--) {
         udelay(10000);
     }
     if (cnt <= 0) {
@@ -103,8 +103,8 @@ err_t sd_ioctl(unsigned int cmd, unsigned int arg)
         sd_err = E_TIMEOUT;
         return 0;
     }
-    (*EMMC_ARG1) = arg;
-    (*EMMC_CMDTM) = cmd;
+    (*(unsigned int *)EMMC_ARG1) = arg;
+    (*(unsigned int *)EMMC_CMDTM) = cmd;
     
     if (cmd == CMD_SEND_OP_COND) udelay(1000000);
     else if (cmd == CMD_SEND_IF_COND || cmd == CMD_APP_CMD) udelay(100000);
@@ -113,16 +113,16 @@ err_t sd_ioctl(unsigned int cmd, unsigned int arg)
         sd_err = r;
         return E_NOERR;
     }
-    r = readl(EMMC_RESP0);
+    r = chip_read(EMMC_RESP0);
     
     if (cmd == CMD_GO_IDLE || cmd == CMD_APP_CMD) return E_NOERR;
     else if (cmd == (CMD_APP_CMD | CMD_RSPNS_48)) return r & SR_APP_CMD;
     else if (cmd == CMD_SEND_OP_COND) return r;
     else if (cmd == CMD_SEND_IF_COND) return r == arg ? E_NOERR : E_NOT_READY;
     else if (cmd == CMD_ALL_SEND_CID) {
-        r |= readl(EMMC_RESP3);
-        r |= readl(EMMC_RESP2);
-        r |= readl(EMMC_RESP1);
+        r |= chip_read(EMMC_RESP3);
+        r |= chip_read(EMMC_RESP2);
+        r |= chip_read(EMMC_RESP1);
         return r;
     } else if (cmd == CMD_SEND_REL_ADDR) {
         sd_err = (((r&0x1FFF))|((r&0x2000)<<6)|((r&0x4000)<<8)) & CMD_ERRORS_MASK;
@@ -143,65 +143,65 @@ err_t sd_init(void)
 
     // GPIO_CD
 
-    r = readl(GPIO_GPFSEL4);
+    r = chip_read(GPIO_GPFSEL4);
     r &= ~(7 << (7 * 3));
-    writel(r, GPIO_GPFSEL4);
+    chip_write(r, GPIO_GPFSEL4);
 
-    writel(2, GPIO_GPPUD);
+    chip_write(2, GPIO_GPPUD);
     udelay(150000);
-    writel((1 << 15), GPIO_GPPUDCLK1);
+    chip_write((1 << 15), GPIO_GPPUDCLK1);
     udelay(150000);
-    writel(0, GPIO_GPPUD);
-    writel(0, GPIO_GPPUDCLK1);
+    chip_write(0, GPIO_GPPUD);
+    chip_write(0, GPIO_GPPUDCLK1);
 
-    r = readl(GPIO_GPHEN1);
+    r = chip_read(GPIO_GPHEN1);
     r |= 1 << 15;
-    writel(r, GPIO_GPHEN1);
+    chip_write(r, GPIO_GPHEN1);
 
     // GPIO_CLK, GPIO_CMD
 
-    r = readl(GPIO_GPFSEL4);
+    r = chip_read(GPIO_GPFSEL4);
     r |= (7 << (8 * 3)) | (7 << (9 * 3));
-    writel(4, GPIO_GPFSEL4);
+    chip_write(4, GPIO_GPFSEL4);
 
-    writel(2, GPIO_GPPUD);
+    chip_write(2, GPIO_GPPUD);
     udelay(150000);
-    writel((1 << 16) | (1 << 17), GPIO_GPPUDCLK1);
+    chip_write((1 << 16) | (1 << 17), GPIO_GPPUDCLK1);
     udelay(150000);
-    writel(0, GPIO_GPPUD);
-    writel(0, GPIO_GPPUDCLK1);
+    chip_write(0, GPIO_GPPUD);
+    chip_write(0, GPIO_GPPUDCLK1);
 
     // GPIO_DAT0, GPIO_DAT1, GPIO_DAT2, GPIO_DAT3
-    r = readl(GPIO_GPFSEL5);
+    r = chip_read(GPIO_GPFSEL5);
     r |= (7 << (0 * 3)) | (7 << (1 * 3)) | (7 << (2 * 3)) | (7 << (3 * 3));
-    writel(r, GPIO_GPFSEL5);
+    chip_write(r, GPIO_GPFSEL5);
 
-    writel(2, GPIO_GPPUD);
+    chip_write(2, GPIO_GPPUD);
     udelay(150000);
-    writel((1 << 18) | (1 << 19) | (1 << 20) | (1 << 21), GPIO_GPPUDCLK1);
+    chip_write((1 << 18) | (1 << 19) | (1 << 20) | (1 << 21), GPIO_GPPUDCLK1);
     udelay(150000);
-    writel(0, GPIO_GPPUD);
-    writel(0, GPIO_GPPUDCLK1);
+    chip_write(0, GPIO_GPPUD);
+    chip_write(0, GPIO_GPPUDCLK1);
 
-    sd_hv = (readl(EMMC_SLOTISR_VER) & HOST_SPEC_NUM) >> HOST_SPEC_NUM_SHIFT;
+    sd_hv = (chip_read(EMMC_SLOTISR_VER) & HOST_SPEC_NUM) >> HOST_SPEC_NUM_SHIFT;
 
     // Reset card
-    writel(0, EMMC_CONTROL0);
-    writel(readl(EMMC_CONTROL1) | C1_SRST_HC, EMMC_CONTROL1);
+    chip_write(0, EMMC_CONTROL0);
+    chip_write(chip_read(EMMC_CONTROL1) | C1_SRST_HC, EMMC_CONTROL1);
     cnt = 10000;
     do {
         udelay(10000);
-    } while (((readl(EMMC_CONTROL1)) & C1_SRST_HC) && cnt--);
+    } while (((chip_read(EMMC_CONTROL1)) & C1_SRST_HC) && cnt--);
     if (cnt <= 0) {
         return E_TIMEOUT;
     }
-    writel(readl(EMMC_CONTROL1) | C1_CLK_INTLEN | C1_TOUNIT_MAX, EMMC_CONTROL1);
+    chip_write(chip_read(EMMC_CONTROL1) | C1_CLK_INTLEN | C1_TOUNIT_MAX, EMMC_CONTROL1);
     udelay(10000);
 
     // Set Frequency
     if ((r = sd_clk(400000)) != E_NOERR) return r;
-    writel(0xffffffff, EMMC_INT_EN);
-    writel(0xffffffff, EMMC_INT_MASK);
+    chip_write(0xffffffff, EMMC_INT_EN);
+    chip_write(0xffffffff, EMMC_INT_MASK);
     sd_scr[0] = 0;
     sd_scr[1] = 0;
     sd_rca = 0;
@@ -234,7 +234,7 @@ err_t sd_init(void)
     sd_cmd(CMD_CARD_SELECT, sd_rca);
     if (sd_err) return sd_err;
     if (sd_status(SR_DAT_INHIBIT) != E_NOERR) return E_TIMEOUT;
-    writel((1 << 16) | 8, EMMC_BLKSIZECNT);
+    chip_write((1 << 16) | 8, EMMC_BLKSIZECNT);
     sd_cmd(CMD_SEND_SCR, 0);
     if (sd_err != E_NOERR) return sd_err;
     if (sd_int(INT_READ_RDY) != E_NOERR) return E_TIMEOUT;
@@ -242,8 +242,8 @@ err_t sd_init(void)
     r = 0;
     cnt = 100000;
     while (r < 2 && cnt) {
-        if ((readl(EMMC_STATUS)) & SR_READ_AVAILABLE)
-            sd_scr[r++] = (*EMMC_DATA);
+        if ((chip_read(EMMC_STATUS)) & SR_READ_AVAILABLE)
+            sd_scr[r++] = (*(unsigned int *)EMMC_DATA);
         else 
             udelay(1000);
     }
@@ -252,7 +252,7 @@ err_t sd_init(void)
     if (sd_scr[0] & SCR_SD_BUS_WIDTH) {
         sd_cmd(CMD_SET_BUS_WIDTH, sd_rca | 2);
         if (sd_err != E_NOERR) return sd_err;
-        writel(readl(EMMC_CONTROL0) | C0_HCTL_DWIDTH, EMMC_CONTROL0);
+        chip_write(chip_read(EMMC_CONTROL0) | C0_HCTL_DWIDTH, EMMC_CONTROL0);
     }
 
     sd_scr[0] &= ~SCR_SUPP_CCS;
@@ -264,10 +264,10 @@ err_t sd_init(void)
 err_t sd_status(unsigned int mask)
 {
     int cnt = 1000000;
-    while (((readl(EMMC_STATUS)) & mask) && !((readl(EMMC_INTERRUPT)) & INT_ERROR_MASK) && cnt--) {
+    while (((chip_read(EMMC_STATUS)) & mask) && !((chip_read(EMMC_INTERRUPT)) & INT_ERROR_MASK) && cnt--) {
         udelay(1000);
     }
-    return (cnt <= 0 || ((readl(EMMC_INTERRUPT)) & INT_ERROR_MASK)) ? E_NOT_READY : E_NOERR;
+    return (cnt <= 0 || ((chip_read(EMMC_INTERRUPT)) & INT_ERROR_MASK)) ? E_NOT_READY : E_NOERR;
 }
 
 err_t sd_read(char *buff, uint16_t sector, size_t n)
@@ -289,12 +289,12 @@ err_t sd_read(char *buff, uint16_t sector, size_t n)
             sd_cmd(CMD_SET_BLOCKCNT,n);
             if(sd_err) return 0;
         }
-        writel((n << 16) | 512, EMMC_BLKSIZECNT);
+        chip_write((n << 16) | 512, EMMC_BLKSIZECNT);
         sd_cmd(n == 1 ? CMD_READ_SINGLE : CMD_READ_MULTI, sector);
         if(sd_err)
             return 0;
     } else {
-        writel((1 << 16) | 512, EMMC_BLKSIZECNT);
+        chip_write((1 << 16) | 512, EMMC_BLKSIZECNT);
     }
     while( c < n ) {
         if(!(sd_scr[0] & SCR_SUPP_CCS)) {
@@ -306,7 +306,7 @@ err_t sd_read(char *buff, uint16_t sector, size_t n)
             return 0;
         }
         for(d=0;d<128;d++) {
-            buf[d] = readl(EMMC_DATA);
+            buf[d] = chip_read(EMMC_DATA);
         }
         c++;
         buf += 128;
@@ -335,12 +335,12 @@ err_t sd_write(const char *buff, uint16_t sector, size_t n)
             if(sd_err)
                 return 0;
         }
-        writel((n << 16) | 512,EMMC_BLKSIZECNT);
+        chip_write((n << 16) | 512,EMMC_BLKSIZECNT);
         sd_cmd(n == 1 ? CMD_WRITE_SINGLE : CMD_WRITE_MULTI, sector);
         if(sd_err)
             return 0;
     } else {
-        writel((1 << 16) | 512,EMMC_BLKSIZECNT);
+        chip_write((1 << 16) | 512,EMMC_BLKSIZECNT);
     }
     while(c < n) {
         if(!(sd_scr[0] & SCR_SUPP_CCS)) {
@@ -353,7 +353,7 @@ err_t sd_write(const char *buff, uint16_t sector, size_t n)
             return 0;
         }
         for(d=0;d<128;d++) {
-            writel(buf[d], EMMC_DATA);
+            chip_write(buf[d], EMMC_DATA);
         }
         c++;
         buf += 128;

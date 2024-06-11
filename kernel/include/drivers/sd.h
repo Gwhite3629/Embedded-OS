@@ -3,7 +3,7 @@
 
 #include "../stdlib.h"
 
-#define CAST(X) ((uint64_t *)(X))
+#define CAST(X) ((X))
 
 #define EMMC_OFFSET         (IO_BASE + 0x00300000)
 

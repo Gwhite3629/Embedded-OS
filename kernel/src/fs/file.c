@@ -650,7 +650,67 @@ err_t f_expand (FILE* fp, size_t fsz, uint8_t opt);					/* Allocate a contiguous
 err_t f_mkfs (const char* path, const MKFS_PARM* opt, void* work, unsigned int len);	/* Create a FAT volume */
 err_t f_fdisk (uint8_t pdrv, const uint16_t ptbl[], void* work);		/* Divide a physical drive into some partitions */
 err_t f_setcp (uint32_t cp);											/* Set current code page */
-int f_putc (char c, FILE* fp);										/* Put a character to the file */
 int f_puts (const char* str, FILE* cp);								/* Put a string to the file */
 int f_printf (FILE* fp, const char* str, ...);						/* Put a formatted string to the file */
-char* f_gets (char* buff, int len, FILE* fp);
+
+int f_putc (char c, FILE* fp)
+{
+	int ret = E_NOERR;
+
+    unsigned int nw;
+
+    char *buf[2] = {c, '\0'};
+
+    ret = f_write(fp, buf,1,nw);
+
+    return ret;
+}
+
+char* f_gets (char* buff, int len, FILE* fp)
+{
+    int nc = 0;
+	char *p = buff;
+	uint8_t s[4];
+	unsigned int rc;
+	uint32_t dc;
+    unsigned int ct;
+
+	while (nc < len) {
+        f_read(fp, s, 1, &rc);		/* Get a code unit */
+        if (rc != 1) break;			/* EOF? */
+        dc = s[0];
+        if (dc >= 0x80) {			/* Multi-byte sequence? */
+            ct = 0;
+            if ((dc & 0xE0) == 0xC0) {	/* 2-byte sequence? */
+                dc &= 0x1F; ct = 1;
+            }
+            if ((dc & 0xF0) == 0xE0) {	/* 3-byte sequence? */
+                dc &= 0x0F; ct = 2;
+            }
+            if ((dc & 0xF8) == 0xF0) {	/* 4-byte sequence? */
+                dc &= 0x07; ct = 3;
+            }
+            if (ct == 0) continue;
+            f_read(fp, s, ct, &rc);	/* Get trailing bytes */
+            if (rc != ct) break;
+            rc = 0;
+            do {	/* Merge the byte sequence */
+                if ((s[rc] & 0xC0) != 0x80) break;
+                dc = dc << 6 | (s[rc] & 0x3F);
+            } while (++rc < ct);
+            if (rc != ct || dc < 0x80 || dc >= 0x110000) continue;	/* Wrong encoding? */
+        }
+    }
+	len -= 1;	/* Make a room for the terminator */
+	while (nc < len) {
+		f_read(fp, s, 1, &rc);	/* Get a byte */
+		if (rc != 1) break;		/* EOF? */
+		dc = s[0];
+		if (dc == '\r') continue;
+		*p++ = (char)dc; nc++;
+		if (dc == '\n') break;
+	}
+
+	*p = 0;		/* Terminate the string */
+	return nc ? buff : 0;	/* When no data read due to EOF or error, return with error. */
+}

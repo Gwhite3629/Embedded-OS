@@ -1,6 +1,7 @@
 #include "stdlib/bitmap.h"
 #include "stdlib/bsearch.h"
 //#include "stdlib/compact.h"
+#include "stdlib/checks.h"
 #include "stdlib/container_of.h"
 #include "stdlib/delay.h"
 #include "stdlib/err.h"

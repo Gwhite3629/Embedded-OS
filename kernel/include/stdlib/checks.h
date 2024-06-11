@@ -1,6 +1,8 @@
 #ifndef _CHECKS_H_
 #define _CHECK_H_
 
+#include "err.h"
+
 #define VALID(check, err) \
     do { \
         if ((check) == NULL) { \
@@ -11,7 +13,7 @@
 
 #define HANDLE_ERR(check, err) \
     do { \
-        if ((check) != 0) { \
+        if ((check) != E_NOERR) { \
             ret = err; \
             goto exit; \
         } \
@@ -20,7 +22,7 @@
 #define CHECK(F) \
     do { \
         ret = F; \
-        if (ret != 0) \
+        if (ret != E_NOERR) \
             goto exit; \
     } while(0);
 

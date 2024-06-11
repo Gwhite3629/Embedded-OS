@@ -57,7 +57,7 @@ static inline uint32_t readl(uint64_t *address)
 	return *(volatile uint32_t *)address;
 }
 
-static inline void chip_write(unsigned int data, void * address)
+static inline void chip_write(unsigned int data, long address)
 {
 	*(volatile unsigned int *)address = data;
 }

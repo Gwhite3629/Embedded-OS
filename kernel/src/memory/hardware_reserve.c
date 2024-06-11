@@ -23,7 +23,7 @@ static uint32_t MAX_CHUNK = 0;
 #define test_used(chunk) \
     get_bit((MEMORY_MAP), (chunk))
 
-static int init(unsigned long memory_total,
+static int mem_init(unsigned long memory_total,
                 unsigned long memory_kernel) {
     int i;
 
@@ -101,13 +101,13 @@ unsigned long reserve(uint32_t n_chunks, uint32_t type)
         return 0;
     }
 
-    acquire(&MEM_LOCK);
+    //acquire(&MEM_LOCK);
 
     first_chunk=find_free(n_chunks,start,end);
 
     if (first_chunk < 0) {
         printk("Failed to allocate %d chunks\n", n_chunks);
-        release(&MEM_LOCK);
+        //release(&MEM_LOCK);
         return 0;
     }
 
@@ -115,7 +115,7 @@ unsigned long reserve(uint32_t n_chunks, uint32_t type)
         mark_used((first_chunk + i));
     }
 
-    release(&MEM_LOCK);
+    //release(&MEM_LOCK);
 
     memset((void *)(first_chunk*CHUNK_SIZE),0,n_chunks*CHUNK_SIZE);
 
@@ -141,5 +141,9 @@ int32_t relinquish(unsigned long start, uint32_t n_chunks)
 
 void memory_init(unsigned long mem_kernel)
 {
+    uint64_t start,length,i;
 
+    MEMORY_TOTAL = MAX_MEMORY;
+
+    mem_init(MEMORY_TOTAL, mem_kernel);
 }

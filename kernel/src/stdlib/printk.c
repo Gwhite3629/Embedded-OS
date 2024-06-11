@@ -53,6 +53,20 @@ int printk(char *string,...) {
 					buffer[buffer_pointer]=int_buffer[i];
 					buffer_pointer++;
 				}
+			} else if (*string=='c') {
+				string++;
+				x=va_arg(ap, unsigned long);
+				buffer[buffer_pointer]=x;
+				buffer_pointer++;
+			} else if (*string=='s') {
+				char *s;
+				string++;
+				s=(char *)va_arg(ap, long);
+				while(*s) {
+					buffer[buffer_pointer]=*s;
+					s++;
+					buffer_pointer++;
+				}
 			}
 		}
 		else {
@@ -65,7 +79,7 @@ int printk(char *string,...) {
 
 	va_end(ap);
 
-	uart_write((unsigned char *)buffer, buffer_pointer);
+	uart_write(buffer,buffer_pointer);
 
 	return buffer_pointer;
 }

@@ -5,6 +5,7 @@ obj += $(ktree)/memory
 obj += $(ktree)/process
 obj += $(ktree)/fs
 obj += $(ktree)/syscall
+obj += $(ktree)/editor
 
 $(obj):
 	for i in $(obj); do \

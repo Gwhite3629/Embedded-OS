@@ -82,13 +82,15 @@ inline heap_t *create(int alignment, int size)
     */
 
     // Acquire base heap and first region pages
-    base_kheap = acquire_pages(512); // One whole PTE
+    base_kheap = (void *)reserve(size/alignment, MEM_K); // One whole PTE
     VALID(base_kheap, E_NOHEAP);
     memset(base_kheap, 0, size);
+    printk("\tRESERVED HEAP\n");
     
-    base_reg1 = acquire_pages(512); // One whole PTE
+    base_reg1 = (void *)reserve(size/alignment, MEM_U); // One whole PTE
     VALID(base_reg1, E_NOPAGE);
     memset(base_reg1, 0, size);
+    printk("\tRESERVED REGION\n");
 
     // Initialize kernel region
 
@@ -125,12 +127,14 @@ inline heap_t *create(int alignment, int size)
                     +  5 * CHUNK_ARR; 
     kheap.n_chunks = 5;
     kheap.base_addr = base_kheap;
-    kheap.chunks = heap_chunk_arr.addr;
+    kheap.chunks = (smart_ptr **)heap_chunk_arr.addr;
+    printk("\tASSIGNED K_REGION\n");
 
     // Heap info
     h.alignment = alignment;
     h.n_regions = 2;
-    h.regions = reg_arr.addr;
+    h.regions = (region_t **)reg_arr.addr;
+    printk("\tASSIGNED HEAP\n");
 
     // Smart ptr for remaining free space
     heap_free_space.size = (size - kheap.used_size);
@@ -149,11 +153,13 @@ inline heap_t *create(int alignment, int size)
     memcpy(kheap.chunks[2], &heap_ptr, CHUNK_INFO_SIZE);
     memcpy(kheap.chunks[3], &reg_arr, CHUNK_INFO_SIZE);
     memcpy(kheap.chunks[4], &heap_free_space, CHUNK_INFO_SIZE);
+    printk("\tASSIGNED U_CHUNKS\n");
 
     // Assign region info
     memcpy(kheap.chunks[1]->addr, &kheap, REGION_INFO_SIZE);
     // Clear freespace
     memset(kheap.chunks[4]->addr, 0, kheap.chunks[4]->size);
+    printk("\tCOPIED REGION\n");
 
     // Initialize user region 1
 
@@ -176,7 +182,8 @@ inline heap_t *create(int alignment, int size)
                     +  3 * CHUNK_ARR; 
     reg1.n_chunks = 3;
     reg1.base_addr = base_reg1;
-    reg1.chunks = chunk_arr.addr;
+    reg1.chunks = (smart_ptr **)chunk_arr.addr;
+    printk("\tASSIGNED U_REGION\n");
 
     // Smart ptr for remaining free space
     free_space.size = (size - reg1.used_size);
@@ -191,15 +198,21 @@ inline heap_t *create(int alignment, int size)
     memcpy(reg1.chunks[0], &chunk_arr, CHUNK_INFO_SIZE);
     memcpy(reg1.chunks[1], &reg_info, CHUNK_INFO_SIZE);
     memcpy(reg1.chunks[2], &free_space, CHUNK_INFO_SIZE);
+    printk("\tCOPIED U_CHUNKS\n");
 
     // Assign region info
     memcpy(reg1.chunks[1]->addr, &reg1, REGION_INFO_SIZE);
     // Clear freespace
     memset(reg1.chunks[2]->addr, 0, reg1.chunks[2]->size);
+    printk("\tCOPIED REGION\n");
+
+    printk("KERNEL REGION: %x\n", heap_reg_info.addr);
+    printk("USER REGION:   %x\n", reg_info.addr);
 
     // Assign region array
-    h.regions[0] = (region_t *)(heap_reg_info.addr);
-    h.regions[1] = (region_t *)(reg_info.addr);
+    memcpy(h.regions, &heap_reg_info.addr, sizeof(region_t *));
+    memcpy(h.regions + sizeof(region_t *), &reg_info.addr, sizeof(region_t *));
+    printk("\tFINAL ASSIGNMENT\n");
 
     // Assign heap info
     memcpy((heap_t *)kheap.chunks[2]->addr, &h, HEAP_INFO_SIZE);
@@ -250,7 +263,7 @@ inline heap_t *grow_kheap(heap_t *h)
     */
 
     // Get new larger kheap, not necessarily PTE aligned, but page aligned
-    base_kheap = acquire_pages(size / alignment);
+    base_kheap = reserve(size / alignment, MEM_K);
     VALID(base_kheap, E_NOHEAP);
     memset(base_kheap, 0, size);
 
@@ -417,7 +430,7 @@ void create_region(heap_t *h, int size)
     #endif
     */
 
-    base_reg1 = acquire_pages(size / ALIGN);
+    base_reg1 = reserve(size / ALIGN, MEM_U);
     VALID(base_reg1, E_NOPAGE);
     memset(base_reg1, 0, size);
 

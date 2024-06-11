@@ -1,6 +1,10 @@
 #include <stdlib/serial.h>
 #include <stdlib/interrupts.h>
 #include <drivers/gic400.h>
+#include <memory/malloc.h>
+#include <memory/hardware_reserve.h>
+#include <drivers/sd.h>
+#include <editor/editor.h>
 #include "bootscreen.h"
 
 uint32_t shell(void);
@@ -14,6 +18,23 @@ void main()
     interrupt_barrier();
     enable_interrupts();
     printk("INTERRUPTS FINISHED\n");
+
+    printk("Some sizes:\n");
+    printk("\tCHUNK_INFO_SIZE:  %x\n", sizeof(smart_ptr));
+    printk("\tREGION_INFO_SIZE: %x\n", sizeof(region_t));
+    printk("\tHEAP_INFO_SIZE:   %x\n", sizeof(heap_t));
+    printk("\tREGION_ARR_SIZE:  %x\n", sizeof(region_t *));
+    printk("\tCHUNK_ARR_SIZE:   %x\n", sizeof(smart_ptr *));
+    printk("\tCHAR PTR SIZE:    %x\n", sizeof(char *));
+
+    memory_init(0xFA0000);
+    printk("MEMORY FINISHED\n");
+    global_heap = create(ALIGN, ALIGN*16);
+    printk("HEAP FINISHED\n");
+
+    sd_init();
+    printk("SD FINISHED\n");
+
     timer_init();
     printk("TIMER FINISHED\n");
 
@@ -22,13 +43,6 @@ void main()
 
 	printk("\x1b[2J");
 	printk(bootmsg);
-
-/*
-    asm volatile(
-        "adr x0, shell\n"
-        "msr elr_el3, x0\n"
-        "eret\n");
-*/
 
     shell();
 	/* Enter our "shell" */
@@ -50,13 +64,16 @@ uint32_t interpret(const char *buf, int buflen)
 {
     // Print command
     if (!strncmp("print", buf, 5)) {
-        printk("\nHello\n", buf);
+        printk("\n%s\n", buf + 6);
     // Clear command
     } else if (!strncmp("clear", buf, 5)) {
         printk("\x1b[2J");
     // Anything our shell doesn't know
     } else if (!strncmp("time", buf, 4)) {
         printk("\n%d\n", tick_counter);
+    } else if (!strncmp("edit", buf, 4)) {
+        //printk("\nEditing %s\n", buf + 5);
+        editor(buf+5);
     } else if (buflen == 0) {
         printk("\n");
     } else {
