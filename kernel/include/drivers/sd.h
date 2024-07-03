@@ -5,7 +5,7 @@
 
 #define CAST(X) ((X))
 
-#define EMMC_OFFSET         (IO_BASE + 0x00300000)
+#define EMMC_OFFSET         (IO_BASE + 0x00340000)
 
 // EMMC Offsets
 
