@@ -3,6 +3,9 @@
 
 #include "types.h"
 
+#define __INT_MAX__ 2147483647
+#define __UINT_MAX__ 4294967295U
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #define unlikely(x)		__builtin_expect(!!(x), 0)
