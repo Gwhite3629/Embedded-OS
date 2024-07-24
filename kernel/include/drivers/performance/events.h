@@ -198,6 +198,8 @@
 #define MEM_ACCESS_RD_PERCYC    0x8121 // data memory reads in progress
 #define INST_FETCH              0x8124 // instruction memory access
 
-extern perf_event_t events[];
+extern perf_event_t perf_events[180];
+
+uint32_t n_events;
 
 #endif // _EVENTS_H_

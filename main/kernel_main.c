@@ -5,9 +5,33 @@
 #include <memory/hardware_reserve.h>
 #include <drivers/sd.h>
 #include <editor/editor.h>
+#include <perf/perf.h>
 #include "bootscreen.h"
 
 uint32_t shell(void);
+
+int echo(const char *buf)
+{
+    printf("\n%s\n", buf+6);
+    return 0;
+}
+
+int clear(const char *buf)
+{
+    printf("\x1b[2J]");
+    return 0;
+}
+
+int show_time(const char *buf)
+{
+    printf("\n%d\n", tick_counter);
+    return 0;
+}
+
+int call_editor(const char *buf)
+{
+    return editor(buf+5);
+}
 
 void main()
 {
@@ -38,6 +62,9 @@ void main()
     timer_init();
     printk("TIMER FINISHED\n");
 
+    init_events();
+    printk("PERF MAP FINISHED\n");
+
     printk("\nWaiting for serial port to be ready (press any key)\n");
     uart_getc();
 
@@ -60,27 +87,51 @@ int putchar(char c) {
     return ret;
 }
 
-uint32_t interpret(const char *buf, int buflen)
+command_t *interpret(const char *buf, int buflen)
 {
     // Print command
     if (!strncmp("print", buf, 5)) {
-        printk("\n%s\n", buf + 6);
+        return &echo;
     // Clear command
     } else if (!strncmp("clear", buf, 5)) {
-        printk("\x1b[2J");
+        return &clear;
     // Anything our shell doesn't know
     } else if (!strncmp("time", buf, 4)) {
-        printk("\n%d\n", tick_counter);
+        return &show_time;
     } else if (!strncmp("edit", buf, 4)) {
-        //printk("\nEditing %s\n", buf + 5);
-        editor(buf+5);
+        return &call_editor;
+    } else if (!strncmp("perflist", buf, 8)) {
+        return &perf_list;
     } else if (buflen == 0) {
         printk("\n");
+        return NULL;
     } else {
         printk("\nUnknown Command\n");
+        return NULL;
+    }
+}
+
+int run(const char *buf, int buflen)
+{
+    int ret = 0;
+    command_t *func = NULL;
+    uint64_t overflow = 0;
+
+    if (!strncmp("perf", buf, 4)) {
+        func = interpret(buf+5);
+        begin_profiling();
+        ret = func(buf);
+        overflow = end_profiling();
+        if (ret != 0) return ret;
+        printf("\nOverflow: %d\n", overflow);
+        perf_print();
+        ret = perf_cleanup();
+    } else {
+        func = interpret(buf);
+        ret = func(buf, buflen);
     }
 
-	return 0;
+    return ret;
 }
 
 uint32_t shell(void)
@@ -109,7 +160,7 @@ uint32_t shell(void)
             // Newline or carriage return
 			case(0xa):
 			case(0xd):
-				interpret(buf, buflen);
+				run(buf, buflen);
 
                 memset(buf, '\0', 4096);
                 buflen = 0;
@@ -126,4 +177,3 @@ uint32_t shell(void)
         }
 	}
 }
-

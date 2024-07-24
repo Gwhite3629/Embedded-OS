@@ -24,6 +24,8 @@
         "*.tcc": "c",
         "vector": "c",
         "memory": "c",
-        "file.h": "c"
+        "file.h": "c",
+        "events.h": "c",
+        "perf.h": "c"
     }
 }

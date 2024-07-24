@@ -1,8 +1,7 @@
 #include <drivers/performance/events.h>
 #include <perf/perf.h>
 
-static perf_event_t events[] =
-{
+static perf_event_t perf_events[180] = {
     {
         "SW_INC",
         0x0000,
@@ -369,21 +368,6 @@ static perf_event_t events[] =
         -1
     },
     {
-        "",
-        0x0049,
-        -1
-    },
-    {
-        "",
-        0x004A,
-        -1
-    },
-    {
-        "",
-        0x004B,
-        -1
-    },
-    {
         "L1D_TLB_Refill_RD",
         0x004C,
         -1
@@ -413,7 +397,6 @@ static perf_event_t events[] =
         0x0051,
         -1
     },
-
     {
         "L2D_Cache_Refill_RD",
         0x0052,
@@ -422,16 +405,6 @@ static perf_event_t events[] =
     {
         "L2D_Cache_Refill_WR",
         0x0053,
-        -1
-    },
-    {
-        "",
-        0x0054,
-        -1
-    },
-    {
-        "",
-        0x0055,
         -1
     },
     {
@@ -444,25 +417,9 @@ static perf_event_t events[] =
         0x0057,
         -1
     },
-
     {
         "L2D_Cache_WB_INV",
         0x0058,
-        -1
-    },
-    {
-        "",
-        0x0059,
-        -1
-    },
-    {
-        "",
-        0x005A,
-        -1
-    },
-    {
-        "",
-        0x005B,
         -1
     },
     {

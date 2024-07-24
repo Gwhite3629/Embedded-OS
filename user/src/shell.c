@@ -45,7 +45,7 @@ uint32_t shell(void)
             // Newline or carriage return
 			case(0xa):
 			case(0xd):
-				interpret(buf);
+				run(buf);
 
                 memset(buf, '\0', 4096);
                 buflen = 0;
@@ -63,20 +63,49 @@ uint32_t shell(void)
 	}
 }
 
-uint32_t interpret(const char *buf)
+int run(const char *buf)
+{
+    command_t *func = NULL;
+    if (!strncmp("perf", buf, 4)) {
+        func = interpret(buf+5);
+
+    } else {
+        func = interpret(buf);
+        return func(buf);
+    }
+}
+
+command_t *interpret(const char *buf)
 {
     // Print command
     if (!strncmp("print", buf, 5)) {
-        printf("\nHello", buf);
+        return &echo;
     // Clear command
     } else if (!strncmp("clear", buf, 5)) {
-        printf("\x1b[2J");
+        return &clear;
     // Anything our shell doesn't know
     } else if (!strncmp("time", buf, 4)) {
-        printf("\n%d", time());
+        return &show_time;
     } else {
         printf("\nUnknown Command");
+        return NULL;
     }
+}
 
-	return 0;
+int echo(const char *buf)
+{
+    printf("\n%s", buf);
+    return 0;
+}
+
+int clear(const char *buf)
+{
+    printf("\x1b[2J]");
+    return 0;
+}
+
+int show_time(const char *buf)
+{
+    printf("\n%d", time());
+    return 0;
 }

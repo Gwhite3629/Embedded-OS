@@ -7,11 +7,11 @@
 #define MAX_COUNTERS 31
 // Total number of counters
 // Index number is used for reading and counter number is stored at index
-int active_counters[MAX_COUNTERS];
-uint64_t counter_final[MAX_COUNTERS+1];
-uint64_t counter_start[MAX_COUNTERS+1];
+extern int active_counters[MAX_COUNTERS];
+extern uint64_t counter_final[MAX_COUNTERS+1];
+extern uint64_t counter_start[MAX_COUNTERS+1];
 
-int n_active_counters;
+extern int n_active_counters;
 
 static int read_perf_register(int reg)
 {

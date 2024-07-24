@@ -41,4 +41,18 @@ static perf_event_t *perf_lookup(char *string, perf_event_t *user_table, int siz
     return r ? r : NULL;
 }
 
+void init_events(void);
+
+int get_events(void);
+
+void begin_profiling(void);
+
+uint64_t end_profiling(void);
+
+int perf_list(const char *buf);
+
+void perf_print(void);
+
+void perf_cleanup(void);
+
 #endif // _PERF_H_

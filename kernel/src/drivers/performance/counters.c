@@ -3,6 +3,12 @@
 
 #include <stdlib/types.h>
 
+int active_counters[MAX_COUNTERS];
+uint64_t counter_final[MAX_COUNTERS+1];
+uint64_t counter_start[MAX_COUNTERS+1];
+
+int n_active_counters;
+
 void init_pmu(void)
 {
     for (i = 0; i < MAX_COUNTERS; i++) {
