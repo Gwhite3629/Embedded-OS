@@ -329,4 +329,14 @@
 /* TDR = Test Data Register */
 #define UART0_TDR	CASTA(UART0_BASE + 0x8C)
 
+
+/***********/
+/* MAILBOX */
+/***********/
+#define MAIL_BASE	CASTA(IO_BASE + 0xB880)
+#define MAIL_READ	CASTA(MAIL_BASE + 0x0)
+#define MAIL_POLL	CASTA(MAIL_BASE + 0x10)
+#define MAIL_STAT	CASTA(MAIL_BASE + 0x18)
+#define MAIL_WRITE	CASTA(MAIL_BASE + 0x20)
+
 #endif

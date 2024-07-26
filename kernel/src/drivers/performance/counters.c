@@ -11,7 +11,7 @@ int n_active_counters;
 
 void init_pmu(void)
 {
-    for (i = 0; i < MAX_COUNTERS; i++) {
+    for (int i = 0; i < MAX_COUNTERS; i++) {
         active_counters[i] = 0;
         counter_start[i] = 0;
         counter_final[i] = 0;
@@ -29,6 +29,7 @@ void init_pmu(void)
 uint64_t deinit_pmu(void)
 {
     uint64_t overflow = read_perf_register(PMOVSCLR_EL0);
+    return overflow;
 }
 
 void enable_counter(int val)
@@ -59,7 +60,7 @@ void enable_counter(int val)
 void disable_counter(int idx)
 {
     int t1 = read_perf_register(PMCNTENCLR_EL0);
-    write_perf_register(t1 | (1ULL << val));
+    write_perf_register(PMCNTENCLR_EL0, t1 | (1ULL << idx));
 }
 
 void enable_cycle_counter(void)
@@ -70,7 +71,7 @@ void enable_cycle_counter(void)
 void disable_cycle_counter(void)
 {
     int t1 = read_perf_register(PMCNTENCLR_EL0);
-    write_perf_register(t1 | (1ULL << MAX_COUNTERS));
+    write_perf_register(PMCNTENCLR_EL0, t1 | (1ULL << MAX_COUNTERS));
 }
 
 void profile_start(void)

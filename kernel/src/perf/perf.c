@@ -1,5 +1,8 @@
 #include <perf/perf.h>
 #include <drivers/performance/events.h>
+#include <drivers/performance/counters.h>
+#include <stdlib/printk.h>
+#include <stdlib/serial.h>
 
 int events[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
@@ -25,61 +28,71 @@ int get_events(void)
     uint32_t buflen = 0;
 	char buf[4096];
     char n_chosen;
-    perf_event_t user_event
+    char ch;
+    bool done = 0;
+    perf_event_t *user_event;
     // Get user inquiry
-    printf("Enter the number of desired events (1-9)\n> ");
+    memset(buf, '\0', 4096);
+    printk("\nEnter the number of desired events (1-9)\n> ");
 
-    n_chosen = serial_read();
-    serial_write(&n_chosen, 1);
-    serial_write("\n", 1);
+    n_chosen = uart_getc();
+    uart_write(&n_chosen, 1);
+    uart_write("\n", 1);
 
-    int chosen = (int)n_chosen - 30;
+    int chosen = (int)(n_chosen - 48);
     if ((chosen < 1) | (chosen > 9)) {
-        printf("Number not valid\n");
-        return;
+        printk("Number not valid\n");
+        return -1;
     }
     n_events = chosen;
 
-    printf("Enter the events one at a time, pressing enter at the end of each\n")
+    printk("Enter the events one at a time, pressing enter at the end of each\n");
 
     for (int i = 0; i < chosen; i++) {
-        switch(ch = serial_read()) {
-            // Backspace or delete
-            case(0x8):
-            case(0x7f):
-                if (buflen > 0) {
-                    buflen--;
-                    buf[buflen] = '\0';
-                }
-                break;
-            // Newline or carriage return
-            case(0xa):
-            case(0xd):
-                break;
-            // Any non-special character
-            default:
-                buf[buflen] = ch;
-                buflen++;
-        }
-        // Display character to screen
-        ret = putchar(ch);
-        if (ret != 0) {
-             printf("\nERROR: %d", ret);
+        while(done == 0) {
+            switch(ch = uart_getc()) {
+                // Backspace or delete
+                case(0x8):
+                case(0x7f):
+                    if (buflen > 0) {
+                        buflen--;
+                        buf[buflen] = '\0';
+                    }
+                    break;
+                // Newline or carriage return
+                case(0xa):
+                case(0xd):
+                    done = 1;
+                    break;
+                // Any non-special character
+                default:
+                    buf[buflen] = ch;
+                    buflen++;
+            }
+            // Display character to screen
+            ret = uart_write(&ch, 1);
+            if (ret < 0) {
+                printk("\nERROR: %d", ret);
+            }
         }
 
         user_event = perf_lookup(buf, perf_events, 180);
         if (user_event == NULL) {
-            printf("Invalid event, try again\n");
+            printk("Invalid event, try again\n");
             i--;
         } else {
-            events[i] = user_event.event_number;
-            new(names[i], buflen, char *);
+            events[i] = user_event->event_number;
+            printk("Allocing\n");
+            new(names[i], buflen+1, char);
+            memset(names[i], '\0', buflen+1);
+            printk("Alloced\n");
             strncpy(names[i], buf, buflen);
-            printf("\n");
+            printk("Chosen Event: %s with number %d\n", names[i], events[i]);
         }
 
         memset(buf, '\0', 4096);
         buflen = 0;
+        done = 0;
     }
 
 exit:
@@ -94,8 +107,13 @@ exit:
 // Call profile_start()
 void begin_profiling(void)
 {
+    int ret = 0;
     int i = 0;
-    get_events();
+    ret = get_events();
+    if (ret < 0) {
+        printk("Failed to perform perf\n");
+        return;
+    }
     init_pmu();
     while(events[i] != -1) {
         enable_counter(events[i]);
@@ -122,12 +140,13 @@ uint64_t end_profiling(void)
     disable_cycle_counter();
     profile_end();
     uint64_t overflow = deinit_pmu();
+    return overflow;
 }
 
 int perf_list(const char *buf)
 {
-    for (int i = 0; i < n_events; i++) {
-        printf("%s\n", perf_events[i].name);
+    for (int i = 0; i < 180; i++) {
+        printk("%s\n", perf_events[i].name);
     }
 
     return 0;
@@ -138,17 +157,22 @@ void perf_print(void)
     int i = 0;
 
     for (i = 0; i < n_events; i++) {
-        printf("\n%s\n", names[i]);
-        printf("\tINITIAL: %d\n", counter_start[i]);
-        printf("\tFINAL:   %d\n", counter_final[i]);
-        printf("\tDELTA:   %d\n", counter_final[i] - counter_start[i]);
+        printk("\n%s\n", names[i]);
+        printk("\tINITIAL: %d\n", counter_start[i]);
+        printk("\tFINAL:   %d\n", counter_final[i]);
+        printk("\tDELTA:   %d\n", counter_final[i] - counter_start[i]);
     }
+
+    printk("\nCycles\n");
+    printk("\tINITIAL: %d\n", counter_start[MAX_COUNTERS]);
+    printk("\tFINAL:   %d\n", counter_final[MAX_COUNTERS]);
+    printk("\tDELTA:   %d\n", counter_final[MAX_COUNTERS] - counter_start[MAX_COUNTERS]);
 }
 
 int perf_cleanup(void)
 {
     int ret = 0;
-    for (i = 0; i < n_events; i++) {
+    for (int i = 0; i < n_events; i++) {
         events[i] = -1;
         del(names[i]);
     }

@@ -6,6 +6,8 @@
 #define MEM_K 0 // Kernel memory
 #define MEM_U 1 // User memory
 
+extern uint64_t MEM_OFFSET;
+
 void memory_init(unsigned long mem_kernel);
 
 unsigned long reserve(uint32_t n_chunks, uint32_t type);

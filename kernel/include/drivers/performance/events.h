@@ -200,6 +200,6 @@
 
 extern perf_event_t perf_events[180];
 
-uint32_t n_events;
+extern int n_events;
 
 #endif // _EVENTS_H_

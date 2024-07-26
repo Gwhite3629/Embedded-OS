@@ -41,13 +41,13 @@ static void *acquire_pages(int n)
 }
 
 // Create initial heap with kernel region and user region 1
-inline heap_t *create(int alignment, int size)
+heap_t *create(uint32_t alignment, uint32_t size)
 {
     heap_t h;
 
     // Kernel region info
     region_t kheap;
-    void *base_kheap = NULL;
+    char *base_kheap = NULL;
     smart_ptr heap_reg_info;
     smart_ptr heap_ptr;
     smart_ptr reg_arr;
@@ -56,7 +56,7 @@ inline heap_t *create(int alignment, int size)
 
     // User region 1 info
     region_t reg1;
-    void *base_reg1 = NULL;
+    char *base_reg1 = NULL;
     smart_ptr reg_info;
     smart_ptr free_space;
     smart_ptr chunk_arr;
@@ -82,12 +82,12 @@ inline heap_t *create(int alignment, int size)
     */
 
     // Acquire base heap and first region pages
-    base_kheap = (void *)reserve(size/alignment, MEM_K); // One whole PTE
+    base_kheap = (char *)reserve(size/alignment, MEM_K); // One whole PTE
     VALID(base_kheap, E_NOHEAP);
     memset(base_kheap, 0, size);
     printk("\tRESERVED HEAP\n");
     
-    base_reg1 = (void *)reserve(size/alignment, MEM_U); // One whole PTE
+    base_reg1 = (char *)reserve(size/alignment, MEM_U); // One whole PTE
     VALID(base_reg1, E_NOPAGE);
     memset(base_reg1, 0, size);
     printk("\tRESERVED REGION\n");
@@ -119,7 +119,7 @@ inline heap_t *create(int alignment, int size)
     heap_chunk_arr.addr = ((char *)base_kheap + size) - heap_chunk_arr.size;
 
     // Region info
-    kheap.alloc_size =  size;
+    kheap.alloc_size = (unsigned long)size;
     kheap.used_size =  REGION_INFO_SIZE
                     +  HEAP_INFO_SIZE
                     +  5 * CHUNK_INFO_SIZE
@@ -133,11 +133,11 @@ inline heap_t *create(int alignment, int size)
     // Heap info
     h.alignment = alignment;
     h.n_regions = 2;
-    h.regions = (region_t **)reg_arr.addr;
+    h.regions = (region_t **)(char *)reg_arr.addr;
     printk("\tASSIGNED HEAP\n");
 
     // Smart ptr for remaining free space
-    heap_free_space.size = (size - kheap.used_size);
+    heap_free_space.size = ((unsigned long)size - kheap.used_size);
     heap_free_space.flag = UNALLOCATED;
     heap_free_space.base = base_kheap;
     heap_free_space.addr = (char *)reg_arr.addr + 2 * REGION_ARR + CHUNK_INFO_SIZE;
@@ -148,11 +148,17 @@ inline heap_t *create(int alignment, int size)
     kheap.chunks[2] = (smart_ptr *)((char *)heap_ptr.addr - CHUNK_INFO_SIZE);
     kheap.chunks[3] = (smart_ptr *)((char *)reg_arr.addr - CHUNK_INFO_SIZE);
     kheap.chunks[4] = (smart_ptr *)((char *)heap_free_space.addr - CHUNK_INFO_SIZE);
-    memcpy(kheap.chunks[0], &heap_chunk_arr, CHUNK_INFO_SIZE);
-    memcpy(kheap.chunks[1], &heap_reg_info, CHUNK_INFO_SIZE);
-    memcpy(kheap.chunks[2], &heap_ptr, CHUNK_INFO_SIZE);
-    memcpy(kheap.chunks[3], &reg_arr, CHUNK_INFO_SIZE);
-    memcpy(kheap.chunks[4], &heap_free_space, CHUNK_INFO_SIZE);
+    
+    (*kheap.chunks[0]) = heap_chunk_arr;
+    (*kheap.chunks[1]) = heap_reg_info;
+    (*kheap.chunks[2]) = heap_ptr;
+    (*kheap.chunks[3]) = reg_arr;
+    (*kheap.chunks[4]) = heap_free_space;
+    //memcpy(kheap.chunks[0], &heap_chunk_arr, CHUNK_INFO_SIZE);
+    //memcpy(kheap.chunks[1], &heap_reg_info, CHUNK_INFO_SIZE);
+    //memcpy(kheap.chunks[2], &heap_ptr, CHUNK_INFO_SIZE);
+    //memcpy(kheap.chunks[3], &reg_arr, CHUNK_INFO_SIZE);
+    //memcpy(kheap.chunks[4], &heap_free_space, CHUNK_INFO_SIZE);
     printk("\tASSIGNED U_CHUNKS\n");
 
     // Assign region info
@@ -187,6 +193,7 @@ inline heap_t *create(int alignment, int size)
 
     // Smart ptr for remaining free space
     free_space.size = (size - reg1.used_size);
+    printk("Size: %x, Used_Size: %x, Free_Space: %x\n", size, reg1.used_size, free_space.size);
     free_space.flag = UNALLOCATED;
     free_space.base = base_reg1;
     free_space.addr = (char *)reg_info.addr + REGION_INFO_SIZE + CHUNK_INFO_SIZE;
@@ -195,9 +202,13 @@ inline heap_t *create(int alignment, int size)
     reg1.chunks[0] = (smart_ptr *)((char *)chunk_arr.addr - CHUNK_INFO_SIZE); // Chunk array always first chunk
     reg1.chunks[1] = (smart_ptr *)((char *)reg_info.addr - CHUNK_INFO_SIZE);
     reg1.chunks[2] = (smart_ptr *)((char *)free_space.addr - CHUNK_INFO_SIZE);
-    memcpy(reg1.chunks[0], &chunk_arr, CHUNK_INFO_SIZE);
-    memcpy(reg1.chunks[1], &reg_info, CHUNK_INFO_SIZE);
-    memcpy(reg1.chunks[2], &free_space, CHUNK_INFO_SIZE);
+    
+    (*reg1.chunks[0]) = chunk_arr;
+    (*reg1.chunks[1]) = reg_info;
+    (*reg1.chunks[2]) = free_space;
+    //memcpy(reg1.chunks[0], &chunk_arr, CHUNK_INFO_SIZE);
+    //memcpy(reg1.chunks[1], &reg_info, CHUNK_INFO_SIZE);
+    //memcpy(reg1.chunks[2], &free_space, CHUNK_INFO_SIZE);
     printk("\tCOPIED U_CHUNKS\n");
 
     // Assign region info
@@ -209,13 +220,20 @@ inline heap_t *create(int alignment, int size)
     printk("KERNEL REGION: %x\n", heap_reg_info.addr);
     printk("USER REGION:   %x\n", reg_info.addr);
 
-    // Assign region array
-    memcpy(h.regions, &heap_reg_info.addr, sizeof(region_t *));
-    memcpy(h.regions + sizeof(region_t *), &reg_info.addr, sizeof(region_t *));
+    h.regions[0] = (region_t *)heap_reg_info.addr;
+    h.regions[1] = (region_t *)reg_info.addr;
+
+    //memcpy(h.regions, &heap_reg_info.addr, sizeof(region_t *));
+    //memcpy(h.regions + sizeof(region_t *), &reg_info.addr, sizeof(region_t *));
     printk("\tFINAL ASSIGNMENT\n");
 
+    printk("OVERALL REG CHECK:%x\n", h.regions);
+    printk("KERNEL REG CHECK: %x\n", h.regions[0]);
+    printk("USER REG CHECK:   %x\n", h.regions[1]);
+
     // Assign heap info
-    memcpy((heap_t *)kheap.chunks[2]->addr, &h, HEAP_INFO_SIZE);
+    (*(heap_t *)kheap.chunks[2]->addr) = h;
+    //memcpy((heap_t *)kheap.chunks[2]->addr, &h, HEAP_INFO_SIZE);
 
     return (heap_t *)kheap.chunks[2]->addr;
 
@@ -223,7 +241,7 @@ exit:
     return NULL;
 }
 
-inline void destroy(heap_t *h)
+void destroy(heap_t *h)
 {
     if (h) {
         for (int i = h->n_regions; i > 0; i--) {
@@ -234,13 +252,13 @@ inline void destroy(heap_t *h)
     }
 }
 
-inline heap_t *grow_kheap(heap_t *h)
+heap_t *grow_kheap(heap_t *h)
 {
     heap_t new_h;
 
     // Kernel region info
     region_t kheap;
-    void *base_kheap = NULL;
+    char *base_kheap = NULL;
     smart_ptr heap_reg_info;
     smart_ptr heap_ptr;
     smart_ptr reg_arr;
@@ -263,7 +281,7 @@ inline heap_t *grow_kheap(heap_t *h)
     */
 
     // Get new larger kheap, not necessarily PTE aligned, but page aligned
-    base_kheap = reserve(size / alignment, MEM_K);
+    base_kheap = (char *)reserve(size / alignment, MEM_K);
     VALID(base_kheap, E_NOHEAP);
     memset(base_kheap, 0, size);
 
@@ -346,14 +364,22 @@ exit:
 }
 
 
-inline void *alloc(heap_t *h, int n)
+void *alloc(heap_t *h, uint32_t n)
 {
     int i = 0;
     void *ptr = NULL;
     int alloced = 0;
     
+    smart_ptr new_chunk;
+    smart_ptr usr_smart;
+    smart_ptr new_free;
+    
+    printk("\tSCANNING REGIONS\n");
+    printk("\tLOOKING FOR REGION OF SIZE: %x\n", (int)(n + CHUNK_INFO_SIZE + CHUNK_ARR));
     for (i = 1; i < h->n_regions; i++) {
+        printk("\tCHECKING REGION WITH SIZE: %x\n", h->regions[i]->chunks[h->regions[i]->n_chunks-1]->size);
         if ((h->regions[i]->chunks[h->regions[i]->n_chunks-1]->size > (int)(n + CHUNK_INFO_SIZE + CHUNK_ARR)) & !F_CHECK(h->regions[i]->chunks[h->regions[i]->n_chunks-1])) {
+            printk("\tFOUND REGION\n");
             // Check passed, region space has enough room for:
             // 1. Smart ptr
             // 2. User data ptr
@@ -364,35 +390,50 @@ inline void *alloc(heap_t *h, int n)
             // 3. Define second to last chunk arr as user ptr
             // 4. Define last as free ptr again
             // 5. Reduce size of free region
-            smart_ptr new_free;
-            smart_ptr new_chunk;
-            smart_ptr usr_smart;
 
-            new_free.addr = ((char *)h->regions[i]->chunks[h->regions[i]->n_chunks-1]->addr + n + CHUNK_INFO_SIZE);
-            new_free.size = h->regions[i]->chunks[h->regions[i]->n_chunks-1]->size - (n + CHUNK_INFO_SIZE + CHUNK_ARR);
-            new_free.base = h->regions[i]->base_addr;
-            new_free.flag = UNALLOCATED;
+            printk("Free space chunk: %x, SIZE: %x\n", h->regions[i]->chunks[h->regions[i]->n_chunks-1]->addr, n);
 
-            new_chunk.addr = (char *)h->regions[i]->chunks[0]->addr - CHUNK_ARR;
+            new_chunk.addr = (h->regions[i]->chunks[0]->addr - CHUNK_ARR);
             new_chunk.size = (h->regions[i]->n_chunks + 1) * CHUNK_ARR;
             new_chunk.base = h->regions[i]->base_addr;
             new_chunk.flag = RESERVED;
+            printk("Created new alloced chunk\n");
 
             usr_smart.addr = h->regions[i]->chunks[h->regions[i]->n_chunks-1]->addr;
             usr_smart.size = n;
             usr_smart.base = h->regions[i]->base_addr;
             usr_smart.flag = RESERVED;
+            printk("Created alloced smart ptr\n");
 
-            memcpy(((char *)new_free.addr - CHUNK_INFO_SIZE), &new_free, CHUNK_INFO_SIZE);
-            memcpy(((char *)usr_smart.addr - CHUNK_INFO_SIZE), &usr_smart, CHUNK_INFO_SIZE);
-            memmove(((char *)new_chunk.addr), h->regions[i]->chunks, h->regions[i]->n_chunks * CHUNK_ARR);
-            memcpy(((char *)new_chunk.addr - CHUNK_INFO_SIZE), &new_chunk, CHUNK_INFO_SIZE);
-            h->regions[i]->n_chunks++;
+            new_free.addr = (h->regions[i]->chunks[h->regions[i]->n_chunks-1]->addr + n + CHUNK_INFO_SIZE);
+            new_free.size = h->regions[i]->chunks[h->regions[i]->n_chunks-1]->size - (n + CHUNK_INFO_SIZE + CHUNK_ARR);
+            new_free.base = h->regions[i]->base_addr;
+            new_free.flag = UNALLOCATED;
+            printk("Created new free chunk\n");
+
+            printk("\tCOPYING MEMORY\n");
+            memmove((new_chunk.addr), h->regions[i]->chunks, h->regions[i]->n_chunks * CHUNK_ARR);
+            
+            printk("MOVING CHUNKS\n");
+            h->regions[i]->n_chunks = h->regions[i]->n_chunks + 1;
             h->regions[i]->chunks = (smart_ptr **)new_chunk.addr;
-            h->regions[i]->chunks[0] = (smart_ptr *)((char *)new_chunk.addr - CHUNK_INFO_SIZE);
-            h->regions[i]->chunks[h->regions[i]->n_chunks-2] = (smart_ptr *)((char *)usr_smart.addr - CHUNK_INFO_SIZE);
-            h->regions[i]->chunks[h->regions[i]->n_chunks-1] = (smart_ptr *)((char *)new_free.addr - CHUNK_INFO_SIZE);
+            h->regions[i]->chunks[0] = (smart_ptr *)(new_chunk.addr - CHUNK_INFO_SIZE);
+            h->regions[i]->chunks[h->regions[i]->n_chunks-2] = (smart_ptr *)(usr_smart.addr - CHUNK_INFO_SIZE);
+            h->regions[i]->chunks[h->regions[i]->n_chunks-1] = (smart_ptr *)(new_free.addr - CHUNK_INFO_SIZE);
 
+            printk("COPYING SMART POINTERS\n");
+            (*h->regions[i]->chunks[0]) = new_chunk;
+            printk("Copied new chunk array smart ptr\n");
+            (*h->regions[i]->chunks[h->regions[i]->n_chunks-2]) = usr_smart;
+            printk("Copied new user alloced smart ptr\n");
+            printk("NEW FREE SMART PTR ADDRESS: %x\n", h->regions[i]->chunks[h->regions[i]->n_chunks-1]);
+            (*h->regions[i]->chunks[h->regions[i]->n_chunks-1]) = new_free;
+            printk("Copied new free space smart ptr\n");
+
+            //memcpy(((char *)new_free.addr - CHUNK_INFO_SIZE), &new_free, CHUNK_INFO_SIZE);
+            //memcpy(((char *)usr_smart.addr - CHUNK_INFO_SIZE), &usr_smart, CHUNK_INFO_SIZE);
+            //memcpy(((char *)new_chunk.addr - CHUNK_INFO_SIZE), &new_chunk, CHUNK_INFO_SIZE);
+            printk("\tCOPIED MEMORY\n");
             ptr = usr_smart.addr;
             alloced = 1;
             h->regions[i]->used_size += (n + CHUNK_INFO_SIZE + CHUNK_ARR);
@@ -401,6 +442,7 @@ inline void *alloc(heap_t *h, int n)
     }
 
     if (alloced == 0) {
+        printk("\tALLOC CREATING REGION\n");
         create_region(h, (((n + NEW_REGION_SIZE) / h->alignment) + 1)*h->alignment);
         ptr = alloc(h, n);
         return ptr;
@@ -502,7 +544,7 @@ exit:
     return;
 }
 
-inline void cull(heap_t *h, void *ptr)
+void cull(heap_t *h, void *ptr)
 {
     int found = 0;
     int i, j = 0;

@@ -10,7 +10,7 @@ void quicksort (
     void *const pbase,
     size_t total_elems,
     size_t size,
-	__compar_d_fn_t cmp,
+	__compar_fn_t cmp,
     void *arg);
 
 #endif // _QSORT_H_

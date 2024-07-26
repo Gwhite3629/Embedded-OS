@@ -6,13 +6,15 @@
 
 #define CHUNK_SIZE 4096
 
-static lock_t MEM_LOCK = {UNLOCKED, KERNEL_OWNER};
+lock_t MEM_LOCK = {UNLOCKED, KERNEL_OWNER};
 
-static uint32_t MEMORY_TOTAL;
+uint32_t MEMORY_TOTAL;
 
-static unsigned long MEMORY_MAP[MAX_MEMORY/CHUNK_SIZE/32];
+unsigned long MEMORY_MAP[MAX_MEMORY/CHUNK_SIZE/32];
 
-static uint32_t MAX_CHUNK = 0;
+uint32_t MAX_CHUNK = 0;
+
+uint64_t MEM_OFFSET;
 
 #define mark_used(chunk) \
     set_bit((MEMORY_MAP), chunk)
@@ -119,7 +121,7 @@ unsigned long reserve(uint32_t n_chunks, uint32_t type)
 
     memset((void *)(first_chunk*CHUNK_SIZE),0,n_chunks*CHUNK_SIZE);
 
-    return (unsigned long)(first_chunk*CHUNK_SIZE);
+    return (unsigned long)(first_chunk*CHUNK_SIZE+MEM_OFFSET);
 }
 
 
@@ -128,9 +130,9 @@ int32_t relinquish(unsigned long start, uint32_t n_chunks)
     int i;
     int first_chunk;
 
-    first_chunk=(int)start/CHUNK_SIZE;
+    first_chunk=(int)(start-MEM_OFFSET)/CHUNK_SIZE;
 
-    memset((uint64_t *)start, 'V', n_chunks*CHUNK_SIZE);
+    memset((uint64_t *)(start-MEM_OFFSET), 'V', n_chunks*CHUNK_SIZE);
 
     for (i = 0; i < n_chunks; i++) {
         mark_free((first_chunk + i));

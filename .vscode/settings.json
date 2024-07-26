@@ -26,6 +26,9 @@
         "memory": "c",
         "file.h": "c",
         "events.h": "c",
-        "perf.h": "c"
+        "perf.h": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "hardware_rpi4b.h": "c"
     }
 }

@@ -1,7 +1,7 @@
 #include <drivers/performance/events.h>
 #include <perf/perf.h>
 
-static perf_event_t perf_events[180] = {
+perf_event_t perf_events[180] = {
     {
         "SW_INC",
         0x0000,

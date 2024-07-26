@@ -14,7 +14,7 @@
 #include "stdlib/string.h"
 #include "stdlib/types.h"
 //#include "stdlib/hardware_ts7600.h"
-#include "stdlib/hardware_rbi4b.h"
+#include "stdlib/hardware_rpi4b.h"
 //#include "stdlib/gpio.h"
 #include "stdlib/time.h"
 #include "stdlib/checks.h"

@@ -19,6 +19,24 @@ int putchar(char c) {
     return ret;
 }
 
+int echo(const char *buf)
+{
+    printf("\n%s", buf);
+    return 0;
+}
+
+int clear(const char *buf)
+{
+    printf("\x1b[2J]");
+    return 0;
+}
+
+int show_time(const char *buf)
+{
+    printf("\n%d", time());
+    return 0;
+}
+
 uint32_t shell(void)
 {
     int ret = 0;
@@ -71,7 +89,7 @@ int run(const char *buf)
 
     } else {
         func = interpret(buf);
-        return func(buf);
+        return (*func)(buf);
     }
 }
 
@@ -90,22 +108,4 @@ command_t *interpret(const char *buf)
         printf("\nUnknown Command");
         return NULL;
     }
-}
-
-int echo(const char *buf)
-{
-    printf("\n%s", buf);
-    return 0;
-}
-
-int clear(const char *buf)
-{
-    printf("\x1b[2J]");
-    return 0;
-}
-
-int show_time(const char *buf)
-{
-    printf("\n%d", time());
-    return 0;
 }

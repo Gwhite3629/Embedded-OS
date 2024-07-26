@@ -3,7 +3,7 @@
 
 #include "../include/types.h"
 
-typedef (int)(* command_t)(const char *buf);
+typedef int (* command_t) (const char *);
 
 uint32_t shell(void);
 command_t *interpret(const char *buf);

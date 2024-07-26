@@ -50,4 +50,4 @@
 
 #define GET_EL(mode)				(((mode) >> MODE_EL_SHIFT) & MODE_EL_MASK)
 
-#endif _PMU_CONSTANTS_H_
+#endif // _PMU_CONSTANTS_H_

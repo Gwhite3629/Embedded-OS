@@ -3,6 +3,7 @@
 
 #include <stdlib/types.h>
 #include <stdlib/extra.h>
+#include <stdlib/qsort.h>
 #include <memory/malloc.h>
 
 typedef struct perf_event {
@@ -53,6 +54,6 @@ int perf_list(const char *buf);
 
 void perf_print(void);
 
-void perf_cleanup(void);
+int perf_cleanup(void);
 
 #endif // _PERF_H_

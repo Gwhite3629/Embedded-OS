@@ -6,25 +6,35 @@
 #include <drivers/sd.h>
 #include <editor/editor.h>
 #include <perf/perf.h>
+#include <drivers/mailbox.h>
 #include "bootscreen.h"
+
+typedef int (*command_t) (const char *);
+
+static inline unsigned int get_current_el(void)
+{
+    uint64_t v;
+    asm volatile ("mrs %0, CurrentEl" : "=r" (v));
+    return (unsigned int)(((v) >> 0x2U) & 0x3U);
+}
 
 uint32_t shell(void);
 
 int echo(const char *buf)
 {
-    printf("\n%s\n", buf+6);
+    printk("\n%s\n", buf+6);
     return 0;
 }
 
 int clear(const char *buf)
 {
-    printf("\x1b[2J]");
+    printk("\x1b[2J]");
     return 0;
 }
 
 int show_time(const char *buf)
 {
-    printf("\n%d\n", tick_counter);
+    printk("\n%d\n", tick_counter);
     return 0;
 }
 
@@ -43,18 +53,16 @@ void main()
     enable_interrupts();
     printk("INTERRUPTS FINISHED\n");
 
-    printk("Some sizes:\n");
-    printk("\tCHUNK_INFO_SIZE:  %x\n", sizeof(smart_ptr));
-    printk("\tREGION_INFO_SIZE: %x\n", sizeof(region_t));
-    printk("\tHEAP_INFO_SIZE:   %x\n", sizeof(heap_t));
-    printk("\tREGION_ARR_SIZE:  %x\n", sizeof(region_t *));
-    printk("\tCHUNK_ARR_SIZE:   %x\n", sizeof(smart_ptr *));
-    printk("\tCHAR PTR SIZE:    %x\n", sizeof(char *));
+    get_arm_address();
+    printk("FINISHED MAILBOX\n");
+    printk("ARM BASE ADDRESS: %x\n", arm_base_address);
+    printk("ARM_SIZE:         %x\n", arm_size);
+    MEM_OFFSET = arm_base_address;
 
-    memory_init(0xFA0000);
+    memory_init(0xFA000);
     printk("MEMORY FINISHED\n");
-    global_heap = create(ALIGN, ALIGN*16);
-    printk("HEAP FINISHED\n");
+    global_heap = create(ALIGN, ALIGN*64);
+    printk("HEAP FINISHED WITH %d REGIONS\n", global_heap->n_regions);
 
     sd_init();
     printk("SD FINISHED\n");
@@ -64,6 +72,8 @@ void main()
 
     init_events();
     printk("PERF MAP FINISHED\n");
+
+    printk("Current Exception Level: %d\n", get_current_el());
 
     printk("\nWaiting for serial port to be ready (press any key)\n");
     uart_getc();
@@ -82,12 +92,12 @@ int putchar(char c) {
 
     buffer[0] = c;
 
-    ret = uart_write((uint32_t *)buffer, 1);
+    ret = uart_write(buffer, 1);
 
     return ret;
 }
 
-command_t *interpret(const char *buf, int buflen)
+command_t interpret(const char *buf, int buflen)
 {
     // Print command
     if (!strncmp("print", buf, 5)) {
@@ -100,7 +110,7 @@ command_t *interpret(const char *buf, int buflen)
         return &show_time;
     } else if (!strncmp("edit", buf, 4)) {
         return &call_editor;
-    } else if (!strncmp("perflist", buf, 8)) {
+    } else if (!strncmp("listperf", buf, 8)) {
         return &perf_list;
     } else if (buflen == 0) {
         printk("\n");
@@ -114,21 +124,21 @@ command_t *interpret(const char *buf, int buflen)
 int run(const char *buf, int buflen)
 {
     int ret = 0;
-    command_t *func = NULL;
+    command_t func = NULL;
     uint64_t overflow = 0;
 
     if (!strncmp("perf", buf, 4)) {
-        func = interpret(buf+5);
+        func = interpret(buf+5, buflen-4);
         begin_profiling();
         ret = func(buf);
         overflow = end_profiling();
         if (ret != 0) return ret;
-        printf("\nOverflow: %d\n", overflow);
+        printk("\nOverflow: %d\n", overflow);
         perf_print();
         ret = perf_cleanup();
     } else {
-        func = interpret(buf);
-        ret = func(buf, buflen);
+        func = interpret(buf, buflen);
+        ret = func(buf);
     }
 
     return ret;

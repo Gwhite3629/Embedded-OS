@@ -10,28 +10,27 @@
 
 extern const char *stat_names[12];
 
-typedef struct __attribute__((packed)) {
+typedef struct smart_ptr {
     int size;           // Size of alloced space
     int flag;           // Pointer status (add perms)
-    void *base;         // Base region address
-    void *addr;         // Address of alloced space
+    char *base;         // Base region address
+    char *addr;         // Address of alloced space
 } smart_ptr;
 
-typedef struct __attribute__((packed)) {
+typedef struct region_t {
     int alloc_size;     // Total region size (2MB)
     int used_size;      // Total alloced space
     int n_chunks;       // Number of pointers
-    void *base_addr;    // Base region address
+    char *base_addr;    // Base region address
     smart_ptr **chunks; // List of smart_ptr locations
 } region_t;
 
-typedef struct __attribute__((packed)) {
+typedef struct heap_t {
     int alignment;      // 2MB (value not used)
     int n_regions;      // Number of 2MB user regions
     region_t **regions; // List of region locations
 } heap_t;
 
-extern heap_t *kernel_heap;
 extern int ret;
 
 #define ALIGN 4096
@@ -64,7 +63,7 @@ extern int ret;
     cull(global_heap, ptr); \
     VALID(global_heap, E_NOMEM);
 
-heap_t *create(int alignment, int size);
+heap_t *create(uint32_t alignment, uint32_t size);
 
 heap_t *grow_kheap(heap_t *h);
 
@@ -72,7 +71,7 @@ void create_region(heap_t *h, int size);
 
 void destroy(heap_t *h);
 
-void *alloc(heap_t *h, int n);
+void *alloc(heap_t *h, uint32_t n);
 
 void cull(heap_t *h, void *ptr);
 

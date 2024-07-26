@@ -18,6 +18,8 @@ _start:
     ldr     x1, =_start
     mov     sp, x1
 
+    
+
     // set up EL1
     mrs     x0, CurrentEL
     and     x0, x0, #12 // clear reserved bits
@@ -56,6 +58,12 @@ _start:
     eret
 
 5:  mov     sp, x1
+
+    // Enable mmu and set mair to normal
+    mrs     x0, sctlr_el1
+    //orr     x0, x0, #1
+    bic     x0, x0, #8
+    msr sctlr_el1, x0
 
     // clear bss
     ldr     x1, =__bss_start
