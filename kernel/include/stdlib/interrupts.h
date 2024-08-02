@@ -1,7 +1,7 @@
 #ifndef _INTERRUPTS_H_
 #define _INTERRUPTS_H_
 
-#include "types.h"
+#include "../stdlib.h"
 
 // Int indicates number for verification
 // Void * indicates pointer to data structure for relevant irq
@@ -15,6 +15,8 @@ typedef struct irq_t {
 } irq_t;
 
 extern irq_t IRQ_LIST[1];
+
+void handle_error(void);
 
 void handle_irq(void);
 

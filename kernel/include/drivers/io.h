@@ -60,11 +60,14 @@ static inline uint32_t readl(uint64_t *address)
 static inline void chip_write(unsigned int data, long address)
 {
 	*(volatile unsigned int *)address = data;
+	asm volatile("dmb sy");
 }
 
 static inline uint32_t chip_read(long address)
 {
-	return *((volatile unsigned int *)((unsigned int *)address));
+	uint32_t ret = *((volatile unsigned int *)(address));
+	asm volatile("dmb sy");
+	return ret;
 }
 
 

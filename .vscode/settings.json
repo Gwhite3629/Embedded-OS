@@ -29,6 +29,12 @@
         "perf.h": "c",
         "initializer_list": "c",
         "utility": "c",
-        "hardware_rpi4b.h": "c"
+        "hardware_rpi4b.h": "c",
+        "functional": "c",
+        "chrono": "c",
+        "istream": "c",
+        "ostream": "c",
+        "tuple": "c",
+        "type_traits": "c"
     }
 }

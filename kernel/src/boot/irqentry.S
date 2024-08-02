@@ -64,11 +64,11 @@
 .macro handle_invalid err
     k_entry
     mov x0, #\err
-    mrs x1, esr_el1
-    mrs x2, elr_el1
 
 // Print invlid type here with kprint
-    b proc_hang
+    bl  handle_error
+    k_exit
+    eret
 .endm
 
 .macro ventry label
@@ -101,9 +101,6 @@ vectors:
 
 S_EL1t:
     handle_invalid S_INV_EL1t
-#    k_entry
-#    bl  swi_handler
-#    k_exit
 
 I_EL1t:
     k_entry
@@ -119,9 +116,6 @@ E_EL1t:
 
 S_EL1h:
     handle_invalid S_INV_EL1h
-#    k_entry
-#    bl  swi_handler
-#    k_exit
 
 I_EL1h:
     k_entry
@@ -137,9 +131,6 @@ E_EL1h:
 
 S_EL0_64:
     handle_invalid S_INV_EL0_64
-#    k_entry
-#    bl  swi_handler
-#    k_exit
 
 I_EL0_64:
     k_entry
@@ -155,9 +146,6 @@ E_EL0_64:
 
 S_EL0_32:
     handle_invalid S_INV_EL0_32
-#    k_entry
-#    bl  swi_handler
-#    k_exit
 
 I_EL0_32:
     k_entry

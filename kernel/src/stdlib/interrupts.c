@@ -4,6 +4,24 @@
 
 //irq_t IRQ_LIST[1] = {};
 
+void handle_error(void)
+{
+	uint64_t x0;
+	uint64_t x1;
+
+	__asm volatile(
+		"mrs %[result], esr_el1"
+		: [result] "=r"(x0));
+	asm volatile("dmb sy");
+
+	__asm volatile(
+    	"mrs %[result], elr_el1"
+		: [result] "=r"(x1));
+	asm volatile("dmb sy");
+
+	printk("\x1b[1;31mERROR EXCEPTION\x1b[22m %x %x\n", x0, x1);
+}
+
 void handle_irq(void)
 {
 	handle_irq_event(NULL);

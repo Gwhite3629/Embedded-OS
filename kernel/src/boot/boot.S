@@ -59,12 +59,6 @@ _start:
 
 5:  mov     sp, x1
 
-    // Enable mmu and set mair to normal
-    mrs     x0, sctlr_el1
-    //orr     x0, x0, #1
-    bic     x0, x0, #8
-    msr sctlr_el1, x0
-
     // clear bss
     ldr     x1, =__bss_start
     ldr     w2, =__bss_size

@@ -4,7 +4,7 @@
 #include "../stdlib.h"
 
 #define MAX_BASES 64
-
+/*
 // ARM MMU values
 #define MT_DEVICE       0x0
 #define MT_NORMAL       0x1
@@ -58,6 +58,7 @@
 
 #define MM_ACCESS       (0x1 << 10)
 #define MM_ACCESS_PERM  (0x1 << 6)
+*/
 
 typedef struct MM_T {
     unsigned long LVL3;
@@ -77,6 +78,5 @@ typedef struct MM_T {
 //void enable_l1_dcache(void);
 //void flush_icache(void);
 //void flush_dcache(uint32_t start_addr, uint32_t end_addr);
-
 
 #endif // _MMU_FUNC_H_

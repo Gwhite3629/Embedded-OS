@@ -53,15 +53,15 @@
 #define MAX_BASES 64
 
 // ARM MMU values
-#define MT_DEVICE       0x0
-#define MT_NORMAL       0x1
-#define MT_DEVICE_FLAGS 0x00
-#define MT_NORMAL_FLAGS 0x44
-#define MAIR_VALUE      (MT_DEVICE_FLAGS << (8 * MT_DEVICE)) | (MT_NORMAL_FLAGS << (8 * MT_NORMAL))
+//#define MT_DEVICE       0x0
+//#define MT_NORMAL       0x1
+//#define MT_DEVICE_FLAGS 0x00
+//#define MT_NORMAL_FLAGS 0x44
+//#define MAIR_VALUE      (MT_DEVICE_FLAGS << (8 * MT_DEVICE)) | (MT_NORMAL_FLAGS << (8 * MT_NORMAL))
 
-#define MM_FLAGS        (MM_TYPE_BLOCK | (MT_NORMAL << 2) | MM_ACCESS)
-#define MM_DEVICE_FLAGS (MM_TYPE_BLOCK | (MT_DEVICE << 2) | MM_ACCESS)
-#define MM_PTE_FLAGS    (MM_TYPE_PAGE  | (MT_NORMAL << 2) | MM_ACCESS | MM_ACCESS_PERM)
+//#define MM_FLAGS        (MM_TYPE_BLOCK | (MT_NORMAL << 2) | MM_ACCESS)
+//#define MM_DEVICE_FLAGS (MM_TYPE_BLOCK | (MT_DEVICE << 2) | MM_ACCESS)
+//#define MM_PTE_FLAGS    (MM_TYPE_PAGE  | (MT_NORMAL << 2) | MM_ACCESS | MM_ACCESS_PERM)
 
 #define TCR_T0SZ			(64 - 48) 
 #define TCR_T1SZ			((64 - 48) << 16)

@@ -7,6 +7,7 @@
 #include <editor/editor.h>
 #include <perf/perf.h>
 #include <drivers/mailbox.h>
+#include <memory/mmu.h>
 #include "bootscreen.h"
 
 typedef int (*command_t) (const char *);
@@ -22,7 +23,7 @@ uint32_t shell(void);
 
 int echo(const char *buf)
 {
-    printk("\n%s\n", buf+6);
+    printk("\n%s\n", buf+5);
     return 0;
 }
 
@@ -58,6 +59,10 @@ void main()
     printk("ARM BASE ADDRESS: %x\n", arm_base_address);
     printk("ARM_SIZE:         %x\n", arm_size);
     MEM_OFFSET = arm_base_address;
+
+    identity_map();
+
+    enable_MMU();
 
     memory_init(0xFA000);
     printk("MEMORY FINISHED\n");

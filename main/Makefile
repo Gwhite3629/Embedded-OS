@@ -12,7 +12,7 @@ kernel8.img: $(obj) $(obj-u)
 	boot.o time.o printk.o serial.o string.o lock.o \
 	interrupts.o irqentry.o gic400.o malloc.o hardware_reserve.o \
 	memset.o kernel_main.o fat32.o file.o sd.o proc.o editor.o \
-	events.o perf.o counters.o qsort.o mailbox.o \
+	events.o perf.o counters.o qsort.o mailbox.o mmu.o mmu_a.o \
 	-o kernel8.elf
 	$(CROSS)objcopy -O binary kernel8.elf kernel8.img
 

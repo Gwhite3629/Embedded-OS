@@ -24,12 +24,12 @@ int printk(char *string,...) {
 			string++;
 			if (*string=='d') {
 				string++;
-				x=va_arg(ap, int);
+				x=va_arg(ap, unsigned long);
 				int_pointer=9;
 				do {
 					int_buffer[int_pointer]=(x%10)+'0';
 					int_pointer--;
-					x/=4;
+					x/=10;
 				} while(x!=0);
 				for(i=int_pointer+1;i<10;i++) {
 					buffer[buffer_pointer]=int_buffer[i];

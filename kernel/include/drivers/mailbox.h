@@ -88,4 +88,6 @@ void read_mailbox(uint32_t mbox);
 
 void get_arm_address(void);
 
+void get_vc_address(void);
+
 #endif // _MAILBOX_H_

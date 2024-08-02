@@ -69,3 +69,40 @@ void get_arm_address(void)
         }
     }
 }
+
+void get_vc_address(void)
+{
+    unsigned int r = (((unsigned int)((unsigned long)&mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = VC_MEMORY;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                vc_base_address = mbox[5] + 0x800000;
+                vc_size = mbox[6];
+                printk("FINAL TAG:          %x\n", mbox[7]);
+                return;
+            }
+        }
+    }
+}

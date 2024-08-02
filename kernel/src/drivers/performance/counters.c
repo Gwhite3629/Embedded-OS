@@ -65,7 +65,22 @@ void disable_counter(int idx)
 
 void enable_cycle_counter(void)
 {
+    int type;
+
     write_perf_register(PMSELR_EL0, MAX_COUNTERS);
+    write_perf_register(PMXEVTYPER_EL0, 0);
+    write_perf_register(PMSELR_EL0, MAX_COUNTERS);
+    type = read_perf_register(PMXEVTYPER_EL0);
+    write_perf_register(PMXEVTYPER_EL0,
+        (type & ~PMEVTYPERX_EL0_EVT_MASK) | (0xC0BE));
+
+    int t1 = read_perf_register(PMCR_EL0);
+    write_perf_register(PMCR_EL0, t1 | PMCR_EL0_C_BIT);
+    t1 = read_perf_register(PMCR_EL0);
+    write_perf_register(PMCR_EL0, t1 | PMCR_EL0_P_BIT);
+
+    int t2 = read_perf_register(PMCNTENSET_EL0);
+    write_perf_register(PMCNTENSET_EL0, t2 | (1ULL << MAX_COUNTERS));
 }
 
 void disable_cycle_counter(void)
