@@ -1,8 +1,7 @@
 #include <editor/editor.h>
 #include <stdlib.h>
 #include <memory/malloc.h>
-#include <fs/file.h>
-#include <fs/fat32.h>
+#include <fs/ext2/file.h>
 
 int editor(char *fname)
 {
@@ -78,7 +77,7 @@ int read_file(struct environment **env)
     int ret = E_NOERR;
     FILE *f = NULL;
 
-    f_open(f, (*env)->file_name, FA_OPEN_ALWAYS | FA_READ);
+    f = f_open((*env)->file_name, 0);
 
     unsigned int i = 0;
 
@@ -130,11 +129,11 @@ int write_file(struct environment **env)
         (*env)->new = 1;
     }
 
-    f_open(f, (*env)->file_name, FA_OPEN_ALWAYS | FA_WRITE);
+    f = f_open((*env)->file_name, 0);
 
     for (unsigned long i = 0; i <= (*env)->max; i++) {
-        f_write(f, (*env)->file_data[i].ldata, sizeof(char), (*env)->file_data[i].max);
-        f_putc('\n', f);
+        f_write(f, sizeof(char) * (*env)->file_data[i].max, (*env)->file_data[i].ldata);
+        f_putc(f, '\n');
     }
 
 exit:

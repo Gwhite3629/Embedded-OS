@@ -1,6 +1,6 @@
 CFLAGS += $(KINCLUDE)
 
-obj := sd.o gic400.o counters.o mailbox.o
+obj := sd.o gic400.o counters.o mailbox.o platform.o
 
 all: $(obj)
 
@@ -12,6 +12,9 @@ gic400.o:
 
 counters.o:
 	$(CROSS)$(CC) $(CFLAGS) -o counters.o -c $(ktree)/drivers/performance/counters.c
+
+platform.o:
+	$(CROSS)$(CC) $(CFLAGS) -o platform.o -c $(ktree)/drivers/platform.c
 
 mailbox.o:
 	$(CROSS)$(CC) $(CFLAGS) -o mailbox.o -c $(ktree)/drivers/mailbox.c

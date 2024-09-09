@@ -138,15 +138,24 @@ void identity_map(void)
     printk("VC Address %x\n", vc_base_address);
 
     // Region 0 -> VC mem
-    for (base = 0; base < vc_val; base++) {
+    for (base = 0; base < (vc_val - 1); base++) {
         PT_identity2[base] = (VMSAv8_64_DESCRIPTOR){
             .Address = (uintptr_t)base << (21 - 12),
             .AF = 1,
             .SH = STAGE2_SH_INNER_SHAREABLE,
-            .MemAttr = MT_NORMAL,
+            .MemAttr = MT_NORMAL_NC,
             .EntryType = 1,
         };
     }
+
+    PT_identity2[(vc_val - 1)] = (VMSAv8_64_DESCRIPTOR){
+        .Address = (uintptr_t)(vc_val - 1) << (21 - 12),
+        .AF = 1,
+        .MemAttr = MT_DEVICE_NGNRNE,
+        .EntryType = 1,
+    };
+    mbox = ((vc_val - 1) << 21);
+    printk("MAILBOX ADDRESS: %x\n", mbox);
 
     // Region VC mem -> 0xFE000000
     for (; base < (2048 - 16); base++) {

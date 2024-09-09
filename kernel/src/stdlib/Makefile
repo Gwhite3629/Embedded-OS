@@ -1,5 +1,5 @@
 CFLAGS += $(KINCLUDE)
-obj := lock.o rbtree.o bitrev.o memset.o qsort.o string.o interrupts.o time.o serial.o printk.o
+obj := list.o tree.o lock.o rbtree.o bitrev.o memset.o qsort.o string.o interrupts.o time.o serial.o printk.o
 
 all: $(obj)
 
@@ -35,5 +35,11 @@ serial.o:
 
 printk.o:
 	$(CROSS)$(CC) $(CFLAGS) -o printk.o -c $(ktree)/stdlib/printk.c
+
+tree.o:
+	$(CROSS)$(CC) $(CFLAGS) -o tree.o -c $(ktree)/stdlib/tree.c
+
+list.o:
+	$(CROSS)$(CC) $(CFLAGS) -o list.o -c $(ktree)/stdlib/list.c
 
 .PHONY: all

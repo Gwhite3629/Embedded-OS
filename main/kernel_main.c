@@ -8,6 +8,8 @@
 #include <perf/perf.h>
 #include <drivers/mailbox.h>
 #include <memory/mmu.h>
+#include <fs/ext2/ext2.h>
+#include <fs/ext2/file.h>
 #include "bootscreen.h"
 
 typedef int (*command_t) (const char *);
@@ -47,15 +49,15 @@ int call_editor(const char *buf)
 void main()
 {
     uart_init();
-    printk("UART FINISHED\n");
+    printk("\x1b[1;32mUART FINISHED\x1b[1;0m\n");
     gic400_init((void *)0xFF840000UL);
     init_vectors();
     interrupt_barrier();
     enable_interrupts();
-    printk("INTERRUPTS FINISHED\n");
+    printk("\x1b[1;32mINTERRUPTS FINISHED\x1b[1;0m\n");
 
     get_arm_address();
-    printk("FINISHED MAILBOX\n");
+    printk("\x1b[1;32mFINISHED MAILBOX\x1b[1;0m\n");
     printk("ARM BASE ADDRESS: %x\n", arm_base_address);
     printk("ARM_SIZE:         %x\n", arm_size);
     MEM_OFFSET = arm_base_address;
@@ -65,18 +67,30 @@ void main()
     enable_MMU();
 
     memory_init(0xFA000);
-    printk("MEMORY FINISHED\n");
+    printk("\x1b[1;32mMEMORY FINISHED\x1b[1;0m\n");
     global_heap = create(ALIGN, ALIGN*64);
-    printk("HEAP FINISHED WITH %d REGIONS\n", global_heap->n_regions);
+    printk("\x1b[1;32mHEAP FINISHED WITH %d REGIONS\x1b[1;0m\n", global_heap->n_regions);
 
-    sd_init();
-    printk("SD FINISHED\n");
+    struct block_device *dev;
+    new(dev, 1, struct block_device);
+    printk("\x1b[1;32mCREATED BLOCK DEVICE\x1b[1;0m\n");
 
     timer_init();
-    printk("TIMER FINISHED\n");
+    printk("\x1b[1;32mTIMER FINISHED\x1b[1;0m\n");
+
+    bcm_2708_get_state();
+
+    sd_card_init(&dev);
+    printk("\x1b[1;32mSD FINISHED\x1b[1;0m\n");
 
     init_events();
-    printk("PERF MAP FINISHED\n");
+    printk("\x1b[1;32mPERF MAP FINISHED\x1b[1;0m\n");
+
+    fs_init();
+    printk("\x1b[1;32mFILESYSTEM INITIALIZED\x1b[1;0m\n");
+
+    //ext2_init(dev);
+    //printk("\x1b[1;32mEXT2 INITIALIZED\x1b[1;0m\n");
 
     printk("Current Exception Level: %d\n", get_current_el());
 
@@ -88,6 +102,8 @@ void main()
 
     shell();
 	/* Enter our "shell" */
+exit:
+    printk("KERNEL FAILED\n");
     while(1);
 }
 

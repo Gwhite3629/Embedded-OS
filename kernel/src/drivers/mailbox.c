@@ -4,7 +4,8 @@
 #include <drivers/io.h>
 #include <stdlib/printk.h>
 
-volatile uint32_t __attribute__((aligned(16))) mbox[36];
+volatile uint32_t __attribute__((aligned(16))) early_mbox[36];
+volatile uint32_t *mbox;
 
 uint32_t firmware_version;
 uint32_t board_model;
@@ -28,23 +29,18 @@ uint32_t virtual_width;
 uint32_t virtual_height;
 uint32_t bits_per_pixel;
 
-void read_mailbox(uint32_t mbox)
-{
-
-}
-
 void get_arm_address(void)
 {
-    unsigned int r = (((unsigned int)((unsigned long)&mbox)&~0xF) | (0x8));
+    unsigned int r = (((unsigned int)((unsigned long)&early_mbox)&~0xF) | (0x8));
 
-    mbox[0] = 4 * 8;
-    mbox[1] = 0x00000000;
-    mbox[2] = ARM_MEMORY;
-    mbox[3] = 0x00000008;
-    mbox[4] = 0x00000008;
-    mbox[5] = 0x00000000;
-    mbox[6] = 0x00000000;
-    mbox[7] = 0x00000000;
+    early_mbox[0] = 4 * 8;
+    early_mbox[1] = 0x00000000;
+    early_mbox[2] = ARM_MEMORY;
+    early_mbox[3] = 0x00000008;
+    early_mbox[4] = 0x00000008;
+    early_mbox[5] = 0x00000000;
+    early_mbox[6] = 0x00000000;
+    early_mbox[7] = 0x00000000;
 
     do {
         asm volatile("nop");
@@ -58,12 +54,12 @@ void get_arm_address(void)
         } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
 
         if (r == chip_read(MAIL_READ)) {
-            if (mbox[1] == 0x80000000) {
-                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
-                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
-                arm_base_address = mbox[5] + 0x800000;
-                arm_size = mbox[6];
-                printk("FINAL TAG:          %x\n", mbox[7]);
+            if (early_mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", early_mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", early_mbox[3]);
+                arm_base_address = early_mbox[5] + 0x800000;
+                arm_size = early_mbox[6];
+                printk("FINAL TAG:          %x\n", early_mbox[7]);
                 return;
             }
         }
@@ -72,15 +68,52 @@ void get_arm_address(void)
 
 void get_vc_address(void)
 {
-    unsigned int r = (((unsigned int)((unsigned long)&mbox)&~0xF) | (0x8));
+    unsigned int r = (((unsigned int)((unsigned long)&early_mbox)&~0xF) | (0x8));
+
+    early_mbox[0] = 4 * 8;
+    early_mbox[1] = 0x00000000;
+    early_mbox[2] = VC_MEMORY;
+    early_mbox[3] = 0x00000008;
+    early_mbox[4] = 0x00000008;
+    early_mbox[5] = 0x00000000;
+    early_mbox[6] = 0x00000000;
+    early_mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (early_mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", early_mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", early_mbox[3]);
+                vc_base_address = early_mbox[5] + 0x800000;
+                vc_size = early_mbox[6];
+                printk("FINAL TAG:          %x\n", early_mbox[7]);
+                return;
+            }
+        }
+    }
+}
+
+int bcm_2708_power_off(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
 
     mbox[0] = 4 * 8;
     mbox[1] = 0x00000000;
-    mbox[2] = VC_MEMORY;
+    mbox[2] = SET_POWER_STATE;
     mbox[3] = 0x00000008;
     mbox[4] = 0x00000008;
     mbox[5] = 0x00000000;
-    mbox[6] = 0x00000000;
+    mbox[6] = 0x00000002;
     mbox[7] = 0x00000000;
 
     do {
@@ -98,11 +131,172 @@ void get_vc_address(void)
             if (mbox[1] == 0x80000000) {
                 printk("TAG IDENTIFIER:     %x\n", mbox[2]);
                 printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
-                vc_base_address = mbox[5] + 0x800000;
-                vc_size = mbox[6];
+                printk("POWER DEVICE ID:    %x\n", mbox[5]);
+                printk("POWER DEVICE STATE: %x\n", mbox[6]);
                 printk("FINAL TAG:          %x\n", mbox[7]);
-                return;
+                return 0;
             }
         }
     }
+
+    return -1;
+}
+
+int bcm_2708_power_on(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_POWER_STATE;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000003;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                printk("POWER DEVICE ID:    %x\n", mbox[5]);
+                printk("POWER DEVICE STATE: %x\n", mbox[6]);
+                printk("FINAL TAG:          %x\n", mbox[7]);
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+int bcm_2708_get_state(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = GET_POWER_STATE;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+    printk("MAIL DONE WAITING 1\n");
+
+    chip_write(r, MAIL_WRITE);
+    printk("MAIL WRITTEN\n");
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+        printk("MAIL DONE WAITING 2\n");
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                printk("POWER DEVICE ID:    %x\n", mbox[5]);
+                printk("POWER DEVICE STATE: %x\n", mbox[6]);
+                printk("FINAL TAG:          %x\n", mbox[7]);
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t sd_get_base_clock_hz(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = GET_CLOCK_RATE;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000004;
+    mbox[5] = EMMC_CLOCK_ID;
+    mbox[6] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                printk("CLOCK ID:           %x\n", mbox[5]);
+                printk("CLOCK STATE:        %x\n", mbox[6]);
+                printk("FINAL TAG:          %x\n", mbox[7]);
+                return mbox[6];
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t sd_set_base_clock_hz(uint32_t clock, uint32_t val1, uint32_t val2)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 9;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_CLOCK_RATE;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = clock;
+    mbox[6] = val1;
+    mbox[7] = val2;
+    mbox[8] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                printk("CLOCK ID:           %x\n", mbox[5]);
+                printk("CLOCK RATE:         %x\n", mbox[6]);
+                printk("FINAL TAG:          %x\n", mbox[8]);
+                return mbox[6];
+            }
+        }
+    }
+
+    return -1;
 }

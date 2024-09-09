@@ -2,7 +2,7 @@
 #include "../../include/process/proc.h"
 #include "../../include/memory/malloc.h"
 #include "../../include/syscalls/syscalls.h"
-#include "../../include/fs/file.h"
+#include "../../include/fs/ext2/file.h"
 #include "../../include/stdlib/time.h"
 
 err_t swi_handler_c(uint64_t r0, uint64_t r1, uint64_t r2, uint64_t r3)
@@ -25,19 +25,19 @@ err_t swi_handler_c(uint64_t r0, uint64_t r1, uint64_t r2, uint64_t r3)
             break;
 
         case SYS_FREAD:
-            ret = f_read((FILE *)r0, (char *)r1, (unsigned int)r2, (unsigned int  *)r3);
+            ret = f_read((FILE *)r0, (char *)r1, (unsigned int)r2);
             break;
 
         case SYS_FWRITE:
-            ret = f_write((FILE *)r0, (const char *)r1, (unsigned int)r2, (unsigned int *)r3);
+            ret = f_write((FILE *)r0, (const char *)r1, (unsigned int)r2);
             break;
 
         case SYS_FOPEN:
-            ret = f_open((FILE *)r0, (const char *)r1, (uint8_t)r2);
+            r0 = f_open((const char *)r1, (uint8_t)r2);
             break;
 
         case SYS_FCLOSE:
-            ret = f_close((FILE *)r0);
+            f_close((FILE *)r0);
             break;
 
         case SYS_PSTART:

@@ -1,6 +1,6 @@
 #ifndef _SYSCALLS_H_
 #define _SYSCALLS_H_
-#include "../../kernel/include/fs/file.h"
+#include "../../kernel/include/fs/ext2/fstypes.h"
 
 #include "../../kernel/include/syscalls/syscalls.h"
 

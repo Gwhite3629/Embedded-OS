@@ -31,9 +31,25 @@ extern uint32_t vc_size;
 
 #define GET_CLOCKS      0x00010007
 
+#define GET_POWER_STATE     0x00020001
+#define GET_POWER_TIMING    0x00020002
+#define SET_POWER_STATE     0x00028001
+
 #define DMA_CHANNELS    0x00060001
 extern uint32_t dma_mask;
 
+// POWER ID
+#define SD_POWER_ID         0x00000000
+#define UART0_POWER_ID      0x00000001
+#define UART1_POWER_ID      0x00000002
+#define USB_HCD_POWER_ID    0x00000000
+#define I2C0_POWER_ID       0x00000000
+#define I2C1_POWER_ID       0x00000000
+#define I2C2_POWER_ID       0x00000000
+#define SPI_POWER_ID        0x00000000
+#define CCP2TX_POWER_ID     0x00000000
+
+// CLOCK ID
 #define EMMC_CLOCK_ID       0x00000001
 #define UART_CLOCK_ID       0x00000002
 #define ARM_CLOCK_ID        0x00000003
@@ -58,6 +74,8 @@ extern uint32_t clock_state;
 #define GET_CLOCK_RATE  0x00030002
 extern uint32_t clock_id;
 extern uint32_t clock_rate;
+
+#define SET_CLOCK_RATE  0x00038002
 
 #define ALLOCATE_FRAME_BUFFER   0x00040001
 extern uint32_t frame_buffer_base;
@@ -89,5 +107,20 @@ void read_mailbox(uint32_t mbox);
 void get_arm_address(void);
 
 void get_vc_address(void);
+
+void setup_mbox(void);
+
+int bcm_2708_power_off(void);
+
+int bcm_2708_power_on(void);
+
+int bcm_2708_get_state(void);
+
+uint32_t sd_get_base_clock_hz(void);
+
+uint32_t sd_set_base_clock_hz(uint32_t clock, uint32_t val1, uint32_t val2);
+
+
+extern volatile uint32_t *mbox;
 
 #endif // _MAILBOX_H_

@@ -38,8 +38,6 @@ int printk(char *string,...) {
 
 			}
 			else if (*string=='x') {
-				// MODIFY THE CODE BELOW
-				// TO PRINT IN HEX
 				string++;
 				x=va_arg(ap, int);
 				int_pointer=9;

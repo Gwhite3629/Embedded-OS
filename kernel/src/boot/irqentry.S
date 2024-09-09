@@ -157,7 +157,3 @@ F_EL0_32:
 
 E_EL0_32:
     handle_invalid  E_INV_EL0_32
-
-
-.globl proc_hang
-proc_hang: b proc_hang

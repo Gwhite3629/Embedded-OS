@@ -16,7 +16,7 @@ typedef struct irq_t {
 
 extern irq_t IRQ_LIST[1];
 
-void handle_error(void);
+void handle_error(uint64_t x0);
 
 void handle_irq(void);
 

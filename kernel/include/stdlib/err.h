@@ -58,6 +58,7 @@ typedef int err_t;
 #define E_DISKERR   0x0202
 #define E_NOFS      0x0203
 #define E_TIMEOUT   0x0204
+#define E_NOCARD    0x0206
 
 // File errors
 #define E_NOFILE    0x0300  // No available file

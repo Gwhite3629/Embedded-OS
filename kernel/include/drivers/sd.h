@@ -1,115 +1,108 @@
-#ifndef _SD_H_
-#define _SD_H_
+/* Copyright (C) 2013 by John Cronin <jncronin@tysos.org>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
 
-#include "../stdlib.h"
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
 
-#define CAST(X) ((X))
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
-#define EMMC_OFFSET         (IO_BASE + 0x00340000)
+#ifndef EMMC_H_
+#define EMMC_H_
 
-// EMMC Offsets
+#include "../stdlib/types.h"
+#include "../stdlib/hardware_rpi4b.h"
 
-#define EMMC_ARG2           CAST(EMMC_OFFSET + 0x00)
-#define EMMC_BLKSIZECNT     CAST(EMMC_OFFSET + 0x04)
-#define EMMC_ARG1           CAST(EMMC_OFFSET + 0x08)
-#define EMMC_CMDTM          CAST(EMMC_OFFSET + 0x0C)
-#define EMMC_RESP0          CAST(EMMC_OFFSET + 0x10)
-#define EMMC_RESP1          CAST(EMMC_OFFSET + 0x14)
-#define EMMC_RESP2          CAST(EMMC_OFFSET + 0x18)
-#define EMMC_RESP3          CAST(EMMC_OFFSET + 0x1C)
-#define EMMC_DATA           CAST(EMMC_OFFSET + 0x20)
-#define EMMC_STATUS         CAST(EMMC_OFFSET + 0x24)
-#define EMMC_CONTROL0       CAST(EMMC_OFFSET + 0x28)
-#define EMMC_CONTROL1       CAST(EMMC_OFFSET + 0x2C)
-#define EMMC_INTERRUPT      CAST(EMMC_OFFSET + 0x30)
-#define EMMC_INT_MASK       CAST(EMMC_OFFSET + 0x34)
-#define EMMC_INT_EN         CAST(EMMC_OFFSET + 0x38)
-#define EMMC_CONTROL2       CAST(EMMC_OFFSET + 0x3C)
-#define EMMC_SLOTISR_VER    CAST(EMMC_OFFSET + 0xFC)
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-// SD Command Flags
-#define CMD_NEED_APP        0x80000000
-#define CMD_RSPNS_48        0x00020000
-#define CMD_ERRORS_MASK     0xfffC9004
-#define CMD_RCA_MASK        0xffff0000
+#define SD_BASE     (IO_BASE + 0x00202000)
 
-// SD Commands
-#define CMD_GO_IDLE         0x00000000
-#define CMD_ALL_SEND_CID    0x02010000
-#define CMD_SEND_REL_ADDR   0x03020000
-#define CMD_CARD_SELECT     0x07030000
-#define CMD_SEND_IF_COND    0x08020000
-#define CMD_STOP_TRANS      0x0C030000
-#define CMD_READ_SINGLE     0x11220010
-#define CMD_READ_MULTI      0x11220032
-#define CMD_SET_BLOCKCNT    0x17020000
-#define CMD_WRITE_SINGLE    0x18220000
-#define CMD_WRITE_MULTI     0x19220022
-#define CMD_APP_CMD         0x37000000
-#define CMD_SET_BUS_WIDTH   (0x06020000 | CMD_NEED_APP)
-#define CMD_SEND_OP_COND    (0x29020000 | CMD_NEED_APP)
-#define CMD_SEND_SCR        (0x33220010 | CMD_NEED_APP)
 
-// Status register controls
-#define SR_READ_AVAILABLE   0x00000800
-#define SR_WRITE_AVAILABLE  0x00000400
-#define SR_DAT_INHIBIT      0x00000002
-#define SR_CMD_INHIBIT      0x00000001
-#define SR_APP_CMD          0x00000020
+#define SD_CMD      0x00 // Command to SD
+#define SD_ARG      0x04 // Argument to SD
+#define SD_TOUT     0x08 // Start value for timeout
+#define SD_CDIV     0x0C // Start value for clock div
+#define SD_RSP0     0x10 // Response (31:0)
+#define SD_RSP1     0x14 // Response (63:32)
+#define SD_RSP2     0x18 // Response (95:64)
+#define SD_RSP3     0x1C // Response (127:96)
+#define SD_HSTS     0x20 // Host Status
+#define SD_VDD      0x30 // Power Control
+#define SD_EDM      0x34 // Emergency debug
+#define SD_HCFG     0x38 // Host config
+#define SD_HBCT     0x3C // Host byte count
+#define SD_DATA     0x40 // Data to/from SD
+#define SD_HBLC     0x50 // Host block count
 
-// Interrupt Register controls
-#define INT_DATA_TIMEOUT    0x00100000
-#define INT_CMD_TIMEOUT     0x00010000
-#define INT_READ_RDY        0x00000020
-#define INT_WRITE_RDY       0x00000010
-#define INT_DATA_DONE       0x00000002
-#define INT_CMD_DONE        0x00000001
-#define INT_ERROR_MASK      0x017E8000
+struct block_device
+{
+    char *driver_name;
+    char *device_name;
+    uint8_t *device_id;
+    size_t dev_id_len;
 
-// Control Register controls
-#define C0_SPI_MODE_EN      0x00100000
-#define C0_HCTL_HS_EN       0x00000004
-#define C0_HCTL_DWIDTH      0x00000002
+    int supports_multiple_block_read;
+    int supports_multiple_block_write;
 
-#define C1_SRST_DATA        0x04000000
-#define C1_SRST_CMD         0x02000000
-#define C1_SRST_HC          0x01000000
-#define C1_TOUNIT_DS        0x000F0000
-#define C1_TOUNIT_MAX       0x000E0000
-#define C1_CLK_GENSEL       0x00000020
-#define C1_CLK_EN           0x00000004
-#define C1_CLK_STABLE       0x00000002
-#define C1_CLK_INTLEN       0x00000001
+    int (*read)(struct block_device *dev, uint8_t *buf, size_t buf_size, uint32_t block_num);
+    int (*write)(struct block_device *dev, uint8_t *buf, size_t buf_size, uint32_t block_num);
+    size_t block_size;
+    size_t num_blocks;
+};
 
-#define HOST_SPEC_NUM       0x00FF0000
-#define HOST_SPEC_NUM_SHIFT 16
-#define HOST_SPEC_V3        2
-#define HOST_SPEC_V2        1
-#define HOST_SPEC_V1        0
+struct sd_scr;
 
-#define SCR_SD_BUS_WIDTH    0x00000400
-#define SCR_SUPP_SET_BLKCNT 0x02000000
-#define SCR_SUPP_CCS        0x00000001
+struct emmc_block_dev
+{
+    struct block_device bd;
+    uint32_t card_supports_sdhc;
+    uint32_t card_supports_18v;
+    uint32_t card_ocr;
+    uint32_t card_rca;
+    uint32_t last_interrupt;
+    uint32_t last_error;
 
-#define ACMD41_VOLTAGE      0x00FF8000
-#define ACMD41_CMD_COMPLETE 0x80000000
-#define ACMD41_CMD_CCS      0x40000000
-#define ACMD41_ARG_HC       0x51FF8000
+    struct sd_scr *scr;
 
-#define CTRL_SYNC 0
-#define GET_SECTOR_COUNT 1
-#define GET_SECTOR_SIZE 2
-#define GET_BLOCK_SIZE 3
-#define CTRL_TRIM 4
+    int failed_voltage_switch;
 
-#define STATUS_NOINIT   0x01
-#define STATUS_NODISK   0x02
-#define STATUS_PROTECT  0x04
+    uint32_t last_cmd_reg;
+    uint32_t last_cmd;
+    uint32_t last_cmd_success;
+    uint32_t last_r0;
+    uint32_t last_r1;
+    uint32_t last_r2;
+    uint32_t last_r3;
 
-err_t sd_init(void);
-err_t sd_status(unsigned int mask);
-err_t sd_read(char *buff, uint16_t sector, size_t n);
-err_t sd_write(const char *buff, uint16_t sector, size_t n);
-err_t sd_ioctl(unsigned int cmd, unsigned int arg);
+    void *buf;
+    int blocks_to_transfer;
+    size_t block_size;
+    int use_sdma;
+    int card_removal;
+    uint32_t base_clock;
+};
 
-#endif // _SD_H_
+int sd_card_init(struct block_device **dev);
+
+size_t sd_read(uint8_t *buf, size_t buf_size, uint32_t block_no);
+size_t sd_write(uint8_t *buf, size_t buf_size, uint32_t block_no);
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif // EMMC_H_

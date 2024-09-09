@@ -35,6 +35,8 @@
         "istream": "c",
         "ostream": "c",
         "tuple": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "optional": "c",
+        "system_error": "c"
     }
 }
