@@ -429,6 +429,16 @@ do {                            \
     } while(1);            \
 } while(0);
 
+void set_gpio_func(uint32_t pin, uint32_t mode)
+{
+    uint32_t nSelReg = GPIO_GPFSEL0 + (pin / 10) * 4;
+    uint32_t nShift = (pin % 10) * 3;
+    uint32_t nValue = mmio_read(nSelReg);
+    nValue &= ~(7 << nShift);
+    nValue |= mode << nShift;
+    mmio_write(nSelReg, nValue);
+}
+
 // Support for unaligned data access
 static inline void write_word(uint32_t val, uint8_t *buf, int offset)
 {
@@ -1182,7 +1192,10 @@ int sd_card_init(struct block_device **dev)
 #endif
 #endif
 
-    mmio_write(GPFSEL)
+    for (uint32_t i = 0; i < 6; i++) {
+        set_gpio_func(34 + i, 0x0);
+        set_gpio_func(48 + i, 0x7);
+    }
 
     // Reset supply to 3.3v
     mmio_write(GPIO_GPCLR0, 0b10000);

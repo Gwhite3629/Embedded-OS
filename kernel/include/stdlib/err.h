@@ -9,7 +9,7 @@
 
 typedef int err_t;
 
-#define E_NOERR     0x1000  // No error
+#define E_NOERR     0x0000  // No error
 #define E_PANIC     0x0001  // Panic signal for commisioner
 #define E_BADARG    0x0002  // Bad argument
 #define E_NOSPACE   0x0003  // No space
@@ -71,6 +71,7 @@ typedef int err_t;
 
 // Timer errors
 #define E_NXIO      0x0400
+#define E_NOIRQ     0x0500
 
 
 #endif  // _ERR_H_
