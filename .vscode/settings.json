@@ -37,6 +37,7 @@
         "tuple": "c",
         "type_traits": "c",
         "optional": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "genet.h": "c"
     }
 }

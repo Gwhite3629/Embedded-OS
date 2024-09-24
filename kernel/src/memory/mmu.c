@@ -4,6 +4,7 @@
 #include <process/proc.h>
 #include <memory/mmu.h>
 #include <drivers/mailbox.h>
+#include <drivers/graphics/framebuffer.h>
 
 #include <stdint.h>
 
@@ -184,6 +185,27 @@ void identity_map(void)
 			.EntryType = 1,
         };
     }
+
+    uint32_t n_fb_pages = (fb.buf_size / PT_SIZE) + 1;
+    uint32_t fb_start = ((uint32_t)fb.buf) / PT_SIZE;
+    uint32_t map_start = (vc_val - 1) - n_fb_pages;
+
+    uint32_t offset = ((uint32_t)fb.buf) % PT_SIZE;
+
+    for (uint32_t i = 0; i < n_fb_pages; i++) {
+        PT_identity2[map_start + i] = (VMSAv8_64_DESCRIPTOR){
+            .Address = (uintptr_t)(fb_start + i) << (21 - 12),
+            .AF = 1,
+            .MemAttr = MT_DEVICE_NGNRNE,
+            .EntryType = 1,
+        };
+    }
+
+    fb.buf = (unsigned char *)((map_start << 21) + (offset));
+
+    printk("\x1b[1;32mCREATED FRAMEBUFFER EXCEPTION\x1b[1;0m\n");
+    printk("\tNEW FB ADDRESS: %x\n", fb.buf);
+    printk("\tn_pages: %d\n", n_fb_pages);
 
     PT_identity1[0]     = (0x8000000000000000) | (uintptr_t)&PT_identity2[0] | 3;
     PT_identity1[1]     = (0x8000000000000000) | (uintptr_t)&PT_identity2[512] | 3;

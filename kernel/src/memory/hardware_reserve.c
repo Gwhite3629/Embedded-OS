@@ -119,7 +119,7 @@ unsigned long reserve(uint32_t n_chunks, uint32_t type)
 
     //release(&MEM_LOCK);
 
-    memset((void *)(first_chunk*CHUNK_SIZE),0,n_chunks*CHUNK_SIZE);
+    memset((unsigned char*)(first_chunk*CHUNK_SIZE+MEM_OFFSET),0,n_chunks*CHUNK_SIZE);
 
     return (unsigned long)(first_chunk*CHUNK_SIZE+MEM_OFFSET);
 }
@@ -132,7 +132,7 @@ int32_t relinquish(unsigned long start, uint32_t n_chunks)
 
     first_chunk=(int)(start-MEM_OFFSET)/CHUNK_SIZE;
 
-    memset((uint64_t *)(start-MEM_OFFSET), 'V', n_chunks*CHUNK_SIZE);
+    memset((uint64_t *)(start), 'V', n_chunks*CHUNK_SIZE);
 
     for (i = 0; i < n_chunks; i++) {
         mark_free((first_chunk + i));

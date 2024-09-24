@@ -57,7 +57,9 @@ _start:
     msr     elr_el2, x2
     eret
 
-5:  mov     sp, x1
+5:  
+    ldr     x1, =_start
+    mov     sp, x1
 
     // clear bss
     ldr     x1, =__bss_start

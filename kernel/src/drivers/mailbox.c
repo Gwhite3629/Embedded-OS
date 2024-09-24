@@ -5,7 +5,7 @@
 #include <stdlib/printk.h>
 
 volatile uint32_t __attribute__((aligned(16))) early_mbox[36];
-volatile uint32_t *mbox;
+volatile uint32_t *mbox = early_mbox;
 
 uint32_t firmware_version;
 uint32_t board_model;
@@ -294,6 +294,490 @@ uint32_t sd_set_base_clock_hz(uint32_t clock, uint32_t val1, uint32_t val2)
                 printk("CLOCK RATE:         %x\n", mbox[6]);
                 printk("FINAL TAG:          %x\n", mbox[8]);
                 return mbox[6];
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t allocate_GPU_memory(uint32_t size, uint32_t alignment, uint32_t flags)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 9;
+    mbox[1] = 0x00000000;
+    mbox[2] = ALLOCATE_MEMORY;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = size;
+    mbox[6] = alignment;
+    mbox[7] = flags;
+    mbox[8] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                return mbox[5];
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t allocate_framebuffer(uint32_t alignment)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = ALLOCATE_FRAME_BUFFER;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = alignment;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("\x1b[1;32mFRAMEBUFFER ALLOCATED\x1b[1;0m\n");
+                fb.buf = (unsigned char *)(mbox[5] & 0x3FFFFFFF);
+                fb.buf_size = mbox[6];
+                printk("\tADDR: %x SIZE: %x\n", fb.buf, fb.buf_size);
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t release_framebuffer(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = RELEASE_FRAME_BUFFER;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                fb.buf = 0;
+                fb.buf_size = 0;
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t blank_screen(uint32_t state)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = BLANK_SCREEN;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = state;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t get_display_wh(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = GET_DISPLAY;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("\x1b[1;32mGOT FRAME STATS\x1b[1;0m\n");
+                printk("\tWIDTH: %d HEIGHT: %d\n", mbox[5], mbox[6]);
+                fb.width = mbox[5];
+                fb.height = mbox[6];
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t set_display_wh(uint32_t width, uint32_t height)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_DISPLAY;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000000;
+    mbox[5] = width;
+    mbox[6] = height;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("\x1b[1;32mSET FRAME STATS\x1b[1;0m\n");
+                printk("\tWIDTH: %d HEIGHT: %d\n", mbox[5], mbox[6]);
+                fb.width = mbox[5];
+                fb.height = mbox[6];
+                if ((width == mbox[5]) & (height == mbox[6])) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t get_display_depth(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = GET_DEPTH;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                fb.depth = mbox[5];
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t set_display_depth(uint32_t depth)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_DEPTH;
+    mbox[3] = 0x00000004;
+    mbox[4] = 0x00000004;
+    mbox[5] = depth;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                fb.depth = mbox[5];
+                if (depth == mbox[5]) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t get_pitch(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = GET_PITCH;
+    mbox[3] = 0x00000004;
+    mbox[4] = 0x00000004;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("\x1b[1;32mGOT PITCH\x1b[1;0m\n");
+                printk("\tPITCH: %x\n", mbox[5]);
+                fb.pitch = mbox[5];
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t set_virt_wh(uint32_t virtWidth, uint32_t virtHeight)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_VIRTUAL;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = virtWidth;
+    mbox[6] = virtHeight;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("\x1b[1;32mSET VIRT FRAME STATS\x1b[1;0m\n");
+                printk("\tWIDTH: %d HEIGHT: %d\n", mbox[5], mbox[6]);
+                fb.virtWidth = mbox[5];
+                fb.virtHeight = mbox[6];
+                if ((virtWidth == mbox[5]) & (virtHeight == mbox[6])) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t set_virt_offset(uint32_t x, uint32_t y)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_VIRT_OFFSET;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = x;
+    mbox[6] = y;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t get_pixel_order(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = GET_PIXEL_ORDER;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000000;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                fb.pixel_order = mbox[5];
+                return 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t set_pixel_order( uint32_t state)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_PIXEL_ORDER;
+    mbox[3] = 0x00000004;
+    mbox[4] = 0x00000004;
+    mbox[5] = state;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                fb.pixel_order = mbox[5];
+                if (state == mbox[5]) {
+                    return 1;
+                } else {
+                    return 0;
+                }
             }
         }
     }

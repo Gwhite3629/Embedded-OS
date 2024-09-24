@@ -10,6 +10,7 @@
 #include <memory/mmu.h>
 #include <fs/ext2/ext2.h>
 #include <fs/ext2/file.h>
+#include <drivers/graphics/framebuffer.h>
 #include "bootscreen.h"
 
 typedef int (*command_t) (const char *);
@@ -22,6 +23,8 @@ static inline unsigned int get_current_el(void)
 }
 
 uint32_t shell(void);
+
+void draw_example(struct framebuffer *fb);
 
 int echo(const char *buf)
 {
@@ -61,6 +64,10 @@ void main()
     printk("ARM BASE ADDRESS: %x\n", arm_base_address);
     printk("ARM_SIZE:         %x\n", arm_size);
     MEM_OFFSET = arm_base_address;
+
+    init_framebuffer(0, 0, 32);
+    printk("\x1b[1;32mFRAMEBUFFER INITIALIZED\x1b[1;0m\n");
+    printk("\taddr: %x size: %d\n", fb.buf, fb.buf_size);
 
     identity_map();
 

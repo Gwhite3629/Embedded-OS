@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <drivers/io.h>
 #include <drivers/gic400.h>
+#include <drivers/graphics/framebuffer.h>
 
 //irq_t IRQ_LIST[1] = {};
 
@@ -53,6 +54,8 @@ err_t handle_irq_event(irq_t * q)
 		tick_counter++;
 		chip_write(0x1, TIMER_IRQ_CLEAR);
 		chip_write(0xffffffffUL, GICD_ICPENDR0);
+		draw_rect(0,0,64,16,0xb,1);
+		print_screen(4,4,0,"%d", tick_counter);
 	}
     return ret;
 }

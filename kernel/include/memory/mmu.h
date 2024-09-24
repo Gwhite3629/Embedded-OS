@@ -3,6 +3,7 @@
 
 #include "../process/proc.h"
 #include "../stdlib.h"
+#include "../drivers/graphics/framebuffer.h"
 
 //void free_page(unsigned long page);
 //void map_page(proc_t *p, unsigned long va, unsigned long page);

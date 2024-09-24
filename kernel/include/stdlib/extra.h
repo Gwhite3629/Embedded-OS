@@ -8,10 +8,19 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
+#define __BIT(__n)	(1U << (__n))
+#define __BITS(__n, __m)  ((__BIT((__n) - (__m) + 1) - 1) << (__m))
+
+#define	__LOWEST_SET_BIT(__mask) ((((__mask) - 1) & (__mask)) ^ (__mask))
+#define	__SHIFTOUT(__x, __mask)	(((__x) & (__mask)) / __LOWEST_SET_BIT(__mask))
+#define	__SHIFTIN(__x, __mask) ((__x) * __LOWEST_SET_BIT(__mask))
+
+
 #define unlikely(x)		__builtin_expect(!!(x), 0)
 #define likely(x)		__builtin_expect(!!(x), 1)
 
 #define barrier() __asm__ __volatile__("": : :"memory")
+#define dmb() __asm__ __volatile__("dmb sy");
 
 static inline void __read_once_size(const volatile void *p, void *res, int size)
 {
@@ -19,6 +28,7 @@ static inline void __read_once_size(const volatile void *p, void *res, int size)
 	case 1: *(uint8_t  *) res = *(volatile uint8_t  *) p; break;
 	case 2: *(uint16_t *) res = *(volatile uint16_t *) p; break;
 	case 4: *(uint32_t *) res = *(volatile uint32_t *) p; break;
+	case 8: *(uint64_t *) res = *(volatile uint64_t *) p; break;
 	default:
 		barrier();
 		__builtin_memcpy((void *)res, (const void *)p, size);
@@ -29,9 +39,10 @@ static inline void __read_once_size(const volatile void *p, void *res, int size)
 static inline void __write_once_size(volatile void *p, void *res, int size)
 {
 	switch (size) {
-	case 1: *(volatile  uint8_t *) p = *(uint8_t  *) res; break;
+	case 1: *(volatile uint8_t  *) p = *(uint8_t  *) res; break;
 	case 2: *(volatile uint16_t *) p = *(uint16_t *) res; break;
 	case 4: *(volatile uint32_t *) p = *(uint32_t *) res; break;
+	case 8: *(volatile uint64_t *) p = *(uint64_t *) res; break;
 	default:
 		barrier();
 		__builtin_memcpy((void *)p, (const void *)res, size);

@@ -73,5 +73,8 @@ typedef int err_t;
 #define E_NXIO      0x0400
 #define E_NOIRQ     0x0500
 
+// Framebuffer errors
+#define E_FBNOSET   0x0600  // Failed to set framebuffer property
+
 
 #endif  // _ERR_H_

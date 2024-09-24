@@ -339,4 +339,9 @@
 #define MAIL_STAT	CASTA(MAIL_BASE + 0x18)
 #define MAIL_WRITE	CASTA(MAIL_BASE + 0x20)
 
+/*******/
+/* DMA */
+/*******/
+#define DMA_BASE	CASTA(IO_BASE + 0x7000)
+
 #endif

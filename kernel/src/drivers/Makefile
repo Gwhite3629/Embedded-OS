@@ -1,6 +1,6 @@
 CFLAGS += $(KINCLUDE)
 
-obj := sd.o gic400.o counters.o mailbox.o platform.o
+obj := sd.o gic400.o counters.o mailbox.o platform.o framebuffer.o
 
 all: $(obj)
 
@@ -18,5 +18,8 @@ platform.o:
 
 mailbox.o:
 	$(CROSS)$(CC) $(CFLAGS) -o mailbox.o -c $(ktree)/drivers/mailbox.c
+
+framebuffer.o:
+	$(CROSS)$(CC) $(CFLAGS) -o framebuffer.o -c $(ktree)/drivers/graphics/framebuffer.c
 
 .PHONY: all

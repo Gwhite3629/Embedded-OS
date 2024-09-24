@@ -71,4 +71,9 @@ struct phy_device {
     void *base;
 };
 
+struct eth_device {
+    struct phy_device *phy;
+
+};
+
 #endif // _NETSTRUCT_H_
