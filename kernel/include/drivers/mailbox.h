@@ -148,6 +148,9 @@ int bcm_2708_get_state(void);
 uint32_t sd_get_base_clock_hz(void);
 uint32_t sd_set_base_clock_hz(uint32_t clock, uint32_t val1, uint32_t val2);
 
+uint32_t sd_get_clock_state(void);
+uint32_t sd_set_clock_state(uint32_t state);
+
 uint32_t allocate_GPU_memory(uint32_t size, uint32_t alignment, uint32_t flags);
 
 uint32_t allocate_framebuffer(uint32_t alignment);
@@ -168,6 +171,8 @@ uint32_t set_virt_offset(uint32_t x, uint32_t y);
 
 uint32_t get_pixel_order();
 uint32_t set_pixel_order(uint32_t state);
+
+void sd_disable_low_power(void);
 
 extern volatile uint32_t *mbox;
 

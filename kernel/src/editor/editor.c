@@ -81,7 +81,7 @@ int read_file(struct environment **env)
 
     unsigned int i = 0;
 
-    while(f_gets((*env)->file_data[i].ldata, 4096, f)) {
+    while(f_gets(f, 4096, (*env)->file_data[i].ldata)) {
         (*env)->alloc_size++;
         (*env)->max++;
         (*env)->file_data[i].index = 0;
@@ -109,7 +109,7 @@ int write_file(struct environment **env)
 {
     int ret = E_NOERR;
 
-    FILE *f;
+    FILE *f = NULL;
 
     char c = '\0';
     unsigned long l = 0;
@@ -117,12 +117,11 @@ int write_file(struct environment **env)
     if (!(*env)->valid_fname) {
         printk("Enter file name:\n");
         while(c != '\n') {
-            if (c = uart_getc()) {
-                if (c != '\n') {
-                    l++;
-                    alt((*env)->file_name, l, char);
-                    (*env)->file_name[l-1] = c;
-                }
+            c = uart_getc();
+            if (c != '\n') {
+                l++;
+                alt((*env)->file_name, l, char);
+                (*env)->file_name[l-1] = c;
             }
         }
         (*env)->valid_fname = 1;
@@ -137,8 +136,9 @@ int write_file(struct environment **env)
     }
 
 exit:
-    if (f)
+    if (f) {
         f_close(f);
+    }
 
     return ret;
 }
@@ -400,11 +400,12 @@ int input(struct environment **env)
             char t = 'n';
             printk("Save? [y/n]:\n");
             t = uart_getc();
-            if (t == 'y')
+            if (t == 'y') {
                 ret = write_file(env);
                 if (ret != E_NOERR) {
                     goto exit;
                 }
+            }
             (*env)->quit = 1;
         }
         c = '\0';

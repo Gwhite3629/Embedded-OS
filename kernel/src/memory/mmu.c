@@ -155,7 +155,7 @@ void identity_map(void)
         .MemAttr = MT_DEVICE_NGNRNE,
         .EntryType = 1,
     };
-    mbox = ((vc_val - 1) << 21);
+    mbox = (volatile uint32_t *)((uint64_t)((vc_val - 1) << 21));
     printk("MAILBOX ADDRESS: %x\n", mbox);
 
     // Region VC mem -> 0xFE000000
@@ -187,10 +187,10 @@ void identity_map(void)
     }
 
     uint32_t n_fb_pages = (fb.buf_size / PT_SIZE) + 1;
-    uint32_t fb_start = ((uint32_t)fb.buf) / PT_SIZE;
+    uint32_t fb_start = ((uint32_t)((uint64_t)fb.buf) / PT_SIZE);
     uint32_t map_start = (vc_val - 1) - n_fb_pages;
 
-    uint32_t offset = ((uint32_t)fb.buf) % PT_SIZE;
+    uint32_t offset = ((uint32_t)((uint64_t)fb.buf) % PT_SIZE);
 
     for (uint32_t i = 0; i < n_fb_pages; i++) {
         PT_identity2[map_start + i] = (VMSAv8_64_DESCRIPTOR){
@@ -201,7 +201,7 @@ void identity_map(void)
         };
     }
 
-    fb.buf = (unsigned char *)((map_start << 21) + (offset));
+    fb.buf = (unsigned char *)((uint64_t)((map_start << 21) + (offset)));
 
     printk("\x1b[1;32mCREATED FRAMEBUFFER EXCEPTION\x1b[1;0m\n");
     printk("\tNEW FB ADDRESS: %x\n", fb.buf);

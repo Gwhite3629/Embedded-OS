@@ -24,31 +24,12 @@ volatile struct  _gpio * GPIO = (struct  _gpio *) (PERIPHERAL_BASE + GPIO_BASE);
 volatile struct   _irq * IRQ  = (struct   _irq *) (PERIPHERAL_BASE + IRQ_BASE);
 
 void mmio_write(uint32_t reg, uint32_t data) {
-    *(volatile uint32_t *) (reg) = data;
+    *((volatile uint32_t *)((uint64_t)reg)) = data;
     asm volatile("dmb sy");
 }
 
 uint32_t mmio_read(uint32_t reg) {
-    return *(volatile uint32_t *) (reg);
-}
-
-void mbox_write(uint8_t channel, uint32_t data) {
-    while (mmio_read(MAIL_BASE + MAIL_STATUS) & MAIL_FULL)
-        ;
-    mmio_write(MAIL_BASE + MAIL_WRITE, (data & 0xfffffff0) | (uint32_t) (channel & 0xf));
-}
-
-uint32_t mbox_read(uint8_t channel) {
-    while (1) {
-        while (mmio_read(MAIL_BASE + MAIL_STATUS) & MAIL_EMPTY)
-            ;
-
-        uint32_t data = mmio_read(MAIL_BASE + MAIL_READ);
-        uint8_t read_channel = (uint8_t) (data & 0xf);
-        if (read_channel == channel) {
-            return (data & 0xfffffff0);
-        }
-    }
+    return *((volatile uint32_t *)((uint64_t)reg));
 }
 
 #define TIMER_CLO       TIMER_VALUE

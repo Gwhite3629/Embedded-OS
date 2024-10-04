@@ -26,7 +26,7 @@ void handle_error(uint64_t x0)
 		: [result] "=r"(x3));
 	asm volatile("dmb sy");
 
-	printk("\x1b[1;31mERROR EXCEPTION\x1b[0m %x %x %x %x\n", x0, x1, x2, x3);
+	printk("\x1b[1;31mERROR EXCEPTION\x1b[0m \n\t%x%x \n\t%x%x \n\t%x%x \n\t%x%x\n", x0>>32, x0, x1>>32, x1, x2>>32, x2, x3>>32, x3);
 
 	asm volatile("eret");
 }

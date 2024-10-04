@@ -67,7 +67,7 @@ exit:
 }
 
 void *list_remove_front(list_t *list) {
-	if(!list->head) {return;}
+	if(!list->head) {return NULL;}
 	listnode_t *t = list->head;
     void *val = t->value;
 	list->head = t->next;
@@ -81,7 +81,7 @@ exit:
 }
 
 void *list_remove_back(list_t *list) {
-	if(!list->head) {return;}
+	if(!list->head) {return NULL;}
 	listnode_t *t = list->tail;
     void *val = t ->value;
 	list->tail = t->prev;

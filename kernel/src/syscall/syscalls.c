@@ -25,15 +25,15 @@ err_t swi_handler_c(uint64_t r0, uint64_t r1, uint64_t r2, uint64_t r3)
             break;
 
         case SYS_FREAD:
-            ret = f_read((FILE *)r0, (char *)r1, (unsigned int)r2);
+            ret = f_read((FILE *)r0, (unsigned int)r1, (char *)r2);
             break;
 
         case SYS_FWRITE:
-            ret = f_write((FILE *)r0, (const char *)r1, (unsigned int)r2);
+            ret = f_write((FILE *)r0, (unsigned int)r1, (char *)r2);
             break;
 
         case SYS_FOPEN:
-            r0 = f_open((const char *)r1, (uint8_t)r2);
+            r0 = (uint64_t)f_open((const char *)r1, (uint32_t)r2);
             break;
 
         case SYS_FCLOSE:

@@ -39,7 +39,6 @@ exit:
 treenode_t *tree_find_parent(tree_t *tree, treenode_t *remove_node, int *child_index) {
     // If subroot is the parent
     if(remove_node == tree->root) {return NULL;}
-exit:
     return tree_find_parent_recur(tree, remove_node, tree->root, child_index);
 }
 

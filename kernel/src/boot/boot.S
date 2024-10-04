@@ -1,5 +1,8 @@
 #include "boot.h"
-
+#define LOCAL_CONTROL		0xff800000
+#define LOCAL_PRESCALER		0xff800008
+#define OSC_FREQ            54000000
+#define STACK               0x3B100000
 .section ".text.boot"  // Make sure the linker puts this at the start of the kernel image
 
 .global _start  // Execution starts here
@@ -14,11 +17,8 @@ _start:
     b       1b
 2:  // We're on the main core!
 
-    // Set stack to start below our code
-    ldr     x1, =_start
+    mov     x1, #STACK
     mov     sp, x1
-
-    
 
     // set up EL1
     mrs     x0, CurrentEL
@@ -58,7 +58,7 @@ _start:
     eret
 
 5:  
-    ldr     x1, =_start
+    mov     x1, #STACK
     mov     sp, x1
 
     // clear bss

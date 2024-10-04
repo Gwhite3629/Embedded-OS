@@ -13,7 +13,9 @@
 #include <drivers/graphics/framebuffer.h>
 #include "bootscreen.h"
 
-typedef int (*command_t) (const char *);
+typedef int (*command_t) (char *);
+
+struct block_device dev;
 
 static inline unsigned int get_current_el(void)
 {
@@ -26,25 +28,25 @@ uint32_t shell(void);
 
 void draw_example(struct framebuffer *fb);
 
-int echo(const char *buf)
+int echo(char *buf)
 {
     printk("\n%s\n", buf+5);
     return 0;
 }
 
-int clear(const char *buf)
+int clear(char *buf)
 {
     printk("\x1b[2J]");
     return 0;
 }
 
-int show_time(const char *buf)
+int show_time(char *buf)
 {
     printk("\n%d\n", tick_counter);
     return 0;
 }
 
-int call_editor(const char *buf)
+int call_editor(char *buf)
 {
     return editor(buf+5);
 }
@@ -53,6 +55,7 @@ void main()
 {
     uart_init();
     printk("\x1b[1;32mUART FINISHED\x1b[1;0m\n");
+
     gic400_init((void *)0xFF840000UL);
     init_vectors();
     interrupt_barrier();
@@ -78,16 +81,12 @@ void main()
     global_heap = create(ALIGN, ALIGN*64);
     printk("\x1b[1;32mHEAP FINISHED WITH %d REGIONS\x1b[1;0m\n", global_heap->n_regions);
 
-    struct block_device *dev;
-    new(dev, 1, struct block_device);
-    printk("\x1b[1;32mCREATED BLOCK DEVICE\x1b[1;0m\n");
-
     timer_init();
     printk("\x1b[1;32mTIMER FINISHED\x1b[1;0m\n");
 
     bcm_2708_get_state();
 
-    sd_card_init(&dev);
+    sd_init(&dev);
     printk("\x1b[1;32mSD FINISHED\x1b[1;0m\n");
 
     init_events();
@@ -107,9 +106,9 @@ void main()
 	printk("\x1b[2J");
 	printk(bootmsg);
 
+    /* Enter our "shell" */
     shell();
-	/* Enter our "shell" */
-exit:
+
     printk("KERNEL FAILED\n");
     while(1);
 }
@@ -120,12 +119,12 @@ int putchar(char c) {
 
     buffer[0] = c;
 
-    ret = uart_write(buffer, 1);
+    ret = uart_write((unsigned char *)buffer, 1);
 
     return ret;
 }
 
-command_t interpret(const char *buf, int buflen)
+command_t interpret(char *buf, int buflen)
 {
     // Print command
     if (!strncmp("print", buf, 5)) {
@@ -149,7 +148,7 @@ command_t interpret(const char *buf, int buflen)
     }
 }
 
-int run(const char *buf, int buflen)
+int run(char *buf, int buflen)
 {
     int ret = 0;
     command_t func = NULL;

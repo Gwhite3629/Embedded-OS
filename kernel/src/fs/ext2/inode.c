@@ -150,7 +150,7 @@ int alloc_inode_metadata_block(uint32_t *block_ptr, EXT2_t *fs, inode_base_t *in
 }
 
 uint32_t get_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t inode_block) {
-    unsigned int p = fs->block_size / 4, ret;
+    unsigned int p = fs->block_size / 4, ret = E_NOERR;
     int a, b, c, d, e, f, g;
     unsigned int *tmp = NULL;
     new(tmp, fs->block_size, unsigned int);
@@ -206,7 +206,7 @@ void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint
     }
     b = a - p;
     if(b <= 0) {
-        if(!alloc_inode_metadata_block(&(inode->blocks[12]), fs, inode, index, NULL, 0));
+        if(!alloc_inode_metadata_block((inode->blocks + 12), fs, inode, index, NULL, 0));
         read_disk_block(fs, inode->blocks[12], (void*)tmp);
         ((unsigned int*)tmp)[a] = disk_block;
         write_disk_block(fs, inode->blocks[12], (void*)tmp);
@@ -217,7 +217,7 @@ void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint
     if(c <= 0) {
         c = b / p;
         d = b - c * p;
-        if(!alloc_inode_metadata_block(&(inode->blocks[12 + 1]), fs, inode, index, NULL, 0));
+        if(!alloc_inode_metadata_block((inode->blocks + 12 + 1), fs, inode, index, NULL, 0));
         read_disk_block(fs, inode->blocks[12 + 1], (void*)tmp);
         if(!alloc_inode_metadata_block(&(tmp[c]), fs, inode, index, (void*)tmp, inode->blocks[12 + 1]));
         unsigned int temp = tmp[c];
@@ -231,7 +231,7 @@ void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint
         e = c / (p * p);
         f = (c - e * p * p) / p;
         g = (c - e * p * p - f * p);
-        if(!alloc_inode_metadata_block(&(inode->blocks[12 + 2]), fs, inode, index, NULL, 0));
+        if(!alloc_inode_metadata_block((inode->blocks + 12 + 2), fs, inode, index, NULL, 0));
         read_disk_block(fs, inode->blocks[12 + 2], (void*)tmp);
         if(!alloc_inode_metadata_block(&(tmp[e]), fs, inode, index, (void*)tmp, inode->blocks[12 + 2]));
         unsigned int temp = tmp[e];

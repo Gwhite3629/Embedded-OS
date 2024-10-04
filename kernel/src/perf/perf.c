@@ -36,8 +36,8 @@ int get_events(void)
     printk("\nEnter the number of desired events (1-9)\n> ");
 
     n_chosen = uart_getc();
-    uart_write(&n_chosen, 1);
-    uart_write("\n", 1);
+    uart_write((unsigned char *)&n_chosen, 1);
+    uart_write((unsigned char *)"\n", 1);
 
     int chosen = (int)(n_chosen - 48);
     if ((chosen < 1) | (chosen > 9)) {
@@ -70,7 +70,7 @@ int get_events(void)
                     buflen++;
             }
             // Display character to screen
-            ret = uart_write(&ch, 1);
+            ret = uart_write((unsigned char *)&ch, 1);
             if (ret < 0) {
                 printk("\nERROR: %d", ret);
             }
@@ -143,7 +143,7 @@ uint64_t end_profiling(void)
     return overflow;
 }
 
-int perf_list(const char *buf)
+int perf_list(char *buf)
 {
     for (int i = 0; i < 180; i++) {
         printk("%s\n", perf_events[i].name);

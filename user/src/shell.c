@@ -19,19 +19,19 @@ int putchar(char c) {
     return ret;
 }
 
-int echo(const char *buf)
+int echo(char *buf)
 {
     printf("\n%s", buf);
     return 0;
 }
 
-int clear(const char *buf)
+int clear(char *buf)
 {
     printf("\x1b[2J]");
     return 0;
 }
 
-int show_time(const char *buf)
+int show_time(char *buf)
 {
     printf("\n%d", time());
     return 0;
@@ -81,9 +81,9 @@ uint32_t shell(void)
 	}
 }
 
-int run(const char *buf)
+int run(char *buf)
 {
-    command_t *func = NULL;
+    command_t func = NULL;
     if (!strncmp("perf", buf, 4)) {
         func = interpret(buf+5);
 
@@ -91,9 +91,10 @@ int run(const char *buf)
         func = interpret(buf);
         return (*func)(buf);
     }
+    return 0;
 }
 
-command_t *interpret(const char *buf)
+command_t interpret(char *buf)
 {
     // Print command
     if (!strncmp("print", buf, 5)) {

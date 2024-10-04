@@ -281,21 +281,22 @@ exit:
 
 char *list2str(list_t *list, char *delim)
 {
-    char *ret = NULL;
-    new(ret, 256, char);
-    memset(ret, 0, 256);
-    int len = 0, ret_len = 256;
+    int ret = E_NOERR;
+    char *val = NULL;
+    new(val, 256, char);
+    memset(val, 0, 256);
+    int len = 0, val_len = 256;
     while(list_size(list)> 0) {
         char * temp = list_pop(list)->value;
         int len_temp = strlen(temp);
-        if(len + len_temp + 1 + 1 > ret_len) {
-            ret_len = ret_len * 2;
-            alt(ret, ret_len, char);
+        if(len + len_temp + 1 + 1 > val_len) {
+            val_len = val_len * 2;
+            alt(val, val_len, char);
             len = len + len_temp + 1;
         }
-        strncat(ret, delim, strlen(delim));
-        strncat(ret, temp, strlen(temp));
+        strncat(val, delim, strlen(delim));
+        strncat(val, temp, strlen(temp));
     }
 exit:
-    return ret;
+    return (ret == E_NOERR) ? val : NULL;
 }

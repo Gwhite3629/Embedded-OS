@@ -29,25 +29,6 @@
 extern "C" {
 #endif
 
-#define SD_BASE     (IO_BASE + 0x00202000)
-
-
-#define SD_CMD      0x00 // Command to SD
-#define SD_ARG      0x04 // Argument to SD
-#define SD_TOUT     0x08 // Start value for timeout
-#define SD_CDIV     0x0C // Start value for clock div
-#define SD_RSP0     0x10 // Response (31:0)
-#define SD_RSP1     0x14 // Response (63:32)
-#define SD_RSP2     0x18 // Response (95:64)
-#define SD_RSP3     0x1C // Response (127:96)
-#define SD_HSTS     0x20 // Host Status
-#define SD_VDD      0x30 // Power Control
-#define SD_EDM      0x34 // Emergency debug
-#define SD_HCFG     0x38 // Host config
-#define SD_HBCT     0x3C // Host byte count
-#define SD_DATA     0x40 // Data to/from SD
-#define SD_HBLC     0x50 // Host block count
-
 struct block_device
 {
     char *driver_name;
@@ -64,19 +45,19 @@ struct block_device
     size_t num_blocks;
 };
 
-struct sd_scr;
-
 struct emmc_block_dev
 {
     struct block_device bd;
     uint32_t card_supports_sdhc;
     uint32_t card_supports_18v;
     uint32_t card_ocr;
-    uint32_t card_rca;
+    uint32_t card_dsr;
+    uint16_t card_rca;
+    uint64_t sd_hv;
     uint32_t last_interrupt;
     uint32_t last_error;
 
-    struct sd_scr *scr;
+    uint64_t scr[2];
 
     int failed_voltage_switch;
 
@@ -96,10 +77,10 @@ struct emmc_block_dev
     uint32_t base_clock;
 };
 
-int sd_card_init(struct block_device **dev);
+int sd_init(struct block_device *dev);
 
-size_t sd_read(uint8_t *buf, size_t buf_size, uint32_t block_no);
-size_t sd_write(uint8_t *buf, size_t buf_size, uint32_t block_no);
+size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba);
+size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba);
 
 #if defined(__cplusplus)
 }

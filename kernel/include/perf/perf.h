@@ -50,7 +50,7 @@ void begin_profiling(void);
 
 uint64_t end_profiling(void);
 
-int perf_list(const char *buf);
+int perf_list(char *buf);
 
 void perf_print(void);
 

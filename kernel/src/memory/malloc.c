@@ -15,7 +15,7 @@ err_t ret = E_NOERR;
 heap_t *global_heap = NULL;
 
 #define BASE_START 0x000000000000FFFF
-
+/*
 static void *acquire_pages(int n)
 {
     unsigned long pages;
@@ -39,7 +39,7 @@ static void *acquire_pages(int n)
 
     return (void *)pages;
 }
-
+*/
 // Create initial heap with kernel region and user region 1
 heap_t *create(uint32_t alignment, uint32_t size)
 {
@@ -320,12 +320,12 @@ heap_t *grow_kheap(heap_t *h)
                     +  5 * CHUNK_ARR; 
     kheap.n_chunks = 5;
     kheap.base_addr = base_kheap;
-    kheap.chunks = heap_chunk_arr.addr;
+    kheap.chunks = (smart_ptr **)heap_chunk_arr.addr;
 
     // Heap info
     new_h.alignment = alignment;
     new_h.n_regions = h->n_regions;
-    new_h.regions = reg_arr.addr;
+    new_h.regions = (region_t **)reg_arr.addr;
 
     // Smart ptr for remaining free space
     heap_free_space.size = (size - kheap.used_size);
@@ -472,7 +472,7 @@ void create_region(heap_t *h, int size)
     #endif
     */
 
-    base_reg1 = reserve(size / ALIGN, MEM_U);
+    base_reg1 = (void *)(uint64_t)reserve(size / ALIGN, MEM_U);
     VALID(base_reg1, E_NOPAGE);
     memset(base_reg1, 0, size);
 
@@ -502,7 +502,7 @@ void create_region(heap_t *h, int size)
                     +  3 * CHUNK_ARR; 
     reg1.n_chunks = 3;
     reg1.base_addr = base_reg1;
-    reg1.chunks = chunk_arr.addr;
+    reg1.chunks = (smart_ptr **)chunk_arr.addr;
 
     // Smart ptr for remaining free space
     free_space.size = (size - reg1.used_size);

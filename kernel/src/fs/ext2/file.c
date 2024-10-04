@@ -243,8 +243,8 @@ FILE *f_open(const char *name, uint32_t flags)
     char *original_filename = filename;
     char *new_start = NULL;
 
-    fs_entry_t *nextnode = NULL;
-    fs_entry_t *startpoint = get_mountpoint(&filename);
+    FILE *nextnode = NULL;
+    FILE *startpoint = get_mountpoint(&filename);
     if (!startpoint) return NULL;
     if (filename)
         new_start = strstr(save + (filename - original_filename), filename);

@@ -3,10 +3,10 @@
 
 #include "../include/types.h"
 
-typedef int (* command_t) (const char *);
+typedef int (* command_t) (char *);
 
 uint32_t shell(void);
-command_t *interpret(const char *buf);
-int run(const char *buf);
+command_t interpret(char *buf);
+int run(char *buf);
 
 #endif // _SHELL_H_

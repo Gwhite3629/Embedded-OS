@@ -40,7 +40,7 @@ int printk(char *string,...)
 			}
 			else if (*string=='x') {
 				string++;
-				x=va_arg(ap, int);
+				x=va_arg(ap, unsigned long);
 				int_pointer=9;
 				do {
 					int_buffer[int_pointer]=(x&0xF)+'0';
@@ -78,7 +78,7 @@ int printk(char *string,...)
 
 	va_end(ap);
 
-	uart_write(buffer,buffer_pointer);
+	uart_write((unsigned char *)buffer,buffer_pointer);
 
 	return buffer_pointer;
 }

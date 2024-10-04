@@ -251,7 +251,7 @@ uint32_t sd_get_base_clock_hz(void)
                 printk("TAG IDENTIFIER:     %x\n", mbox[2]);
                 printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
                 printk("CLOCK ID:           %x\n", mbox[5]);
-                printk("CLOCK STATE:        %x\n", mbox[6]);
+                printk("CLOCK RATE:        %d\n", mbox[6]);
                 printk("FINAL TAG:          %x\n", mbox[7]);
                 return mbox[6];
             }
@@ -293,6 +293,83 @@ uint32_t sd_set_base_clock_hz(uint32_t clock, uint32_t val1, uint32_t val2)
                 printk("CLOCK ID:           %x\n", mbox[5]);
                 printk("CLOCK RATE:         %x\n", mbox[6]);
                 printk("FINAL TAG:          %x\n", mbox[8]);
+                return mbox[6];
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t sd_get_clock_state(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = GET_CLOCK_STATE;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000004;
+    mbox[5] = EMMC_CLOCK_ID;
+    mbox[6] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                printk("CLOCK ID:           %x\n", mbox[5]);
+                printk("CLOCK STATE:        %d\n", mbox[6]);
+                printk("FINAL TAG:          %x\n", mbox[7]);
+                return mbox[6];
+            }
+        }
+    }
+
+    return -1;
+}
+
+uint32_t sd_set_clock_state(uint32_t state)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = SET_CLOCK_STATE;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = EMMC_CLOCK_ID;
+    mbox[6] = state;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                printk("CLOCK ID:           %x\n", mbox[5]);
+                printk("CLOCK STATE:        %d\n", mbox[6]);
+                printk("FINAL TAG:          %x\n", mbox[7]);
                 return mbox[6];
             }
         }
@@ -363,7 +440,7 @@ uint32_t allocate_framebuffer(uint32_t alignment)
         if (r == chip_read(MAIL_READ)) {
             if (mbox[1] == 0x80000000) {
                 printk("\x1b[1;32mFRAMEBUFFER ALLOCATED\x1b[1;0m\n");
-                fb.buf = (unsigned char *)(mbox[5] & 0x3FFFFFFF);
+                fb.buf = (unsigned char *)(uint64_t)(mbox[5] & 0x3FFFFFFF);
                 fb.buf_size = mbox[6];
                 printk("\tADDR: %x SIZE: %x\n", fb.buf, fb.buf_size);
                 return 0;
@@ -783,4 +860,43 @@ uint32_t set_pixel_order( uint32_t state)
     }
 
     return -1;
+}
+
+void sd_disable_low_power(void)
+{
+    unsigned int r = (((unsigned int )((unsigned long)mbox)&~0xF) | (0x8));
+
+    mbox[0] = 4 * 8;
+    mbox[1] = 0x00000000;
+    mbox[2] = 0x00038041;
+    mbox[3] = 0x00000008;
+    mbox[4] = 0x00000008;
+    mbox[5] = 0x00000084;
+    mbox[6] = 0x00000000;
+    mbox[7] = 0x00000000;
+
+    do {
+        asm volatile("nop");
+    } while(chip_read(MAIL_STAT) & MAIL_FULL);
+
+    chip_write(r, MAIL_WRITE);
+
+    while (1) {
+        do {
+            asm volatile("nop");
+        } while(chip_read(MAIL_STAT) & MAIL_EMPTY);
+
+        if (r == chip_read(MAIL_READ)) {
+            if (mbox[1] == 0x80000000) {
+                printk("TAG IDENTIFIER:     %x\n", mbox[2]);
+                printk("TAG V-BUFFER SIZE:  %x\n", mbox[3]);
+                printk("GPIO ID:            %x\n", mbox[5]);
+                printk("GPIO STATE:         %d\n", mbox[6]);
+                printk("FINAL TAG:          %x\n", mbox[7]);
+                return;
+            }
+        }
+    }
+
+    return;
 }

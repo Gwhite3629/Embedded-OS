@@ -113,6 +113,7 @@ exit:
 
 char **ext2_listdir(FILE *file)
 {
+    char **ll = NULL;
     EXT2_t *fs = file->fs;
     inode_base_t *p_inode = NULL;
     new(p_inode, 1, inode_base_t);
@@ -124,7 +125,6 @@ char **ext2_listdir(FILE *file)
     int size = 0;
     int cap = 10;
 
-    char **ll = NULL;
     new(ll, cap, char *);
     char *block_buf = read_inode_block(fs, p_inode, block_offset);
 
@@ -490,6 +490,7 @@ void scan_superblock(void)
 {
     uint32_t temp_block = 0;
     superblock_t s;
+    s.signature = 0;
     while ((s.signature != 0xef53) & (temp_block < 600000)) {
         sd_read((uint8_t *)&s, 512, temp_block);
         temp_block++;

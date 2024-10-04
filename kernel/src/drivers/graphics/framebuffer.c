@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <drivers/graphics/framebuffer.h>
 #include <drivers/mailbox.h>
+#include <drivers/platform.h>
 
 typedef struct framebuffer framebuffer_t;
 
@@ -254,8 +255,6 @@ unsigned char font[FONT_NUMGLYPHS][FONT_BPG] = {
 
 uint32_t init_framebuffer(uint32_t width, uint32_t height, uint32_t depth)
 {
-    int ret = E_NOERR;
-
     if ((width == 0) | (height == 0)) {
         if (get_display_wh() == 0) {
             if ((fb.width < 640) | (fb.width > 4096) | (fb.height < 480) | (fb.height > 2160)) {
@@ -302,14 +301,13 @@ uint32_t init_framebuffer(uint32_t width, uint32_t height, uint32_t depth)
 
     fb.palette = basepal;
 
-exit:
-    return ret;
+    return E_NOERR;
 }
 
 void draw_pixel(int x, int y, unsigned char attr)
 {
     uint32_t offset = (x*4) + (y * fb.pitch);
-    mmio_write(fb.buf + offset, fb.palette[attr & 0x0f]);
+    mmio_write(((uint32_t)(uint64_t)fb.buf) + offset, fb.palette[attr & 0x0f]);
 }
 
 void draw_rect(int x1, int y1, int x2, int y2, unsigned char attr, int fill)
