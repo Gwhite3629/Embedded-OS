@@ -38,6 +38,7 @@
         "type_traits": "c",
         "optional": "c",
         "system_error": "c",
-        "genet.h": "c"
+        "genet.h": "c",
+        "framebuffer.h": "c"
     }
 }

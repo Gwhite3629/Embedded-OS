@@ -46,23 +46,26 @@ void wait_cycles(unsigned int n)
 void wait_msec(unsigned int n)
 {
     register unsigned long f, t, r;
+    //printk("WAIT: %x\n", n);
     
     // Get counter frequency
     asm volatile (
-        "mrs %0, cntfrq_el0"
-        : "=r"(f)
+        "mrs %[result], cntfrq_el0"
+        : [result] "=r"(f)
     );
     // Get current counter
     asm volatile (
-        "mrs %0, cntpct_el0"
-        : "=r"(t)
+        "mrs %[result], cntpct_el0"
+        : [result] "=r"(t)
     );
     unsigned long i = ((f/1000)*n)/1000;
+    //printk("WAIT: %x, %x, %x\n", f, t, i);
 
     do {
         asm volatile (
-            "mrs %0, cntpct_el0"
-            : "=r"(r)
+            "mrs %[result], cntpct_el0"
+            : [result] "=r"(r)
         );
     } while ((r - t) < i);
+    //printk("DONE WAIT\n");
 }

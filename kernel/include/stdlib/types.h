@@ -23,7 +23,12 @@ typedef __u16 __le16;
 
 typedef uint32_t size_t;
 
+typedef long int int64_t;
 typedef int int32_t;
+typedef signed short int16_t;
+//typedef char int8_t;
+
+typedef uint64_t uintptr_t;
 
 typedef int bool;
 
@@ -43,6 +48,14 @@ typedef struct rb_node {
 typedef struct rb_root {
     struct rb_node *rb_node;
 } rb_root;
+
+struct chr_dat {
+    int x0;
+    int x1;
+    int x;
+    int y;
+    unsigned char attr;
+};
 
 #define RB_ROOT (rb_root) {NULL, }
 

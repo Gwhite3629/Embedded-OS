@@ -57,6 +57,9 @@ struct emmc_block_dev
     uint32_t last_interrupt;
     uint32_t last_error;
 
+    uint32_t CID[4];
+    uint32_t CSD[4];
+
     uint64_t scr[2];
 
     int failed_voltage_switch;
@@ -77,13 +80,17 @@ struct emmc_block_dev
     uint32_t base_clock;
 };
 
-int sd_init(struct block_device *dev);
+int sd_status(unsigned int mask);
+int sd_int(unsigned int mask);
+uint32_t sd_cmd(unsigned int code, unsigned int arg);
+int sd_clk(unsigned int f);
+void sd_gpio(void);
+
+int sd_init(void);
 
 size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba);
 size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba);
 
-#if defined(__cplusplus)
-}
-#endif
+extern struct emmc_block_dev *emmc_dev;
 
 #endif // EMMC_H_

@@ -10,7 +10,8 @@ mtree := $(srctree)/main
 
 KBUILD_OUTPUT := build
 saved-output := $(KBUILD_OUTPUT)
-KBUILD_OUTPUT := $(shell mkdir -p $(KBUILD_OUTPUT)\
+KBUILD_OUTPUT := $(shell rm -rf $(KBUILD_OUTPUT)\
+					&& mkdir -p $(KBUILD_OUTPUT)\
 					&& cd $(KBUILD_OUTPUT)\
 					&& /bin/pwd)
 

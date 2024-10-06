@@ -1,7 +1,8 @@
 #ifndef _FRAMEBUFFER_H_
 #define _FRAMEBUFFER_H_
 
-#include "../../stdlib.h"
+#include "../../stdlib/types.h"
+#include "../../stdlib/err.h"
 
 struct framebuffer {
     uint32_t width;

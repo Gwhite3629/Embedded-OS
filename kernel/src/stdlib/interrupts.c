@@ -26,9 +26,9 @@ void handle_error(uint64_t x0)
 		: [result] "=r"(x3));
 	asm volatile("dmb sy");
 
-	printk("\x1b[1;31mERROR EXCEPTION\x1b[0m \n\t%x%x \n\t%x%x \n\t%x%x \n\t%x%x\n", x0>>32, x0, x1>>32, x1, x2>>32, x2, x3>>32, x3);
+	printk("\x1b[1;31mERROR EXCEPTION\x1b[0m \n\t%8x%8x \n\t%8x%8x \n\t%8x%8x \n\t%8x%8x\n", x0>>32, x0, x1>>32, x1, x2>>32, x2, x3>>32, x3);
 
-	asm volatile("eret");
+	return;
 }
 
 void handle_irq(void)
@@ -40,6 +40,7 @@ err_t handle_irq_event(irq_t * q)
 {
     err_t ret = E_NOERR;
 	uint32_t pending;
+	uint32_t x;
 
 	pending = chip_read(IRQ0_PENDING2);
     //acquire(&q->irq_lock);
@@ -51,11 +52,19 @@ err_t handle_irq_event(irq_t * q)
 	if ((pending & 0x1)!=0x1) {
 		printk("Unknown Interrupt %x\n", pending);
 	} else {
+		__asm volatile(
+			"mov %[result], sp"
+			: [result] "=r"(x));
+		asm volatile("dmb sy");
 		tick_counter++;
 		chip_write(0x1, TIMER_IRQ_CLEAR);
 		chip_write(0xffffffffUL, GICD_ICPENDR0);
-		draw_rect(0,0,64,16,0xb,1);
-		print_screen(4,4,0,"%d", tick_counter);
+		draw_rect(0,0,95,15,0xb,1);
+		struct chr_dat tc = {4,4,4,4,0};
+		print_screen(&tc,"%d", tick_counter);
+		draw_rect(0,16,95,31,0xb,1);
+		struct chr_dat sp = {4,19,4,19,0};
+		print_screen(&sp,"0x%8x", x);
 	}
     return ret;
 }

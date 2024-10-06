@@ -64,13 +64,13 @@ void main()
 
     get_arm_address();
     printk("\x1b[1;32mFINISHED MAILBOX\x1b[1;0m\n");
-    printk("ARM BASE ADDRESS: %x\n", arm_base_address);
+    printk("ARM BASE ADDRESS: %8x\n", arm_base_address);
     printk("ARM_SIZE:         %x\n", arm_size);
     MEM_OFFSET = arm_base_address;
 
     init_framebuffer(0, 0, 32);
     printk("\x1b[1;32mFRAMEBUFFER INITIALIZED\x1b[1;0m\n");
-    printk("\taddr: %x size: %d\n", fb.buf, fb.buf_size);
+    printk("\taddr: %8x size: %d\n", fb.buf, fb.buf_size);
 
     identity_map();
 
@@ -86,7 +86,11 @@ void main()
 
     bcm_2708_get_state();
 
-    sd_init(&dev);
+    interrupt_barrier();
+    disable_interrupts();
+    sd_init();
+    interrupt_barrier();
+    enable_interrupts();
     printk("\x1b[1;32mSD FINISHED\x1b[1;0m\n");
 
     init_events();
@@ -119,7 +123,7 @@ int putchar(char c) {
 
     buffer[0] = c;
 
-    ret = uart_write((unsigned char *)buffer, 1);
+    ret = uart_write(buffer, 1);
 
     return ret;
 }

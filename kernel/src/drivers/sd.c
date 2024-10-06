@@ -102,6 +102,10 @@
 #define CMD1  (CMD_FLAGS | (1 << 24) | (1 << 17))      // SEND_OP_COND
 #define CMD2  (CMD_FLAGS | (2 << 24) | (1 << 16))      // ALL_SEND_CID
 #define CMD3  (CMD_FLAGS | (3 << 24) | (1 << 17))      // SET_RELATIVE_ADDR
+#define CMD5  (CMD_FLAGS | (5 << 24) | (1 << 17))      // Sleep Awake
+#define CMD7  (CMD_FLAGS | (7 << 24) | (1 << 16))
+#define CMD9  (CMD_FLAGS | (9 << 24) | (1 << 16))
+#define CMD10 (CMD_FLAGS | (10 << 24) | (1 << 16))
 #define CMD12 (CMD_FLAGS | (12 << 24) | (1 << 17))    // STOP_TRANSMISSION
 #define CMD13 (CMD_FLAGS | (13 << 24) | (1 << 17))    // SEND_STATUS
 #define CMD17 (CMD_FLAGS | (17 << 24) | (1 << 17))    // READ_SINGLE_BLOCK
@@ -109,6 +113,7 @@
 #define CMD23 (CMD_FLAGS | (23 << 24) | (1 << 17))    // SET_BLOCK_COUNT
 #define CMD24 (CMD_FLAGS | (24 << 24) | (1 << 17))    // WRITE_SINGLE_BLOCK
 #define CMD25 (CMD_FLAGS | (25 << 24) | (1 << 17))    // WRITE_MULTIPLE_BLOCK
+#define CMD41 (CMD_FLAGS | (41 << 24) | (1 << 17))
 #define CMD55 (CMD_FLAGS | (55 << 24))
 
 #define CMD_NEED_APP 0x80000000
@@ -357,7 +362,7 @@
 #define INT_DATA_DONE       0x00000002
 #define INT_CMD_DONE        0x00000001
 
-#define INT_ERROR_MASK      0xF7FE8000
+#define INT_ERROR_MASK      0xF7FF8000
 
 #define C0_SPI_MODE_EN      0x00100000
 #define C0_HCTL_HS_EN       0x00000004
@@ -586,7 +591,7 @@ static inline void make_cmd(uint8_t *__cmd, uint8_t __idx, uint32_t __arg)
     __cmd[5] = crc7(__cmd, 5);
 }
 
-err_t sd_status(unsigned int mask)
+int sd_status(unsigned int mask)
 {
     int cnt = 1000000;
     while (((mmio_read(EMMC_STATUS)) & mask) && !((mmio_read(EMMC_INTERRUPT)) & INT_ERROR_MASK) && cnt--) {
@@ -595,7 +600,7 @@ err_t sd_status(unsigned int mask)
     return (cnt <= 0 || ((mmio_read(EMMC_INTERRUPT)) & INT_ERROR_MASK)) ? E_NOT_READY : E_NOERR;
 }
 
-static err_t sd_int(unsigned int mask)
+int sd_int(unsigned int mask)
 {
     unsigned int r, m = mask | INT_ERROR_MASK;
 
@@ -619,12 +624,14 @@ static err_t sd_int(unsigned int mask)
     return E_NOERR;
 }
 
-static uint32_t sd_cmd(unsigned int code, unsigned int arg) {
+uint32_t sd_cmd(unsigned int code, unsigned int arg)
+{
     uint32_t r = 0;
     emmc_dev->last_error = E_NOERR;
 
     if (code & CMD_NEED_APP) {
         r = sd_cmd(CMD55|(emmc_dev->card_rca?CMD_RSPNS_48:0), emmc_dev->card_rca);
+        printk(BLUE("RETURNED FROM CMD55\n"));
         udelay(100000);
         code &= ~CMD_NEED_APP;
     }
@@ -654,7 +661,8 @@ static uint32_t sd_cmd(unsigned int code, unsigned int arg) {
     r = emmc_dev->last_r0 = mmio_read(EMMC_RESP0);
     emmc_dev->last_r1 = mmio_read(EMMC_RESP1);
     emmc_dev->last_r2 = mmio_read(EMMC_RESP2);
-    emmc_dev->last_r3 = mmio_read(EMMC_RESP3); 
+    emmc_dev->last_r3 = mmio_read(EMMC_RESP3);
+    printk("r: %8x", r);
     if(code==CMD_GO_IDLE || code==CMD_APP_CMD) {
         printk("\t\x1b[1;33mCASE SIMPLE\x1b[1;0m\n");
         return 0;
@@ -676,13 +684,14 @@ static uint32_t sd_cmd(unsigned int code, unsigned int arg) {
     } else if(code==CMD_SEND_REL_ADDR) {
         printk("\t\x1b[1;33mCASE RCA\x1b[1;0m\n");
         emmc_dev->last_error=(((r & 0x1fff))|((r & 0x2000)<<6)|((r&  0x4000)<<8)|((r & 0x8000)<<8)) & CMD_ERRORS_MASK;
-        return r & CMD_RCA_MASK;
+        return r;
     }
-    printk("\t\x1b[1;33mCASE ERROR\x1b[1;0m\n");
-    return r; // & CMD_ERRORS_MASK
+    printk("\t\x1b[1;33mCASE DEFAULT\x1b[1;0m\n");
+    udelay(1000);
+    return r;
 }
 
-static err_t sd_clk(unsigned int f)
+int sd_clk(unsigned int f)
 {
     unsigned int d, c, x, s = 32, h = 0;
 
@@ -913,7 +922,8 @@ size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba)
     return (emmc_dev->last_error != E_NOERR) || (c != num) ? 0 : (num * 512);
 }
 
-void sd_gpio(void) {
+void sd_gpio(void)
+{
     int r;
     // GPIO_CD
     r = mmio_read(GPIO_GPFSEL4);
@@ -952,7 +962,7 @@ void sd_gpio(void) {
     mmio_write(GPIO_GPPUDCLK1, 0);
 }
 
-int sd_init(struct block_device *dev)
+int sd_init(void)
 {
     uint64_t r,cnt,ccs=0;
 /*
@@ -1023,7 +1033,7 @@ int sd_init(struct block_device *dev)
     printk("\x1b[1;32mSD: reset OK\x1b[1;0m\n");
     
 
-    sd_disable_low_power();
+    //sd_disable_low_power();
     // Enable SD Bus Power VDD1 at 3.3V
 	uint32_t control0 = mmio_read(EMMC_CONTROL0);
 	control0 |= 0x0F << 8;
@@ -1032,34 +1042,45 @@ int sd_init(struct block_device *dev)
 
     emmc_dev->sd_hv = (mmio_read(EMMC_SLOTISR_VER) & HOST_SPEC_NUM) >> HOST_SPEC_NUM_SHIFT;
 
-    mmio_write(EMMC_CONTROL1 , mmio_read(EMMC_CONTROL1) | C1_CLK_INTLEN | C1_TOUNIT_DIS);
+    mmio_write(EMMC_CONTROL1 , mmio_read(EMMC_CONTROL1) | C1_CLK_INTLEN | C1_TOUNIT_MAX);
     udelay(10000);
     // Set clock to setup frequency.
     if((r = sd_clk(400000))) {
         return r;
     }
 
-    mmio_write(EMMC_INTERRUPT, 0x00000000);
+    mmio_write(EMMC_INTERRUPT, 0xffffffff);
     mmio_write(EMMC_IRPT_MASK, INT_ERROR_MASK | EMMC_IRPT_CMD_DONE);
     mmio_write(EMMC_IRPT_EN, INT_ERROR_MASK | EMMC_IRPT_CMD_DONE);
 
     // Send standby
     sd_cmd(CMD0,0);
+    printk(BLUE("RETURNED FROM CMD0\n"));
 
     printk("\x1b[1;32mSD CARD IN IDENTIFICATION STATE\x1b[1;0m\n");
 
     // Send requirements command
     sd_cmd(CMD_SEND_IF_COND,0x000001AA);
+    printk(BLUE("RETURNED FROM CMD8\n"));
+
+    sd_cmd(CMD41 | CMD_NEED_APP, 0x40000000);
+    printk(BLUE("RETURNED FROM ACMD41\n"));
+    printk("RESP: %x\n", emmc_dev->last_r0);
+
     if(emmc_dev->last_error) return emmc_dev->last_error;
     cnt=6;
     r=0;
     while(!(r & ACMD41_CMD_COMPLETE) && cnt--) {
-        udelay(400);
-        r = sd_cmd(CMD_SEND_OP_COND,ACMD41_ARG_HC);
+        udelay(400000);
+        printk("Sending OP_COND\n");
+        r = sd_cmd(CMD41 | CMD_NEED_APP | 0x30, ACMD41_ARG_HC);
+        printk(BLUE("RETURNED FROM ACMD41\n"));
     }
     if(!(r & ACMD41_CMD_COMPLETE) || !cnt ) return E_NOT_READY;
     if(!(r & ACMD41_VOLTAGE)) return E_NOERR;
     if(r & ACMD41_CMD_CCS) ccs=SCR_SUPP_CCS;
+
+    printk("RESP: %x\n", r);
 
     if (r & ACMD41_VOLTAGE) {
         printk("Full Voltage Support\n");
@@ -1069,25 +1090,39 @@ int sd_init(struct block_device *dev)
     } else if ((r & 0x60000000) == 0) {
         printk("Byte Support\n");
     }
-    //printk("RESP: %x\n", r);
 
-    printk("\x1b[1;32mSD CARD IN READY STATE\x1b[1;0m\n");
+    //sd_cmd(CMD1, 0);
+    //emmc_dev->card_ocr = emmc_dev->last_r0;
+    //printk("OCR: %x\n", emmc_dev->card_ocr);
 
     sd_cmd(CMD2, 0);
 
-    r = sd_cmd(CMD3, (1 << 16));
-    //printk("RESP CMD3: %x\n", r);
-    //if (sd_res.R1.STATUS.STATE != SD_STATE_IDENT) {
-    //    printk("\x1b[1;31mSD: DEVICE FAILED READY SEQUENCE %x\x1b[1;0m\n", sd_res.R1.STATUS.STATE);
-    //    return E_NOT_READY;
-    //}
+    r = sd_cmd(CMD3, 0);
+    printk("RESP CMD3: %x\n", r);
+    if (((r >> 9) & 0xf) != SD_STATE_IDENT) {
+        printk("\x1b[1;31mSD: DEVICE FAILED READY SEQUENCE %x\x1b[1;0m\n", r);
+        return E_NOT_READY;
+    }
 
-    //r = sd_cmd(CMD13, (1 << 16));
-    //printk("RESP CMD13: %x\n", r);
-    //if (sd_res.R1.STATUS.STATE != SD_STATE_STDBY) {
-    //    printk("\x1b[1;31mSD: DEVICE FAILED READY SEQUENCE %x\x1b[1;0m\n", sd_res.R1.STATUS.STATE);
-    //    return E_NOT_READY;
-    //}
+    emmc_dev->card_rca = (r >> 16) & 0xffff;
+
+    r = sd_cmd(CMD9, emmc_dev->card_rca << 16);
+    emmc_dev->CSD[0] = emmc_dev->last_r0;
+    emmc_dev->CSD[1] = emmc_dev->last_r1;
+    emmc_dev->CSD[2] = emmc_dev->last_r2;
+    emmc_dev->CSD[3] = emmc_dev->last_r3;
+
+    r = sd_cmd(CMD10, emmc_dev->card_rca << 16);
+    emmc_dev->CID[0] = emmc_dev->last_r0;
+    emmc_dev->CID[1] = emmc_dev->last_r1;
+    emmc_dev->CID[2] = emmc_dev->last_r2;
+    emmc_dev->CID[3] = emmc_dev->last_r3;
+
+    r = sd_cmd(CMD13, emmc_dev->card_rca << 16);
+    if (((r >> 9) & 0xf) != SD_STATE_STDBY) {
+        printk("\x1b[1;31mSD: DEVICE FAILED READY SEQUENCE %x\x1b[1;0m\n", r);
+        return E_NOT_READY;
+    }
 
     //printk("\x1b[1;32mSD CARD IN STANDBY STATE\x1b[1;0m\n");
 
@@ -1199,9 +1234,6 @@ int sd_init(struct block_device *dev)
     emmc_dev->bd.supports_multiple_block_write = 1;
 	emmc_dev->base_clock = 25000000;
 
-    //if(dev != NULL) {
-	//    *dev = ret->bd;
-    //}
 exit:
     return E_NOERR;
 }

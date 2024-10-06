@@ -399,11 +399,13 @@ void draw_char(unsigned char ch, int x, int y, unsigned char attr)
 
 void draw_string(int x, int y, char *s, unsigned char attr)
 {
+    int x_init = x;
+    int y_init = y;
     while (*s) {
        if (*s == '\r') {
-          x = 0;
+          x = x_init;
        } else if(*s == '\n') {
-          x = 0; y += FONT_HEIGHT;
+          x = y_init; y += FONT_HEIGHT;
        } else {
 	  draw_char(*s, x, y, attr);
           x += FONT_WIDTH;

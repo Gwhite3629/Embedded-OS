@@ -63,18 +63,19 @@ void uart_init(void) {
 				UART0_CR);
 }
 
-void uart_putc(unsigned char byte) {
+void uart_putc(char byte) {
 
 	// Check Flags Register 
 	// And wait until FIFO not full 
 	while ( chip_read(UART0_FR) & UART0_FR_TXFF ) {
 	}
 
-	// Write our data byte out to the data register 
+	// Write our data byte out to the data register
 	chip_write(byte, UART0_DR);
+	if (byte == '\n') uart_putc('\r');
 }
 
-unsigned char uart_getc(void) {
+char uart_getc(void) {
 
 	// Check Flags Register 
 	// Wait until Receive FIFO is not empty 
@@ -104,13 +105,12 @@ int32_t uart_getc_noblock(void) {
 
 
 // write a series of bytes to the serial port 
-uint32_t uart_write(const unsigned char* buffer, size_t size) {
+uint32_t uart_write(const char* buffer, size_t size) {
 
 	size_t i;
 
 	for ( i = 0; i < size; i++ ) {
 		uart_putc(buffer[i]);
-		if (buffer[i]=='\n') uart_putc('\r');
 	}
 	return i;
 }

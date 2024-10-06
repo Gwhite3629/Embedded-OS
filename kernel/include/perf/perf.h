@@ -2,6 +2,7 @@
 #define _PERF_H_
 
 #include <stdlib/types.h>
+#include <stdlib/bsearch.h>
 #include <stdlib/extra.h>
 #include <stdlib/qsort.h>
 #include <memory/malloc.h>

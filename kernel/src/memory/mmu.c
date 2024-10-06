@@ -156,7 +156,7 @@ void identity_map(void)
         .EntryType = 1,
     };
     mbox = (volatile uint32_t *)((uint64_t)((vc_val - 1) << 21));
-    printk("MAILBOX ADDRESS: %x\n", mbox);
+    printk("MAILBOX ADDRESS: %8x\n", mbox);
 
     // Region VC mem -> 0xFE000000
     for (; base < (2048 - 16); base++) {
@@ -204,7 +204,7 @@ void identity_map(void)
     fb.buf = (unsigned char *)((uint64_t)((map_start << 21) + (offset)));
 
     printk("\x1b[1;32mCREATED FRAMEBUFFER EXCEPTION\x1b[1;0m\n");
-    printk("\tNEW FB ADDRESS: %x\n", fb.buf);
+    printk("\tNEW FB ADDRESS: %8x\n", fb.buf);
     printk("\tn_pages: %d\n", n_fb_pages);
 
     PT_identity1[0]     = (0x8000000000000000) | (uintptr_t)&PT_identity2[0] | 3;
