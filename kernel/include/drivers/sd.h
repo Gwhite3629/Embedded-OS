@@ -25,9 +25,64 @@
 #include "../stdlib/types.h"
 #include "../stdlib/hardware_rpi4b.h"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+typedef union __attribute__((packed)) {
+    struct __attribute__((packed)) CID_fields {
+        unsigned NA:1;      // Always 1
+        unsigned CRC:7;     // CRC7 checksum
+        unsigned MDT:8;            // 2x4 hex digits month, year manufacturing date
+        unsigned PSN:32;    // A 32 bit unsigned binary integer
+        unsigned PRV:8;           // 2x4 bit BCD revision number
+        char PNM[6];    // 6 ASCII character product name
+        unsigned OID:8;     // Card OEM Identification
+        unsigned CBX:2;    // Device Type
+        unsigned RES:6;    // Reserved
+        unsigned MID:8;     // Manufacturer Identification
+    } fields;
+    uint32_t val[4];
+} CID;
+
+typedef union __attribute__((packed)) {
+    struct __attribute__((packed)) CSD_FIELDS {
+        unsigned NA:1;
+        unsigned CRC:7;
+        unsigned ECC:2;
+        unsigned FILE_FORMAT:2;
+        unsigned TMP_WRITE_PROTECT:1;
+        unsigned PERM_WRITE_PROTECT:1;
+        unsigned COPY:1;
+        unsigned FILE_FORMAT_GRP:1;
+        unsigned CONTENT_PROT_APP:1;
+        unsigned RES1:4;
+        unsigned WRITE_BL_PARTIAL:1;
+        unsigned WRITE_BL_LEN:4;
+        unsigned R2W_FACTER:3;
+        unsigned DEFAULT_ECC:2;
+        unsigned WP_GRP_ENABLE:1;
+        unsigned WP_GRP_SIZE:5;
+        unsigned ERASE_GRP_MULT:5;
+        unsigned ERASE_GRP_SIZE:5;
+        unsigned C_SIZE_MULT:3;
+        unsigned VDD_W_CURR_MAX:3;
+        unsigned VDD_W_CURR_MIN:3;
+        unsigned VDD_R_CURR_MAX:3;
+        unsigned VDD_R_CURR_MIN:3;
+        unsigned C_SIZE:12;
+        unsigned RES2:2;
+        unsigned DSR_IMP:1;
+        unsigned READ_BLK_MISALIGN:1;
+        unsigned WRITE_BLK_MISALIGN:1;
+        unsigned READ_BL_PARTIAL:1;
+        unsigned READ_BL_LEN:4;
+        unsigned CCC:12;
+        unsigned TRAN_SPEED:8;
+        unsigned NSAC:8;
+        unsigned TAAC:8;
+        unsigned RES3:2;
+        unsigned SPEC_VERS:4;
+        unsigned CSD_STRUCTURE:2;
+    } fields;
+    uint32_t val[4];
+} CSD;
 
 struct block_device
 {
@@ -57,10 +112,13 @@ struct emmc_block_dev
     uint32_t last_interrupt;
     uint32_t last_error;
 
-    uint32_t CID[4];
-    uint32_t CSD[4];
+    //uint32_t CID[4];
+    //uint32_t CSD[4];
 
-    uint64_t scr[2];
+    CID CID;
+    CSD CSD;
+
+    uint32_t scr[2];
 
     int failed_voltage_switch;
 
@@ -90,6 +148,9 @@ int sd_init(void);
 
 size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba);
 size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba);
+
+void print_cid(void);
+void print_csd(void);
 
 extern struct emmc_block_dev *emmc_dev;
 

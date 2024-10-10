@@ -103,17 +103,20 @@
 #define CMD2  (CMD_FLAGS | (2 << 24) | (1 << 16))      // ALL_SEND_CID
 #define CMD3  (CMD_FLAGS | (3 << 24) | (1 << 17))      // SET_RELATIVE_ADDR
 #define CMD5  (CMD_FLAGS | (5 << 24) | (1 << 17))      // Sleep Awake
+#define CMD6  (CMD_FLAGS | (6 << 24) | (1 << 17))
 #define CMD7  (CMD_FLAGS | (7 << 24) | (1 << 16))
 #define CMD9  (CMD_FLAGS | (9 << 24) | (1 << 16))
 #define CMD10 (CMD_FLAGS | (10 << 24) | (1 << 16))
 #define CMD12 (CMD_FLAGS | (12 << 24) | (1 << 17))    // STOP_TRANSMISSION
 #define CMD13 (CMD_FLAGS | (13 << 24) | (1 << 17))    // SEND_STATUS
+#define CMD16 (CMD_FLAGS | (16 << 24) | (1 << 17))    // Set Block length
 #define CMD17 (CMD_FLAGS | (17 << 24) | (1 << 17))    // READ_SINGLE_BLOCK
 #define CMD18 (CMD_FLAGS | (18 << 24) | (1 << 17))    // READ_MULTIPLE_BLOCK
 #define CMD23 (CMD_FLAGS | (23 << 24) | (1 << 17))    // SET_BLOCK_COUNT
 #define CMD24 (CMD_FLAGS | (24 << 24) | (1 << 17))    // WRITE_SINGLE_BLOCK
 #define CMD25 (CMD_FLAGS | (25 << 24) | (1 << 17))    // WRITE_MULTIPLE_BLOCK
 #define CMD41 (CMD_FLAGS | (41 << 24) | (1 << 17))
+#define CMD51 (CMD_FLAGS | (51 << 24) | (1 << 17))
 #define CMD55 (CMD_FLAGS | (55 << 24))
 
 #define CMD_NEED_APP 0x80000000
@@ -392,78 +395,7 @@
 #define ACMD41_CMD_COMPLETE 0x80000000
 #define ACMD41_CMD_CCS      0x40000000
 #define ACMD41_ARG_HC       0x51ff8000
-/*
-typedef union CID {
-    struct CID_fields {
-        unsigned NA:1;      // Always 1
-        unsigned CRC:7;     // CRC7 checksum
-        struct MDT {
-            unsigned m:4;
-            unsigned y:4;
-        } MDT;            // 2x4 hex digits month, year manufacturing date
-        uint32_t PSN:32;    // A 32 bit unsigned binary integer
-        struct PRV {
-            unsigned n:4;
-            unsigned m:4;
-        } PRV;           // 2x4 bit BCD revision number
-        char PNM[6];    // 6 ASCII character product name
-        uint8_t OID:8;     // Card OEM Identification
-        unsigned CBX:2;    // Device Type
-        unsigned RES:6;    // Reserved
-        uint8_t MID:8;     // Manufacturer Identification
-    } fields;
-    uint8_t val[16];
-} CID;
-CID sd_cid;
 
-typedef struct CSD {
-    unsigned CSD_STRUCTURE:2;           // CSD Version
-    unsigned SPEC_VERS:4;               // System Spec version
-    unsigned RES1:2;                    // Reserved
-    struct TAAC {
-        unsigned RES:1;
-        unsigned MULT:4;
-        unsigned TIME:3;
-    } TAAC;
-    unsigned NSAC:8;
-    struct TRAN_SPEED {
-        unsigned RES:1;
-        unsigned MULT:4;
-        unsigned FREQ:3;
-    } TRAN_SPEED;
-    unsigned CCC:12;
-    unsigned READ_BL_LEN:4;
-    unsigned READ_BL_PARTIAL:1;
-    unsigned WRITE_BLK_MISALIGN:1;
-    unsigned READ_BLK_MISALIGN:1;
-    unsigned DSR_IMPL:1;
-    unsigned RES2:2;
-    unsigned C_SIZE:12;
-    unsigned VDD_R_CURR_MIN:3;
-    unsigned VDD_R_CURR_MAX:3;
-    unsigned VDD_W_CURR_MIN:3;
-    unsigned VDD_W_CURR_MAX:3;
-    unsigned C_SIZE_MULT:3;
-    unsigned ERASE_GRP_SIZE:5;
-    unsigned ERASE_FRP_MULT:5;
-    unsigned WP_GRP_SIZE:5;
-    unsigned WP_GRP_ENABLE:1;
-    unsigned DEFAULT_ECC:2;
-    unsigned R2W_FACTOR:3;
-    unsigned WRITE_BL_LEN:4;
-    unsigned WRITE_BL_PARTIAL:1;
-    unsigned RES3:4;
-    unsigned CONTENT_PROT_APP:1;
-    unsigned FILE_FORMAT_GRP:1;
-    unsigned COPY:1;
-    unsigned PERM_WRITE_PROTECT:1;
-    unsigned TMP_WRITE_PROTECT:1;
-    unsigned FILE_FORMAT:2;
-    unsigned ECC:2;
-    unsigned CRC:7;
-    unsigned NA:1;
-} CSD;
-*/
 struct emmc_block_dev *emmc_dev;
 
 /*
@@ -630,7 +562,7 @@ uint32_t sd_cmd(unsigned int code, unsigned int arg)
     emmc_dev->last_error = E_NOERR;
 
     if (code & CMD_NEED_APP) {
-        r = sd_cmd(CMD55|(emmc_dev->card_rca?CMD_RSPNS_48:0), emmc_dev->card_rca);
+        r = sd_cmd(CMD55|(emmc_dev->card_rca?CMD_RSPNS_48:0), emmc_dev->card_rca << 16);
         printk(BLUE("RETURNED FROM CMD55\n"));
         udelay(100000);
         code &= ~CMD_NEED_APP;
@@ -667,7 +599,7 @@ uint32_t sd_cmd(unsigned int code, unsigned int arg)
         printk("\t\x1b[1;33mCASE SIMPLE\x1b[1;0m\n");
         return 0;
     } else if (code==(CMD_APP_CMD|CMD_RSPNS_48)) {
-        printk("\t\x1b[1;33mCASE APP CMD\x1b[1;0m");
+        printk("\t\x1b[1;33mCASE APP CMD\x1b[1;0m\n");
         return r & SR_APP_CMD;
     } else if (code==CMD_SEND_OP_COND) {
         printk("\t\x1b[1;33mCASE OP_COND\x1b[1;0m\n");
@@ -1107,21 +1039,70 @@ int sd_init(void)
     emmc_dev->card_rca = (r >> 16) & 0xffff;
 
     r = sd_cmd(CMD9, emmc_dev->card_rca << 16);
-    emmc_dev->CSD[0] = emmc_dev->last_r0;
-    emmc_dev->CSD[1] = emmc_dev->last_r1;
-    emmc_dev->CSD[2] = emmc_dev->last_r2;
-    emmc_dev->CSD[3] = emmc_dev->last_r3;
+    emmc_dev->CSD.val[0] = emmc_dev->last_r0;
+    emmc_dev->CSD.val[1] = emmc_dev->last_r1;
+    emmc_dev->CSD.val[2] = emmc_dev->last_r2;
+    emmc_dev->CSD.val[3] = emmc_dev->last_r3;
+
+    //emmc_dev->CSD[0] = emmc_dev->last_r0;
+    //emmc_dev->CSD[1] = emmc_dev->last_r1;
+    //emmc_dev->CSD[2] = emmc_dev->last_r2;
+    //emmc_dev->CSD[3] = emmc_dev->last_r3;
 
     r = sd_cmd(CMD10, emmc_dev->card_rca << 16);
-    emmc_dev->CID[0] = emmc_dev->last_r0;
-    emmc_dev->CID[1] = emmc_dev->last_r1;
-    emmc_dev->CID[2] = emmc_dev->last_r2;
-    emmc_dev->CID[3] = emmc_dev->last_r3;
+    emmc_dev->CID.val[0] = emmc_dev->last_r0;
+    emmc_dev->CID.val[1] = emmc_dev->last_r1;
+    emmc_dev->CID.val[2] = emmc_dev->last_r2;
+    emmc_dev->CID.val[3] = emmc_dev->last_r3;
+
+    //emmc_dev->CID[0] = emmc_dev->last_r0;
+    //emmc_dev->CID[1] = emmc_dev->last_r1;
+    //emmc_dev->CID[2] = emmc_dev->last_r2;
+    //emmc_dev->CID[3] = emmc_dev->last_r3;
 
     r = sd_cmd(CMD13, emmc_dev->card_rca << 16);
     if (((r >> 9) & 0xf) != SD_STATE_STDBY) {
         printk("\x1b[1;31mSD: DEVICE FAILED READY SEQUENCE %x\x1b[1;0m\n", r);
         return E_NOT_READY;
+    }
+
+    print_cid();
+    print_csd();
+
+    if((r = sd_clk(25000000))) {
+        return r;
+    }
+    printk(GREEN("Set Clock to 25MHz\n"));
+
+    //sd_cmd(CMD16, 512);
+    
+    r = sd_cmd(CMD7, emmc_dev->card_rca << 16);
+    r = sd_cmd(CMD13, emmc_dev->card_rca << 16);
+    if (((r >> 9) & 0xf) != SD_STATE_TRAN) {
+        printk("\x1b[1;31mSD: DEVICE FAILED READY SEQUENCE %x\x1b[1;0m\n", r);
+        return E_NOT_READY;
+    }
+
+    mmio_write(EMMC_BLKSIZECNT, (1<<16) | 8);
+
+    sd_cmd(CMD51 | CMD_NEED_APP, 0);
+    r = 0; cnt = 100000;
+    while (r < 2 && cnt) {
+        if (mmio_read(EMMC_STATUS) & SR_READ_AVAILABLE) {
+            emmc_dev->scr[r++] = mmio_read(EMMC_DATA);
+        } else {
+            udelay(1);
+            cnt--;
+        }
+    }
+
+    if (r != 2) {
+        printk(RED("SD: FAILED TO GET SCR\n"));
+        return E_TIMEOUT;
+    }
+    if (emmc_dev->scr[0] & 0x400) {
+        sd_cmd(CMD6 | CMD_NEED_APP, (emmc_dev->card_rca << 16) | 2);
+        mmio_write(EMMC_CONTROL0, mmio_read(EMMC_CONTROL0) | 2);
     }
 
     //printk("\x1b[1;32mSD CARD IN STANDBY STATE\x1b[1;0m\n");
@@ -1236,4 +1217,46 @@ int sd_init(void)
 
 exit:
     return E_NOERR;
+}
+
+void print_cid(void)
+{
+    /*
+    printk(GREEN("------------ BEGIN CID ------------\n"));
+    printk(CYAN("Manufacturing Date:     %8d\n"), (emmc_dev->CID[0] >> 8) & 0xff);
+    printk(CYAN("Product Serial Number:  %8d\n"), ((emmc_dev->CID[1] & 0xffff0000) << 16) | ((emmc_dev->CID[0] >> 16) & 0xffff));
+    printk(CYAN("Product Revision:       %8d\n"), (emmc_dev->CID[1] >> 16) & 0xff);
+    char PNM[6] = {
+        (char)((emmc_dev->CID[1] >> 24) & 0xff),
+        (char)((emmc_dev->CID[2] >> 0) & 0xff),
+        (char)((emmc_dev->CID[2] >> 8) & 0xff),
+        (char)((emmc_dev->CID[2] >> 16) & 0xff),
+        (char)((emmc_dev->CID[2] >> 24) & 0xff),
+        (char)((emmc_dev->CID[3] >> 0) & 0xff)
+    };
+    printk(CYAN("Product Name:           %8s\n"), PNM);
+    printk(CYAN("OEM ID:                 %8d\n"), (emmc_dev->CID[3] >> 8) & 0xff);
+    printk(CYAN("Card/BGA:               %8d\n"), (emmc_dev->CID[3] >> 16) & 0x3);
+    printk(CYAN("Manufacturer ID:        %8d\n"), (emmc_dev->CID[3] >> 24) & 0xff);
+    */
+    printk(GREEN("------------ BEGIN CID ------------\n"));
+    printk(CYAN("Manufacturing Date:     %8d\n"), emmc_dev->CID.fields.MID);
+    printk(CYAN("Product Serial Number:  %8d\n"), emmc_dev->CID.fields.PSN);
+    printk(CYAN("Product Revision:       %8d\n"), emmc_dev->CID.fields.PRV);
+    printk(CYAN("Product Name:           %8s\n"), emmc_dev->CID.fields.PNM);
+    printk(CYAN("OEM ID:                 %8d\n"), emmc_dev->CID.fields.OID);
+    printk(CYAN("Card/BGA:               %8d\n"), emmc_dev->CID.fields.CBX);
+    printk(CYAN("Manufacturer ID:        %8d\n"), emmc_dev->CID.fields.MID);
+
+}
+
+void print_csd(void)
+{
+    printk(GREEN("------------ BEGIN CSD ------------\n"));
+    printk(CYAN("File Format:            %8d\n"), emmc_dev->CSD.fields.FILE_FORMAT);
+    printk(CYAN("Device Size Multiplier: %8d\n"), emmc_dev->CSD.fields.C_SIZE_MULT);
+    printk(CYAN("Device Size:            %8d\n"), emmc_dev->CSD.fields.C_SIZE);
+    printk(CYAN("Max Block Data Len:     %8d\n"), emmc_dev->CSD.fields.READ_BL_LEN);
+    printk(CYAN("Card Command Classes:   %8d\n"), emmc_dev->CSD.fields.CCC);
+    printk(CYAN("Max Bus Clock Freq:     %8d\n"), emmc_dev->CSD.fields.TRAN_SPEED);
 }

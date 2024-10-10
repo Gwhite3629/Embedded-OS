@@ -89,8 +89,6 @@ void main()
     interrupt_barrier();
     disable_interrupts();
     sd_init();
-    interrupt_barrier();
-    enable_interrupts();
     printk("\x1b[1;32mSD FINISHED\x1b[1;0m\n");
 
     init_events();
@@ -99,8 +97,10 @@ void main()
     fs_init();
     printk("\x1b[1;32mFILESYSTEM INITIALIZED\x1b[1;0m\n");
 
-    //ext2_init(dev);
-    //printk("\x1b[1;32mEXT2 INITIALIZED\x1b[1;0m\n");
+    ext2_init(&emmc_dev->bd);
+    printk("\x1b[1;32mEXT2 INITIALIZED\x1b[1;0m\n");
+    interrupt_barrier();
+    enable_interrupts();
 
     printk("Current Exception Level: %d\n", get_current_el());
 
