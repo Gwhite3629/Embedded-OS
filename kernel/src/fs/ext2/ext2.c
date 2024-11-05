@@ -1,6 +1,7 @@
 #include <fs/ext2/ext2.h>
 #include <fs/ext2/inode.h>
 #include <fs/ext2/file.h>
+#include <fs/ext2/part.h>
 
 #include <drivers/sd.h>
 
@@ -492,12 +493,12 @@ void scan_superblock(void)
     superblock_t s;
     s.signature = 0;
     while ((s.signature != 0xef53) & (temp_block < 600000)) {
-        sd_read((uint8_t *)&s, 512, temp_block);
+        sd_read((uint8_t *)&s, 1, temp_block);
         temp_block++;
     }
-    sd_read((uint8_t *)&s, 512, 532480);
+    sd_read((uint8_t *)&s, 1, 532480);
     printk("\t\tSIG: %x\n", s.signature);
-    sd_read((uint8_t *)&s, 512, 532481);
+    sd_read((uint8_t *)&s, 1, 532481);
     printk("\t\tSIG: %x\n", s.signature);
     start_block = temp_block;
 }
@@ -513,7 +514,7 @@ void ext2_init(struct block_device *dev) {
     scan_superblock();
 
     // Read supedisk_block from disk
-    fs->dev->read(fs->dev, (uint8_t *)fs->superblock, 1024, start_block);
+    fs->dev->read((uint8_t *)fs->superblock, 2, start_block);
     // Determine some helpful vars
     fs->block_size = (1024 << fs->superblock->block_shift);
     fs->blocks_per_group = fs->superblock->n_block_in_group;

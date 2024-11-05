@@ -110,13 +110,15 @@
 #define CMD12 (CMD_FLAGS | (12 << 24) | (1 << 17))    // STOP_TRANSMISSION
 #define CMD13 (CMD_FLAGS | (13 << 24) | (1 << 17))    // SEND_STATUS
 #define CMD16 (CMD_FLAGS | (16 << 24) | (1 << 17))    // Set Block length
-#define CMD17 (CMD_FLAGS | (17 << 24) | (1 << 17))    // READ_SINGLE_BLOCK
-#define CMD18 (CMD_FLAGS | (18 << 24) | (1 << 17))    // READ_MULTIPLE_BLOCK
+#define CMD17 (CMD_FLAGS | (17 << 24) | (1 << 21) \
+| (1 << 17) | (1 << 4) | (1 << 1))    // READ_SINGLE_BLOCK
+#define CMD18 (CMD_FLAGS | (18 << 24) | (1 << 21) | (1 << 17))    // READ_MULTIPLE_BLOCK
 #define CMD23 (CMD_FLAGS | (23 << 24) | (1 << 17))    // SET_BLOCK_COUNT
-#define CMD24 (CMD_FLAGS | (24 << 24) | (1 << 17))    // WRITE_SINGLE_BLOCK
-#define CMD25 (CMD_FLAGS | (25 << 24) | (1 << 17))    // WRITE_MULTIPLE_BLOCK
+#define CMD24 (CMD_FLAGS | (24 << 24) | (1 << 21) | (1 << 17))    // WRITE_SINGLE_BLOCK
+#define CMD25 (CMD_FLAGS | (25 << 24) | (1 << 21) | (1 << 17))    // WRITE_MULTIPLE_BLOCK
 #define CMD41 (CMD_FLAGS | (41 << 24) | (1 << 17))
-#define CMD51 (CMD_FLAGS | (51 << 24) | (1 << 17))
+#define CMD42 (CMD_FLAGS | (42 << 24) | (1 << 17))
+#define CMD51 (CMD_FLAGS | (51 << 24) | (1 << 21) | (1 << 17) | (1 << 4))// | (1 << 21) | (1 << 4) | (1 << 1))
 #define CMD55 (CMD_FLAGS | (55 << 24))
 
 #define CMD_NEED_APP 0x80000000
@@ -538,17 +540,17 @@ int sd_int(unsigned int mask)
 
     int cnt = 1000000;
     while (!((mmio_read(EMMC_INTERRUPT)) & m) && cnt--) {
-        udelay(1000);
+        udelay(10);
     }
     r = mmio_read(EMMC_INTERRUPT);
     if (cnt <= 0 || (r & EMMC_IRPT_CTO_ERR) || (r & EMMC_IRPT_DTO_ERR)) {
         mmio_write(EMMC_INTERRUPT, r);
         mmio_write(EMMC_INTERRUPT, mask);
-        printk("\x1b[1;31mSD: COMMAND OR DATA TIMEOUT %x\x1b[1;0m\n", r);
+        printk("\x1b[1;31mSD: COMMAND OR DATA TIMEOUT %8x %8x %8x\x1b[1;0m\n",
+        r, mmio_read(EMMC_STATUS), mmio_read(EMMC_RESP0));
         return E_TIMEOUT;
     } else if (r & INT_ERROR_MASK) {
         mmio_write(EMMC_INTERRUPT, r);
-        mmio_write(EMMC_INTERRUPT, mask);
         printk("\x1b[1;31mSD: INTERRUPT ERROR %x\x1b[1;0m\n", r);
         return E_NOT_READY;
     }
@@ -569,12 +571,28 @@ uint32_t sd_cmd(unsigned int code, unsigned int arg)
     }
 
     if (sd_status(EMMC_STATUS_CMD_INHIBIT)) {
-        printk("\x1b[1;31mSD: EMMC busy\x1b[1;0m\n");
-        emmc_dev->last_error = E_TIMEOUT;
-        return 0;
+        printk(YELLOW("SD: CMD_INHIBIT PRESENT\n"));
+        while (sd_status(EMMC_STATUS_CMD_INHIBIT)) {
+        //printk("\x1b[1;31mSD: EMMC busy\x1b[1;0m\n");
+        //emmc_dev->last_error = E_TIMEOUT;
+        //return 0;
+            udelay(100);
+        }
+        printk(GREEN("SD: CMD_INHIBIT CLEARED\n"));
+    }
+
+    if (code & (1 << 21)) {
+        if (sd_status(EMMC_STATUS_DAT_INHIBIT)) {
+            printk(YELLOW("SD: DAT_INHIBIT PRESENT\n"));
+            while (sd_status(EMMC_STATUS_DAT_INHIBIT)) {
+                udelay(100);
+            }
+            printk(GREEN("SD: DAT_INHIBIT CLEARED\n"));
+        }
     }
 
     printk("SD: Sending command %x arg %x\n", code, arg);
+    mmio_write(EMMC_BLKSIZECNT, 512 | (1 << 16));
     mmio_write(EMMC_INTERRUPT, mmio_read(EMMC_INTERRUPT));
     mmio_write(EMMC_ARG1, arg);
     mmio_write(EMMC_CMDTM, code);
@@ -736,140 +754,208 @@ err_t sd_ioctl(unsigned int cmd, unsigned int arg)
     return r & CMD_ERRORS_MASK;
 }
 */
+
+int ensure_data_mode(void)
+{
+    int r = 0;
+    uint32_t state = 0;
+    if (emmc_dev->card_rca == 0) {
+        int ret = sd_init();
+        if (ret != E_NOERR) return ret;
+    }
+    
+    r = sd_cmd(CMD13, emmc_dev->card_rca << 16);
+    
+    state = (r >> 9) & 0xf;
+
+    switch (state) {
+        case SD_STATE_STDBY:
+            r = sd_cmd(CMD7, emmc_dev->card_rca << 16);
+            break;
+        case SD_STATE_DATA:
+            r = sd_cmd(CMD12, 0);
+            break;
+        case SD_STATE_TRAN:
+            break;
+        default:
+            ret = sd_init();
+            if (ret != E_NOERR) return ret;
+            break;
+    }
+
+    if (state != SD_STATE_TRAN) {
+        r = sd_cmd(CMD13, emmc_dev->card_rca << 16);
+        state = (r >> 9) & 0xf;
+        if (state != SD_STATE_TRAN) return E_NOT_READY;
+    }
+
+    return E_NOERR;
+
+}
+
+int sd_wait_data(void)
+{
+    uint64_t td = 0;
+    while ((mmio_read(EMMC_STATUS) & EMMC_STATUS_DAT_INHIBIT) && 
+        !(mmio_read(EMMC_INTERRUPT) & INT_ERROR_MASK) && (td < 500000)) {
+        udelay(1);
+        td++;
+    }
+    if ((td >= 500000) || (mmio_read(EMMC_INTERRUPT) & INT_ERROR_MASK)) {
+        printk(RED("SD: WAIT FOR DATA ABORT: %8x %8x %8x\n"),
+            (uint32_t)mmio_read(EMMC_STATUS),
+            (uint32_t)mmio_read(EMMC_INTERRUPT),
+            (uint32_t)mmio_read(EMMC_RESP0));
+        return E_NOT_READY;
+    }
+    return E_NOERR;
+}
+
 size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba)
 {
     int r,c=0,d;
-
     if(num<1) {
         num=1;
     }
-
+    if ((r = ensure_data_mode())) {
+        printk(RED("SD: FAILED TO ACQUIRE CORRECT MODE\n"));
+        return r;
+    }
     printk("sd_readblock lba: %x, num: %d\n", lba, num);
 
-    if(sd_status(SR_DAT_INHIBIT)) {
-        emmc_dev->last_error = E_TIMEOUT;
-        return 0;
-    }
+    if (sd_wait_data()) return E_TIMEOUT;
+
+    mmio_write(EMMC_BLKSIZECNT, (num << 16) | 512);
 
     unsigned int *buf = (unsigned int *)buffer;
-
-    if(emmc_dev->scr[0] & SCR_SUPP_CCS) {
-        if(num > 1 && (emmc_dev->scr[0] & SCR_SUPP_SET_BLKCNT)) {
-            sd_cmd(CMD23,num);
-            if(emmc_dev->last_error) {
-                return 0;
-            }
-        }
-        mmio_write(EMMC_BLKSIZECNT, (num << 16) | 512);
-        sd_cmd((num == 1) ? CMD17 : CMD18, lba);
-        if(emmc_dev->last_error){
-            return 0;
-        }
-    } else {
-        mmio_write(EMMC_BLKSIZECNT, (1 << 16) | 512);
-    }
-    while(c < num) {
-        if(!(emmc_dev->scr[0] & SCR_SUPP_CCS)) {
-            sd_cmd(CMD17, (lba + c) * 512);
-            if(emmc_dev->last_error) {
-                return 0;
-            }
-        }
-        if((r = sd_int(INT_READ_RDY))) {
-            printk("\x1b[1;31mSD: Timeout waiting for ready to read\x1b[1;0m\n");
+    while (c < num) {
+        r = sd_cmd(CMD17, lba+c);
+        printk(YELLOW("DATA CARD STATUS: %x\n"), r);
+        if ((r = sd_int(EMMC_IRPT_READ_RDY))) {
+            printk(RED("SD: FAILED TO READ DATA\n"));
             emmc_dev->last_error = r;
-            return 0;
+            return E_DISKERR;
         }
-        for(d = 0; d < 128; d ++) {
+        for (d = 0; d < 128; d++) {
             buf[d] = mmio_read(EMMC_DATA);
         }
-        c++;
-        buf += 128;
+        c++; buf += 128;
     }
-    if(num > 1 && !(emmc_dev->scr[0] & SCR_SUPP_SET_BLKCNT) && (emmc_dev->scr[0] & SCR_SUPP_CCS)) {
-        sd_cmd(CMD12, 0);
-    }
-    return (emmc_dev->last_error != E_NOERR) || ((c != num)? 0 : (num * 512));
+    //sd_cmd(CMD12, 0);
+    return num;
 }
 
 size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba)
 {
-    int r,c=0,d;
+    return E_NOERR;
+}
 
-    if(num<1) {
-        num=1;
-    }
+static void unpack_csd(void) {
+    uint8_t buf[16] = {0};
 
-    printk("sd_writeblock lba: %x, num: %d\n", lba, num);
+    __attribute__((aligned(4))) uint32_t *p;
+    p = (uint32_t *)&buf[12];
+    *p = emmc_dev->last_r0;
+    p = (uint32_t *)&buf[8];
+    *p = emmc_dev->last_r1;
+    p = (uint32_t *)&buf[4];
+    *p = emmc_dev->last_r2;
+    p = (uint32_t *)&buf[0];
+    *p = emmc_dev->last_r3;
 
-    if(sd_status(SR_DAT_INHIBIT | SR_WRITE_AVAILABLE)) {
-        emmc_dev->last_error = E_TIMEOUT;
-        return 0;
-    }
+    emmc_dev->CSD.csd_structure = (buf[2] & 0xC0) >> 6;
+    emmc_dev->CSD.spec_vers = buf[2] & 0x3F;
+    emmc_dev->CSD.taac = buf[1];
+    emmc_dev->CSD.nsac = buf[0];
+    emmc_dev->CSD.tran_speed = buf[7];
+    emmc_dev->CSD.ccc = (((uint16_t)buf[6]) << 4) | ((buf[5] & 0xF0) >> 4); 
+    emmc_dev->CSD.read_bl_len = buf[5] & 0x0F;
+    emmc_dev->CSD.read_bl_partial = (buf[4] & 0x80) ? 1 : 0;
+    emmc_dev->CSD.write_blk_misalign = (buf[4] & 0x40) ? 1 : 0;
+    emmc_dev->CSD.read_blk_misalign = (buf[4] & 0x20) ? 1 : 0;
+    emmc_dev->CSD.dsr_imp = (buf[4] & 0x10) ? 1 : 0;
 
-    unsigned int *buf = (unsigned int *)buffer;
-
-    if(emmc_dev->scr[0] & SCR_SUPP_CCS) {
-        if(num > 1 && (emmc_dev->scr[0] & SCR_SUPP_SET_BLKCNT)) {
-            sd_cmd(CMD23, num);
-            if(emmc_dev->last_error) {
-                return 0;
-            }
-        }
-        mmio_write(EMMC_BLKSIZECNT, (num << 16) | 512);
-        sd_cmd((num == 1) ? CMD24 : CMD25, lba);
-        if(emmc_dev->last_error) {
-            return 0;
-        }
+    if (emmc_dev->CSD.csd_structure == 0x1) {
+        emmc_dev->CSD.ver2_c_size = ((uint32_t)buf[11] & 0x3F) << 16;
+        emmc_dev->CSD.ver2_c_size += (uint32_t)buf[10] << 8;
+        emmc_dev->CSD.ver2_c_size += (uint32_t)buf[9];
+        emmc_dev->capacity = emmc_dev->CSD.ver2_c_size;
+        emmc_dev->capacity *= (512 * 1024);
     } else {
-        mmio_write(EMMC_BLKSIZECNT, (1 << 16) | 512);
-    }
-    while(c < num) {
-        if(!(emmc_dev->scr[0] & SCR_SUPP_CCS)) {
-            sd_cmd(CMD24, (lba + c) * 512);
-            if(emmc_dev->last_error) {
-                return 0;
-            }
-        }
-        if((r = sd_int(INT_WRITE_RDY))) {
-            printk("\x1b[1;31mSD: Timeout waiting for ready to write\x1b[1;0m\n");
-            emmc_dev->last_error = r;
-            return 0;
-        }
-        for(d = 0; d < 128; d ++) {
-            mmio_write(EMMC_DATA, buf[d]);
-        }
-        c++;
-        buf += 128;
-    }
-    if((r = sd_int(INT_DATA_DONE))) {
-        printk("\x1b[1;31mSD: Timeout waiting for data done\x1b[1;0m\n");
-        emmc_dev->last_error = r;
-        return 0;
-    }
-    if((num > 1) && !(emmc_dev->scr[0] & SCR_SUPP_SET_BLKCNT) && (emmc_dev->scr[0] & SCR_SUPP_CCS)) {
-        sd_cmd(CMD12, 0);
+        emmc_dev->CSD.c_size =   (uint32_t)(buf[4] & 0x03) << 8;
+        emmc_dev->CSD.c_size +=  (uint32_t)buf[11];
+        emmc_dev->CSD.c_size <<= 2;
+        emmc_dev->CSD.c_size +=  (buf[10] & 0xC0) >> 6;
+        emmc_dev->CSD.vdd_r_curr_min = (buf[10] & 0x38) >> 3;
+        emmc_dev->CSD.vdd_r_curr_max = buf[10] & 0x07;
+        emmc_dev->CSD.vdd_w_curr_min = (buf[9] & 0xE0) >> 5;
+        emmc_dev->CSD.vdd_w_curr_max = (buf[9] & 0x1C) >> 2;
+        emmc_dev->CSD.c_size_mult = \
+        ((buf[9] & 0x03) << 1) | ((buf[8] & 0x80) >> 7);
+        emmc_dev->capacity = \
+        (emmc_dev->CSD.c_size + 1) * (1 << (emmc_dev->CSD.c_size_mult + 2)) * \
+        (1 << emmc_dev->CSD.read_bl_len);
     }
 
-    return (emmc_dev->last_error != E_NOERR) || (c != num) ? 0 : (num * 512);
+    emmc_dev->CSD.erase_blk_en = (buf[8] & 0x40) >> 6;
+    emmc_dev->CSD.sector_size = ((buf[15] & 0x80) >> 1) | (buf[8] & 0x3F);
+    emmc_dev->CSD.wp_grp_size = buf[15] & 0x7F;
+    emmc_dev->CSD.wp_grp_enable = (buf[14] & 0x80) ? 1 : 0;
+    emmc_dev->CSD.default_ecc = (buf[14] & 0x60) >> 5;
+    emmc_dev->CSD.r2w_factor = (buf[14] & 0x1C) >> 2;
+    emmc_dev->CSD.write_bl_len = \
+    ((buf[14] & 0x03) << 2) | ((buf[13] & 0xC0) >> 6);
+    emmc_dev->CSD.write_bl_partial = (buf[13] & 0x20) ? 1 : 0;
+ 
+    emmc_dev->CSD.file_format_grp = (buf[12] & 0x80) ? 1 : 0;
+    emmc_dev->CSD.copy = (buf[12] & 0x40) ? 1 : 0;
+    emmc_dev->CSD.perm_write_protect = (buf[12] & 0x20) ? 1 : 0;
+    emmc_dev->CSD.tmp_write_protect = (buf[12] & 0x10) ? 1 : 0;
+    emmc_dev->CSD.file_format = (buf[12] & 0x0C) >> 2;
+    emmc_dev->CSD.ecc = buf[12] & 0x03;
+    
+    return;
+}
+
+int sd_get_scr(void)
+{
+    int r;
+
+    if (sd_wait_data()) return E_TIMEOUT;
+
+    mmio_write(EMMC_BLKSIZECNT, 8 | (1 << 16));
+    //sd_cmd(CMD16 | CMD_NEED_APP, 8);
+    sd_cmd(CMD51, 0);
+    if ((r = sd_int(EMMC_IRPT_READ_RDY))) {
+        printk(RED("SD: FAILED TO GET SCR/ INTERRUPT READ READY\n"));
+        return E_TIMEOUT;
+    }
+    int nRd = 0, count = 100000;
+    while (nRd < 2) {
+        if (mmio_read(EMMC_STATUS) & EMMC_STATUS_READ_TRANSFER) {
+            if (nRd == 0) {
+                emmc_dev->SCR.raw32_lo = mmio_read(EMMC_DATA);
+            } else {
+                emmc_dev->SCR.raw32_hi = mmio_read(EMMC_DATA);
+            }
+            nRd++;
+        } else {
+            udelay(1);
+            if (--count == 0) break;
+        }
+    }
+
+    if (nRd != 0) {
+        printk(RED("SD: FAILED TO READ SCR, NOT ALL DATA SENT\n"));
+        return E_NOT_READY;
+    }
+
+    return E_NOERR;
 }
 
 void sd_gpio(void)
 {
     int r;
-    // GPIO_CD
-    r = mmio_read(GPIO_GPFSEL4);
-    r &= ~(7<<(7*3));
-    mmio_write(GPIO_GPFSEL4, r);
-    mmio_write(GPIO_GPPUD, 2);
-    wait_cycles(150);
-    mmio_write(GPIO_GPPUDCLK1, (1 << 15));
-    wait_cycles(150);
-    mmio_write(GPIO_GPPUD, 0);
-    mmio_write(GPIO_GPPUDCLK1, 0);
-    r = mmio_read(GPIO_GPHEN1);
-    r |= 1<<15;
-    mmio_write(GPIO_GPHEN1, r);
 
     // GPIO_CLK, GPIO_CMD
     r = mmio_read(GPIO_GPFSEL4);
@@ -897,21 +983,7 @@ void sd_gpio(void)
 int sd_init(void)
 {
     uint64_t r,cnt,ccs=0;
-/*
-    // GPIO_CD
-    r = mmio_read(GPIO_GPFSEL4);
-    r &= ~(7<<(7*3));
-    mmio_write(GPIO_GPFSEL4, r);
-    mmio_write(GPIO_GPPUD, 2);
-    udelay(150);
-    mmio_write(GPIO_GPPUDCLK1, (1 << 15));
-    udelay(150);
-    mmio_write(GPIO_GPPUD, 0);
-    mmio_write(GPIO_GPPUDCLK1, 0);
-    r = mmio_read(GPIO_GPHEN1);
-    r |= 1<<15;
-    mmio_write(GPIO_GPHEN1, r);
-*/
+/*    
     // GPIO_CLK, GPIO_CMD
     r = mmio_read(GPIO_GPFSEL3);
     r |= (7<<(4*3)) | (7<<(5*3));
@@ -927,19 +999,19 @@ int sd_init(void)
     r = mmio_read(GPIO_GPFSEL3);
     r |= (7<<(6*3)) | (7<<(7*3)) | (7<<(8*3)) | (7<<(9*3));
     mmio_write(GPIO_GPFSEL3, r);
-    mmio_write(GPIO_GPPUD, 2);
+    mmio_write(GPIO_GPPUD, 1);
     wait_cycles(150);
     mmio_write(GPIO_GPPUDCLK1, (1<<4) | (1<<5) | (1<<6) | (1<<7));
     wait_cycles(150);
     mmio_write(GPIO_GPPUD, 0);
     mmio_write(GPIO_GPPUDCLK1, 0);
-
+*/  
     new(emmc_dev, 1, struct emmc_block_dev);
 
-    //sd_gpio();
+    sd_gpio();
 
     //make_crc_table();
-
+    
     uint32_t d = mmio_read(0xfe2000d0);
     printk("Default mode:       %d\n", d);
     d &= 0xfffffffc;
@@ -947,7 +1019,7 @@ int sd_init(void)
     mmio_write(0xfe2000d0, d);
     d = mmio_read(0xfe2000d0);
     printk("Changed to mode:    %d\n", d);
-
+    
     // Reset the card.
     mmio_write(EMMC_CONTROL0, 0);
     mmio_write(EMMC_CONTROL1, 0);
@@ -975,15 +1047,16 @@ int sd_init(void)
     emmc_dev->sd_hv = (mmio_read(EMMC_SLOTISR_VER) & HOST_SPEC_NUM) >> HOST_SPEC_NUM_SHIFT;
 
     mmio_write(EMMC_CONTROL1 , mmio_read(EMMC_CONTROL1) | C1_CLK_INTLEN | C1_TOUNIT_MAX);
-    udelay(10000);
+    udelay(10);
     // Set clock to setup frequency.
     if((r = sd_clk(400000))) {
         return r;
     }
 
-    mmio_write(EMMC_INTERRUPT, 0xffffffff);
-    mmio_write(EMMC_IRPT_MASK, INT_ERROR_MASK | EMMC_IRPT_CMD_DONE);
-    mmio_write(EMMC_IRPT_EN, INT_ERROR_MASK | EMMC_IRPT_CMD_DONE);
+    //mmio_write(EMMC_INTERRUPT, 0xffffffff);
+    mmio_write(EMMC_IRPT_MASK, 0xffffffff);
+    
+    mmio_write(EMMC_IRPT_EN, 0xffffffff);
 
     // Send standby
     sd_cmd(CMD0,0);
@@ -1023,13 +1096,14 @@ int sd_init(void)
         printk("Byte Support\n");
     }
 
-    //sd_cmd(CMD1, 0);
     //emmc_dev->card_ocr = emmc_dev->last_r0;
     //printk("OCR: %x\n", emmc_dev->card_ocr);
 
     sd_cmd(CMD2, 0);
 
-    r = sd_cmd(CMD3, 0);
+    emmc_dev->card_rca = 1;
+
+    r = sd_cmd(CMD3, 1 << 16);
     printk("RESP CMD3: %x\n", r);
     if (((r >> 9) & 0xf) != SD_STATE_IDENT) {
         printk("\x1b[1;31mSD: DEVICE FAILED READY SEQUENCE %x\x1b[1;0m\n", r);
@@ -1039,26 +1113,13 @@ int sd_init(void)
     emmc_dev->card_rca = (r >> 16) & 0xffff;
 
     r = sd_cmd(CMD9, emmc_dev->card_rca << 16);
-    emmc_dev->CSD.val[0] = emmc_dev->last_r0;
-    emmc_dev->CSD.val[1] = emmc_dev->last_r1;
-    emmc_dev->CSD.val[2] = emmc_dev->last_r2;
-    emmc_dev->CSD.val[3] = emmc_dev->last_r3;
-
-    //emmc_dev->CSD[0] = emmc_dev->last_r0;
-    //emmc_dev->CSD[1] = emmc_dev->last_r1;
-    //emmc_dev->CSD[2] = emmc_dev->last_r2;
-    //emmc_dev->CSD[3] = emmc_dev->last_r3;
+    unpack_csd();
 
     r = sd_cmd(CMD10, emmc_dev->card_rca << 16);
-    emmc_dev->CID.val[0] = emmc_dev->last_r0;
-    emmc_dev->CID.val[1] = emmc_dev->last_r1;
-    emmc_dev->CID.val[2] = emmc_dev->last_r2;
-    emmc_dev->CID.val[3] = emmc_dev->last_r3;
-
-    //emmc_dev->CID[0] = emmc_dev->last_r0;
-    //emmc_dev->CID[1] = emmc_dev->last_r1;
-    //emmc_dev->CID[2] = emmc_dev->last_r2;
-    //emmc_dev->CID[3] = emmc_dev->last_r3;
+    emmc_dev->CID.raw32_3 = emmc_dev->last_r0;
+    emmc_dev->CID.raw32_2 = emmc_dev->last_r1;
+    emmc_dev->CID.raw32_1 = emmc_dev->last_r2;
+    emmc_dev->CID.raw32_0 = emmc_dev->last_r3;
 
     r = sd_cmd(CMD13, emmc_dev->card_rca << 16);
     if (((r >> 9) & 0xf) != SD_STATE_STDBY) {
@@ -1073,8 +1134,6 @@ int sd_init(void)
         return r;
     }
     printk(GREEN("Set Clock to 25MHz\n"));
-
-    //sd_cmd(CMD16, 512);
     
     r = sd_cmd(CMD7, emmc_dev->card_rca << 16);
     r = sd_cmd(CMD13, emmc_dev->card_rca << 16);
@@ -1083,15 +1142,37 @@ int sd_init(void)
         return E_NOT_READY;
     }
 
-    mmio_write(EMMC_BLKSIZECNT, (1<<16) | 8);
+    uint32_t tmpcntrl = mmio_read(EMMC_CONTROL0);
+    mmio_write(EMMC_CONTROL0, tmpcntrl & !((1 << 1) | (1 << 5)));
+    printk(GREEN("SD: SET BUS WIDTH TO 1 | %8x\n"), r);
 
+/*
+    r = sd_get_scr();
+    if (r != E_NOERR) {
+        printk(RED("SD: FAILED TO RETRIEVE SCR\n"));
+        return E_NOT_READY;
+    }
+*/
+
+/*
+    if((r = sd_clk(25000000))) {
+        return r;
+    }
+    printk(GREEN("Set Clock to 25MHz\n"));
+*/
+
+
+    //mmio_write(EMMC_CONTROL0, mmio_read(EMMC_CONTROL0) | (1 << 1));
+
+//    r = sd_cmd(CMD12, emmc_dev->card_rca << 16);
+/*
     sd_cmd(CMD51 | CMD_NEED_APP, 0);
     r = 0; cnt = 100000;
     while (r < 2 && cnt) {
         if (mmio_read(EMMC_STATUS) & SR_READ_AVAILABLE) {
             emmc_dev->scr[r++] = mmio_read(EMMC_DATA);
         } else {
-            udelay(1);
+            udelay(10);
             cnt--;
         }
     }
@@ -1104,6 +1185,7 @@ int sd_init(void)
         sd_cmd(CMD6 | CMD_NEED_APP, (emmc_dev->card_rca << 16) | 2);
         mmio_write(EMMC_CONTROL0, mmio_read(EMMC_CONTROL0) | 2);
     }
+*/
 
     //printk("\x1b[1;32mSD CARD IN STANDBY STATE\x1b[1;0m\n");
 
@@ -1214,6 +1296,9 @@ int sd_init(void)
     emmc_dev->bd.supports_multiple_block_read = 1;
     emmc_dev->bd.supports_multiple_block_write = 1;
 	emmc_dev->base_clock = 25000000;
+    
+    emmc_dev->bd.read = &sd_read;
+    emmc_dev->bd.write = &sd_write;
 
 exit:
     return E_NOERR;
@@ -1221,42 +1306,29 @@ exit:
 
 void print_cid(void)
 {
-    /*
     printk(GREEN("------------ BEGIN CID ------------\n"));
-    printk(CYAN("Manufacturing Date:     %8d\n"), (emmc_dev->CID[0] >> 8) & 0xff);
-    printk(CYAN("Product Serial Number:  %8d\n"), ((emmc_dev->CID[1] & 0xffff0000) << 16) | ((emmc_dev->CID[0] >> 16) & 0xffff));
-    printk(CYAN("Product Revision:       %8d\n"), (emmc_dev->CID[1] >> 16) & 0xff);
-    char PNM[6] = {
-        (char)((emmc_dev->CID[1] >> 24) & 0xff),
-        (char)((emmc_dev->CID[2] >> 0) & 0xff),
-        (char)((emmc_dev->CID[2] >> 8) & 0xff),
-        (char)((emmc_dev->CID[2] >> 16) & 0xff),
-        (char)((emmc_dev->CID[2] >> 24) & 0xff),
-        (char)((emmc_dev->CID[3] >> 0) & 0xff)
-    };
-    printk(CYAN("Product Name:           %8s\n"), PNM);
-    printk(CYAN("OEM ID:                 %8d\n"), (emmc_dev->CID[3] >> 8) & 0xff);
-    printk(CYAN("Card/BGA:               %8d\n"), (emmc_dev->CID[3] >> 16) & 0x3);
-    printk(CYAN("Manufacturer ID:        %8d\n"), (emmc_dev->CID[3] >> 24) & 0xff);
-    */
-    printk(GREEN("------------ BEGIN CID ------------\n"));
-    printk(CYAN("Manufacturing Date:     %8d\n"), emmc_dev->CID.fields.MID);
-    printk(CYAN("Product Serial Number:  %8d\n"), emmc_dev->CID.fields.PSN);
-    printk(CYAN("Product Revision:       %8d\n"), emmc_dev->CID.fields.PRV);
-    printk(CYAN("Product Name:           %8s\n"), emmc_dev->CID.fields.PNM);
-    printk(CYAN("OEM ID:                 %8d\n"), emmc_dev->CID.fields.OID);
-    printk(CYAN("Card/BGA:               %8d\n"), emmc_dev->CID.fields.CBX);
-    printk(CYAN("Manufacturer ID:        %8d\n"), emmc_dev->CID.fields.MID);
-
+    printk(CYAN("Manufacturing Date:      %d/%d\n"),
+    emmc_dev->CID.manMonth, 2000+emmc_dev->CID.manYear);
+    printk(CYAN("Card Capacity:          %8dMb\n"), emmc_dev->capacity >> 20);
+    printk(CYAN("Product Serial Number:  %8x\n"), 
+    ((emmc_dev->CID.serialNumHi << 16) | emmc_dev->CID.serialNumLo));
+    printk(CYAN("Product Revision:           r%d.%d\n"), 
+    emmc_dev->CID.prodRevHi, emmc_dev->CID.prodRevLo);
+    printk(CYAN("Product Name:              %c%c%c%c%c\n"),
+    emmc_dev->CID.prodName1,
+    emmc_dev->CID.prodName2,
+    emmc_dev->CID.prodName3,
+    emmc_dev->CID.prodName4,
+    emmc_dev->CID.prodName5);
+    printk(CYAN("OEM ID:                       %c%c\n"), 
+    emmc_dev->CID.OID_Hi, emmc_dev->CID.OID_Lo);
+    printk(CYAN("Manufacturer ID:        %8x\n"), emmc_dev->CID.MID);
 }
 
 void print_csd(void)
 {
     printk(GREEN("------------ BEGIN CSD ------------\n"));
-    printk(CYAN("File Format:            %8d\n"), emmc_dev->CSD.fields.FILE_FORMAT);
-    printk(CYAN("Device Size Multiplier: %8d\n"), emmc_dev->CSD.fields.C_SIZE_MULT);
-    printk(CYAN("Device Size:            %8d\n"), emmc_dev->CSD.fields.C_SIZE);
-    printk(CYAN("Max Block Data Len:     %8d\n"), emmc_dev->CSD.fields.READ_BL_LEN);
-    printk(CYAN("Card Command Classes:   %8d\n"), emmc_dev->CSD.fields.CCC);
-    printk(CYAN("Max Bus Clock Freq:     %8d\n"), emmc_dev->CSD.fields.TRAN_SPEED);
+    printk(CYAN("File Format:            %8d\n"), emmc_dev->CSD.file_format);
+    printk(CYAN("Card Command Classes:   %8d\n"), emmc_dev->CSD.ccc);
+    printk(CYAN("Max Bus Clock Freq:     %8x\n"), emmc_dev->CSD.tran_speed);
 }

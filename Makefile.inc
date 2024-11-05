@@ -1,4 +1,5 @@
-CROSS = ~/cross/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf/bin/aarch64-none-elf-
+#CROSS = ~/cross/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf/bin/aarch64-none-elf-
+CROSS = aarch64-linux-gnu-
 CC = gcc
 AS = as
 ASFLAGS = -mcpu=cortex-a72+nosimd

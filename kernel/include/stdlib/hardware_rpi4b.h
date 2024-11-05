@@ -342,6 +342,100 @@
 /*******/
 /* DMA */
 /*******/
-#define DMA_BASE	CASTA(IO_BASE + 0x7000)
+#define DMA0_BASE	CASTA(IO_BASE + 0x7000)
+
+#define DMA_CH0     CASTA(DMA0_BASE + 0x000)
+#define DMA_CH1     CASTA(DMA0_BASE + 0x100)
+#define DMA_CH2     CASTA(DMA0_BASE + 0x200)
+#define DMA_CH3     CASTA(DMA0_BASE + 0x300)
+#define DMA_CH4     CASTA(DMA0_BASE + 0x400)
+#define DMA_CH5     CASTA(DMA0_BASE + 0x500)
+#define DMA_CH6     CASTA(DMA0_BASE + 0x600)
+#define DMA_CH7     CASTA(DMA0_BASE + 0x700)
+#define DMA_CH8     CASTA(DMA0_BASE + 0x800)
+#define DMA_CH9     CASTA(DMA0_BASE + 0x900)
+#define DMA_CH10    CASTA(DMA0_BASE + 0xa00)
+#define DMA_CH11    CASTA(DMA0_BASE + 0xb00)
+#define DMA_CH12    CASTA(DMA0_BASE + 0xc00)
+#define DMA_CH13    CASTA(DMA0_BASE + 0xd00)
+#define DMA_CH14    CASTA(DMA0_BASE + 0xe00)
+
+#define DMA_CS_OFF              0x000
+#define DMA_CS_RESET            CASTV(1 << 31)
+#define DMA_CS_ABORT            CASTV(1 << 30)
+#define DMA_CS_DISDEBUG         CASTV(1 << 29)
+#define DMA_CS_WAIT_WRITE       CASTV(1 << 28)
+#define DMA_CS_PANIC_PRIORITY   CASTV(1 << 20)
+#define DMA_CS_PRIORITY         CASTV(1 << 16)
+#define DMA_CS_ERROR            CASTV(1 << 8)
+#define DMA_CS_WAITING_WRITE    CASTV(1 << 6)
+#define DMA_CS_DREQ_PAUSE       CASTV(1 << 5)
+#define DMA_CS_PAUSED           CASTV(1 << 4)
+#define DMA_CS_DREQ             CASTV(1 << 3)
+#define DMA_CS_INT              CASTV(1 << 2)
+#define DMA_CS_END              CASTV(1 << 1)
+#define DMA_CS_ACTIVE           CASTV(1 << 0)
+
+#define DMA_CONBLK_ADDR_OFF     0x004
+
+#define DMA_TI_OFF              0x008
+#define DMA_TI_NO_WIDE_BURSTS   CASTV(1 << 26)
+#define DMA_TI_WAITS            CASTV(1 << 21)
+#define DMA_TI_PERMAP           CASTV(1 << 16)
+#define DMA_TI_BURST_LENGTH     CASTV(1 << 12)
+#define DMA_TI_SRC_IGNORE       CASTV(1 << 11)
+#define DMA_TI_SRC_DREQ         CASTV(1 << 10)
+#define DMA_TI_SRC_WIDTH        CASTV(1 << 9)
+#define DMA_TI_SRC_INC          CASTV(1 << 8)
+#define DMA_TI_DEST_IGNORE      CASTV(1 << 7)
+#define DMA_TI_DEST_DREQ        CASTV(1 << 6)
+#define DMA_TI_DEST_WIDTH       CASTV(1 << 5)
+#define DMA_TI_DEST_INC         CASTV(1 << 4)
+#define DMA_TI_WAIT_RESP        CASTV(1 << 3)
+#define DMA_TI_TDMODE           CASTV(1 << 1)
+#define DMA_TI_INTEN            CASTV(1 << 0)
+
+#define DMA_SOURCE_ADDR_OFF     0x00c
+#define DMA_DEST_ADDR_OFF       0x010
+#define DMA_TXFR_LEN_OFF        0x014
+#define DMA_STRIDE_OFF          0x018
+#define DMA_NEXT_CB_OFF         0x01c
+#define DMA_DEBUG_OFF           0x020
+
+#define DMA_INT_STATUS          (DMA0_BASE + 0xfe0)
+#define DMA_ENABLE              (DMA0_BASE + 0xff0)
+
+#define DMA_DREQ_GENERIC        (0)
+#define DMA_DREQ_DSIO_PWM1      (1)
+#define DMA_DREQ_PCM_TX         (2)
+#define DMA_DREQ_PCM_RX         (3)
+#define DMA_DREQ_SMI            (4)
+#define DMA_DREQ_PWM0           (5)
+#define DMA_DREQ_SPI0_RX        (6)
+#define DMA_DREQ_SPI0_TX        (7)
+#define DMA_DREQ_BSC_SPI_TX     (8)
+#define DMA_DREQ_BSC_SPI_RX     (9)
+#define DMA_DREQ_HDMI0          (10)
+#define DMA_DREQ_EMMC           (11)
+#define DMA_DREQ_UART0_TX       (12)
+#define DMA_DREQ_SD_HOST        (13)
+#define DMA_DREQ_UART0_RX       (14)
+#define DMA_DREQ_DSI1           (15)
+#define DMA_DREQ_SPI1_TX        (16)
+#define DMA_DREQ_HDMI1          (17)
+#define DMA_DREQ_SPI1_RX        (18)
+#define DMA_DREQ_UART3_TX_SPI4_TX   (19)
+#define DMA_DREQ_UART3_RX_SPI4_RX   (20)
+#define DMA_DREQ_UART5_TX_SPI5_TX   (21)
+#define DMA_DREQ_UART5_RX_SPI5_RX   (22)
+#define DMA_DREQ_SPI6_TX            (23)
+#define DMA_DREQ_SCALER_FIFO0       (24)
+#define DMA_DREQ_SCALER_FIFO1       (25)
+#define DMA_DREQ_SCALER_FIFO2       (26)
+#define DMA_DREQ_SPI6_RX            (27)
+#define DMA_DREQ_UART2_TX           (28)
+#define DMA_DREQ_UART2_RX           (29)
+#define DMA_DREQ_UART4_TX           (30)
+#define DMA_DREQ_UART4_RX           (31)
 
 #endif

@@ -12,6 +12,7 @@
 #include <fs/ext2/file.h>
 #include <drivers/graphics/framebuffer.h>
 #include "bootscreen.h"
+#include <fs/ext2/part.h>
 
 typedef int (*command_t) (char *);
 
@@ -97,8 +98,9 @@ void main()
     fs_init();
     printk("\x1b[1;32mFILESYSTEM INITIALIZED\x1b[1;0m\n");
 
-    ext2_init(&emmc_dev->bd);
-    printk("\x1b[1;32mEXT2 INITIALIZED\x1b[1;0m\n");
+//    ext2_init(&emmc_dev->bd);
+//    printk("\x1b[1;32mEXT2 INITIALIZED\x1b[1;0m\n");
+    print_MBR_table();
     interrupt_barrier();
     enable_interrupts();
 

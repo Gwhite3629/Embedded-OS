@@ -1,8 +1,11 @@
 CFLAGS += $(KINCLUDE)
 
-obj := ext2.o file.o inode.o
+obj := part.o ext2.o file.o inode.o
 
 all: $(obj)
+
+part.o:
+	$(CROSS)$(CC) $(CFLAGS) -o part.o -c $(ktree)/fs/ext2/part.c
 
 ext2.o:
 	$(CROSS)$(CC) $(CFLAGS) -o ext2.o -c $(ktree)/fs/ext2/ext2.c

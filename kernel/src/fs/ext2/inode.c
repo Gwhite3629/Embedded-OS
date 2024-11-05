@@ -127,12 +127,12 @@ void write_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t iblock, char *b
 }
 void read_disk_block(EXT2_t *fs, uint32_t block, char *buf) {
     // Simply call the hard disk/floppy/whatever driver to read two consecutive sectors
-    fs->dev->read(fs->dev, (uint8_t *)buf, fs->block_size, fs->block_size * block);
+    fs->dev->read((uint8_t *)buf, 1, fs->block_size * block);
 }
 
 void write_disk_block(EXT2_t * fs, uint32_t block, char * buf) {
     // Simply call the hard disk/floppy/whatever driver to write two consecutive sectors
-    fs->dev->write(fs->dev, (uint8_t *)buf, fs->block_size, fs->block_size * block);
+    fs->dev->write((uint8_t *)buf, 1, fs->block_size * block);
 }
 
 int alloc_inode_metadata_block(uint32_t *block_ptr, EXT2_t *fs, inode_base_t *inode, uint32_t index, char *buffer, unsigned int block_overwrite) {
