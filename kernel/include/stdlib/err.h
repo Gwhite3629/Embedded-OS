@@ -68,6 +68,7 @@ typedef int err_t;
 #define E_FINT      0x0304  // Internal error
 #define E_INVALID_F 0x0305  // Invalid file
 #define E_FDENIED   0x0306  // Denied access
+#define E_BADPATH   0x0307
 
 // Timer errors
 #define E_NXIO      0x0400

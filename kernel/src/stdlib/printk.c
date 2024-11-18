@@ -183,7 +183,7 @@ static void screen_outputchar(struct chr_dat *dat, char c)
     } else if(c == '\n') {
         dat->x = dat->x0; dat->y += FONT_HEIGHT;
     } else {
-		draw_char(c, dat->x, dat->y, dat->attr);
+		draw_char(c, dat->x, dat->y, dat->color);
         dat->x += FONT_WIDTH;
     }
 }

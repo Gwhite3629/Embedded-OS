@@ -13,6 +13,8 @@
 #include <drivers/graphics/framebuffer.h>
 #include "bootscreen.h"
 #include <fs/ext2/part.h>
+#include <trace/strace.h>
+#include <stdlib/string.h>
 
 typedef int (*command_t) (char *);
 
@@ -54,6 +56,15 @@ int call_editor(char *buf)
 
 void main()
 {
+    __depth = 0;
+    push_trace("void main(void)","main",0,0,0,0);
+
+    __info.x0 = 4;
+    __info.y0 = 44;
+    __info.x = 4;
+    __info.y = 44;
+    __info.color = 0x919CA6; 
+
     uart_init();
     printk("\x1b[1;32mUART FINISHED\x1b[1;0m\n");
 
@@ -87,21 +98,38 @@ void main()
 
     bcm_2708_get_state();
 
-    interrupt_barrier();
     disable_interrupts();
+ 
+    draw_rect(0,32,647,1079,0xB52020,1);
+    struct chr_dat tmp = __info;
+    tmp.y0 -= 8;
+    tmp.y -= 8;
+    print_screen(&tmp, "FUNCTION HISTORY");
+   
     sd_init();
     printk("\x1b[1;32mSD FINISHED\x1b[1;0m\n");
 
     init_events();
     printk("\x1b[1;32mPERF MAP FINISHED\x1b[1;0m\n");
 
-    fs_init();
-    printk("\x1b[1;32mFILESYSTEM INITIALIZED\x1b[1;0m\n");
+    uint32_t super_sector = print_MBR_table();
 
-//    ext2_init(&emmc_dev->bd);
-//    printk("\x1b[1;32mEXT2 INITIALIZED\x1b[1;0m\n");
-    print_MBR_table();
-    interrupt_barrier();
+//    fs = ext2_init(&emmc_dev->bd);
+
+    initial_fs(&emmc_dev->bd);
+    printk(GREEN("EXT2: Created fs\n"));
+
+    assign_superblock(super_sector);
+    printk(GREEN("EXT2: Assigned Superblock\n"));
+
+    read_BGD();
+    printk(GREEN("EXT2: Read BGD table\n"));
+
+    populate_fs();
+    printk(GREEN("EXT2: Prepared root\n"));
+
+    printk(GREEN("EXT2: INITIALIZED\n"));
+
     enable_interrupts();
 
     printk("Current Exception Level: %d\n", get_current_el());
@@ -162,16 +190,20 @@ int run(char *buf, int buflen)
 
     if (!strncmp("perf", buf, 4)) {
         func = interpret(buf+5, buflen-4);
-        begin_profiling();
-        ret = func(buf);
-        overflow = end_profiling();
-        if (ret != 0) return ret;
-        printk("\nOverflow: %d\n", overflow);
-        perf_print();
-        ret = perf_cleanup();
+        if (func != NULL) {
+            begin_profiling();
+            ret = func(buf);
+            overflow = end_profiling();
+            if (ret != 0) return ret;
+            printk("\nOverflow: %d\n", overflow);
+            perf_print();
+            ret = perf_cleanup();
+        }
     } else {
         func = interpret(buf, buflen);
-        ret = func(buf);
+        if (func != NULL) { 
+            ret = func(buf);
+        }
     }
 
     return ret;

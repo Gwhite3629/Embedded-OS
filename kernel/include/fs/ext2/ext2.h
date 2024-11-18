@@ -7,7 +7,8 @@
 
 #include "fstypes.h"
 
-#define SUPERBLOCK_LOCATION 1024
+extern EXT2_t *fs;
+
 #define SUPERBLOCK_SIZE     1024
 
 // States
@@ -46,13 +47,21 @@ uint32_t ext2_write(FILE *file, uint32_t offset, uint32_t size, char *buf);
 void ext2_open(FILE *file, uint32_t flags);
 void ext2_close();
 
-void write_bgd(EXT2_t *fs);
-void write_superblock(EXT2_t *fs);
+void write_bgd(void);
+void write_superblock(void);
 
-uint32_t ext2_alloc_block(EXT2_t *fs);
-void ext2_free_block(EXT2_t *fs, uint32_t block);
+uint32_t ext2_alloc_block(void);
+void ext2_free_block(uint32_t block);
 
-FILE *get_ext2_root(EXT2_t *fs, inode_base_t *inode);
+fs_tree *get_ext2_root(inode_base_t *inode);
 void ext2_init(struct block_device *dev);
+
+void initial_fs(struct block_device *dev);
+
+int assign_superblock(uint32_t super_sector);
+
+int read_BGD(void);
+
+int populate_fs(void);
 
 #endif // _EXT2_H_

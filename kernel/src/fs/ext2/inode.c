@@ -2,51 +2,76 @@
 #include <fs/ext2/file.h>
 #include <fs/ext2/ext2.h>
 #include <fs/ext2/fstypes.h>
+#include <trace/strace.h>
 
 #include <drivers/sd.h>
 
 #include <memory/malloc.h>
 
-void read_inode_metadata(EXT2_t *fs, inode_base_t *inode, uint32_t index) {
+void read_inode_metadata(inode_base_t *inode, uint32_t index) {
+    push_trace("void read_inode_meta(inode_base_t*,uint32_t)","read_inode_meta",inode,index,0,0);
     // Which group the inode lives in
-    uint32_t group = index / fs->inodes_per_group;
+    uint32_t group = (index - 1) / fs->inodes_per_group;
     // The block that points to a table of all inodes
     uint32_t inode_table_block = fs->BGD[group].inode_table_addr;
-    uint32_t idx_in_group = index - group * fs->inodes_per_group;
-    // Which block does the inode live in ? You may wonder why inode is subtracted by 1 here, it's because inode number starts from 1, not 0.(inode of 0 means error)
-    uint32_t block_offset = (idx_in_group - 1) * fs->superblock->inode_size / fs->block_size;
-    // Offset within block
-    uint32_t offset_in_block = (idx_in_group - 1) - block_offset * (fs->block_size / fs->superblock->inode_size);
-    char *block_buf = NULL;
-    new(block_buf, fs->block_size, char);
+  
+    uint32_t idx = (index - 1) % fs->inodes_per_group;
+    uint32_t block_offset = (idx * fs->superblock->inode_size) / fs->block_size;
+    uint32_t offset_in_block = (idx * fs->superblock->inode_size) % fs->block_size;
+    uint32_t block_num = inode_table_block + block_offset;
 
-    read_disk_block(fs, inode_table_block + block_offset, block_buf);
+    uint32_t n_sectors = fs->superblock->inode_size / (512 + 1);
 
-    memcpy(inode, block_buf + offset_in_block * fs->superblock->inode_size, fs->superblock->inode_size);
+    printk(CYAN("READING INODE:     %d\n"), index);
+    printk(CYAN("group:             %d\n"), group);
+    printk(CYAN("table_block:       %d\n"), inode_table_block);
+    printk(CYAN("idx:               %d\n"), idx);
+    printk(CYAN("block_offset:      %d\n"), block_offset);
+    printk(CYAN("offset_in_block:   %d\n"), offset_in_block);
+    printk(CYAN("block_num:         %d\n"), block_num);
+    printk(CYAN("n_sectors:         %d\n"), n_sectors);
+
+    uint16_t *block_buf = NULL;
+    new(block_buf, n_sectors * 512 / 2, uint16_t);
+    
+    fs->dev->read((uint8_t *)block_buf, n_sectors, fs->start_block + block_num * 8);
+
+    memcpy(inode, &block_buf[offset_in_block / 2], fs->superblock->inode_size);
 exit:
+    pop_trace();
     del(block_buf);
 }
 
-void write_inode_metadata(EXT2_t *fs, inode_base_t *inode, uint32_t index) {
+void write_inode_metadata(inode_base_t *inode, uint32_t index) {
+    push_trace("void write_inode_meta(inode_base_t*,uint32_t)","write_inode_meta",inode,index,0,0);
     // Which group the inode lives in
-    uint32_t group = index / fs->inodes_per_group;
+    uint32_t group = (index - 1) / fs->inodes_per_group;
     // The block that points to a table of all inodes
     uint32_t inode_table_block = fs->BGD[group].inode_table_addr;
-    //uint32_t idx_in_group = inode_idx - group * ext2fs->inodes_per_group;
-    // Which block does the inode live in ? You may wonder why inode is subtracted by 1 here, it's because inode number starts from 1, not 0.(inode of 0 means error)
-    uint32_t block_offset = (index - 1) * fs->superblock->inode_size / fs->block_size;
-    // Offset within block
-    uint32_t offset_in_block = (index - 1) - block_offset * (fs->block_size / fs->superblock->inode_size);
-    char *block_buf = NULL;
-    new(block_buf, fs->block_size, char);
-    read_disk_block(fs, inode_table_block + block_offset, block_buf);
-    memcpy(block_buf + offset_in_block * fs->superblock->inode_size, inode, fs->superblock->inode_size);
-    write_disk_block(fs, inode_table_block + block_offset, block_buf);
-    del(block_buf);
+  
+    uint32_t idx = (index - 1) % fs->inodes_per_group;
+    uint32_t block_offset = (index * fs->superblock->inode_size) / fs->block_size;
+    uint32_t offset_in_block = (index * fs->superblock->inode_size) % fs->block_size;
+    uint32_t block_num = inode_table_block + block_offset;
+
+    uint32_t n_sectors = fs->superblock->inode_size / (512 + 1);
+
+    uint16_t *block_buf = NULL;
+    new(block_buf, n_sectors * 512 / 2, uint16_t);
+
+    fs->dev->read((uint8_t *)block_buf, n_sectors, fs->start_block + block_num * 8);
+    
+    memcpy(&block_buf[offset_in_block / 2], inode, fs->superblock->inode_size);
+
+    fs->dev->write((uint8_t *)block_buf, n_sectors, fs->start_block + block_num * 8);
+
 exit:
+    pop_trace();
+    del(block_buf);
 }
 
-uint32_t read_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t offset, uint32_t size, char *buf) {
+uint32_t read_inode_filedata(inode_base_t *inode, uint32_t offset, uint32_t size, char *buf) {
+    push_trace("uint32_t read_inode_file(inode_base_t*,uint32_t,uint32_t,char*)","read_inode_file",inode,offset,size,buf);
     uint32_t end_offset = (inode->size_lower >= offset + size) ? (offset + size) : (inode->size_lower);
     // Convert the offset/size to some starting/end iblock numbers
     uint32_t start_block = offset / fs->block_size;
@@ -60,7 +85,7 @@ uint32_t read_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t offset, u
     uint32_t cur_off = 0;
     while(i <= end_block) {
         uint32_t left = 0, right = fs->block_size - 1;
-        char *block_buf = read_inode_block(fs, inode, i);
+        char *block_buf = read_inode_block(inode, i);
         if(i == start_block)
             left = start_off;
         if(i == end_block)
@@ -71,13 +96,15 @@ uint32_t read_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t offset, u
         i++;
     }
 exit:
+    pop_trace();
     return end_offset - offset;
 }
 
-void write_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t offset, uint32_t size, char *buf) {
+void write_inode_filedata(inode_base_t *inode, uint32_t index, uint32_t offset, uint32_t size, char *buf) {
+    push_trace("void write_inode_file(inode_base_t*,uint32_t,uint32_t,uint32_t)","write_inode_file",inode,index,offset,size);
     if(offset + size > inode->size_lower) {
         inode->size_lower = offset + size;
-        write_inode_metadata(fs, inode, index);
+        write_inode_metadata(inode, index);
     }
     // Writing inode filedata is similar to reading inode filedata
     uint32_t end_offset = (inode->size_lower >= offset + size) ? (offset + size) : (inode->size_lower);
@@ -93,7 +120,7 @@ void write_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint3
     uint32_t cur_off = 0;
     while(i <= end_block) {
         uint32_t left = 0, right = fs->block_size;
-        char *block_buf = read_inode_block(fs, inode, i);
+        char *block_buf = read_inode_block(inode, i);
 
         if(i == start_block)
             left = start_off;
@@ -101,55 +128,64 @@ void write_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint3
             right = end_size - 1;
         memcpy(block_buf + left, buf + cur_off, (right - left + 1));
         cur_off = cur_off + (right - left + 1);
-        write_inode_block(fs, inode, i, block_buf);
+        write_inode_block(inode, i, block_buf);
         del(block_buf);
         i++;
     }
 exit:
+    pop_trace();
 }
 
-char * read_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t iblock) {
+char * read_inode_block(inode_base_t *inode, uint32_t iblock) {
+    push_trace("char *read_inode_block(inode_base_t*,uint32_t)","read_inode_block",inode,iblock,0,0);
     char *buf = NULL;
     new(buf, fs->block_size, char);
     // Get the actual disk block number of the iblock
-    uint32_t disk_block = get_disk_block_number(fs, inode, iblock);
+    uint32_t disk_block = get_disk_block_number(inode, iblock);
     // Then just read a disk block
-    read_disk_block(fs, disk_block, buf);
+    read_disk_block(disk_block, buf);
 exit:
+    pop_trace();
     return buf;
 }
 
-void write_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t iblock, char *buf) {
+void write_inode_block(inode_base_t *inode, uint32_t iblock, char *buf) {
+    push_trace("void write_inode_block(inode_base_t,uint32_t,char*)","write_inode_block",inode,iblock,buf,0);
     // Get the actual disk block number of the iblock
-    uint32_t disk_block = get_disk_block_number(fs, inode, iblock);
+    uint32_t disk_block = get_disk_block_number(inode, iblock);
     // Then just write a disk block
-    write_disk_block(fs, disk_block, buf);
+    write_disk_block(disk_block, buf);
+    pop_trace();
 }
-void read_disk_block(EXT2_t *fs, uint32_t block, char *buf) {
+void read_disk_block(uint32_t block, char *buf) {
+    push_trace("void read_disk_block(uint32_t,char*)","read_disk_block",block,buf,0,0);
     // Simply call the hard disk/floppy/whatever driver to read two consecutive sectors
-    fs->dev->read((uint8_t *)buf, 1, fs->block_size * block);
+    fs->dev->read((uint8_t *)buf, fs->block_size / 512, fs->start_block + 8 * block);
+    pop_trace();
 }
 
-void write_disk_block(EXT2_t * fs, uint32_t block, char * buf) {
+void write_disk_block(uint32_t block, char * buf) {
+    push_trace("void write_disk_block(uint32_t,char*)","write_disk_block",block,buf,0,0);
     // Simply call the hard disk/floppy/whatever driver to write two consecutive sectors
-    fs->dev->write((uint8_t *)buf, 1, fs->block_size * block);
+    fs->dev->write((uint8_t *)buf, fs->block_size / 512, fs->start_block + 8 * block);
+    pop_trace();
 }
 
-int alloc_inode_metadata_block(uint32_t *block_ptr, EXT2_t *fs, inode_base_t *inode, uint32_t index, char *buffer, unsigned int block_overwrite) {
+int alloc_inode_metadata_block(uint32_t *block_ptr, inode_base_t *inode, uint32_t index, char *buffer, unsigned int block_overwrite) {
     if(!(*block_ptr)) {
-        unsigned int block_no = ext2_alloc_block(fs);
+        unsigned int block_no = ext2_alloc_block();
         if(!block_no) return 0;
         *block_ptr = block_no;
         if(buffer)
-            write_disk_block(fs, block_overwrite, (void*)buffer);
+            write_disk_block(block_overwrite, (void*)buffer);
         else
-            write_inode_metadata(fs, inode, index);
+            write_inode_metadata(inode, index);
         return 1;
     }
     return 0;
 }
 
-uint32_t get_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t inode_block) {
+uint32_t get_disk_block_number(inode_base_t *inode, uint32_t inode_block) {
     unsigned int p = fs->block_size / 4, ret = E_NOERR;
     int a, b, c, d, e, f, g;
     unsigned int *tmp = NULL;
@@ -162,7 +198,7 @@ uint32_t get_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t inode_b
     }
     b = a - p;
     if(b < 0) {
-        read_disk_block(fs, inode->blocks[12], (void*)tmp);
+        read_disk_block(inode->blocks[12], (void*)tmp);
         ret = tmp[a];
         goto exit;
     }
@@ -170,8 +206,8 @@ uint32_t get_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t inode_b
     if(c < 0) {
         c = b / p;
         d = b - c * p;
-        read_disk_block(fs, inode->blocks[12 + 1], (void*)tmp);
-        read_disk_block(fs, tmp[c], (void*)tmp);
+        read_disk_block(inode->blocks[12 + 1], (void*)tmp);
+        read_disk_block(tmp[c], (void*)tmp);
         ret = tmp[d];
         goto exit;
     }
@@ -180,9 +216,9 @@ uint32_t get_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t inode_b
         e = c / (p * p);
         f = (c - e * p * p) / p;
         g = (c - e * p * p - f * p);
-        read_disk_block(fs, inode->blocks[12 + 2], (void*)tmp);
-        read_disk_block(fs, tmp[e], (void*)tmp);
-        read_disk_block(fs, tmp[f], (void*)tmp);
+        read_disk_block(inode->blocks[12 + 2], (void*)tmp);
+        read_disk_block(tmp[e], (void*)tmp);
+        read_disk_block(tmp[f], (void*)tmp);
         ret = tmp[g];
         goto exit;
     }
@@ -192,7 +228,7 @@ exit:
     return ret;
 }
 
-void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t inode_block, uint32_t disk_block) {
+void set_disk_block_number(inode_base_t *inode, uint32_t index, uint32_t inode_block, uint32_t disk_block) {
     unsigned int p = fs->block_size / 4;
     int a, b, c, d, e, f, g;
     int iblock = inode_block;
@@ -206,10 +242,10 @@ void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint
     }
     b = a - p;
     if(b <= 0) {
-        if(!alloc_inode_metadata_block((inode->blocks + 12), fs, inode, index, NULL, 0));
-        read_disk_block(fs, inode->blocks[12], (void*)tmp);
+        if(!alloc_inode_metadata_block((inode->blocks + 12), inode, index, NULL, 0));
+        read_disk_block(inode->blocks[12], (void*)tmp);
         ((unsigned int*)tmp)[a] = disk_block;
-        write_disk_block(fs, inode->blocks[12], (void*)tmp);
+        write_disk_block(inode->blocks[12], (void*)tmp);
         tmp[a] = disk_block;
         goto exit;
     }
@@ -217,13 +253,13 @@ void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint
     if(c <= 0) {
         c = b / p;
         d = b - c * p;
-        if(!alloc_inode_metadata_block((inode->blocks + 12 + 1), fs, inode, index, NULL, 0));
-        read_disk_block(fs, inode->blocks[12 + 1], (void*)tmp);
-        if(!alloc_inode_metadata_block(&(tmp[c]), fs, inode, index, (void*)tmp, inode->blocks[12 + 1]));
+        if(!alloc_inode_metadata_block((inode->blocks + 12 + 1), inode, index, NULL, 0));
+        read_disk_block(inode->blocks[12 + 1], (void*)tmp);
+        if(!alloc_inode_metadata_block(&(tmp[c]), inode, index, (void*)tmp, inode->blocks[12 + 1]));
         unsigned int temp = tmp[c];
-        read_disk_block(fs, temp, (void*)tmp);
+        read_disk_block(temp, (void*)tmp);
         tmp[d] = disk_block;
-        write_disk_block(fs, temp, (void*)tmp);
+        write_disk_block(temp, (void*)tmp);
         goto exit;
     }
     d = c - p * p * p;
@@ -231,37 +267,37 @@ void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint
         e = c / (p * p);
         f = (c - e * p * p) / p;
         g = (c - e * p * p - f * p);
-        if(!alloc_inode_metadata_block((inode->blocks + 12 + 2), fs, inode, index, NULL, 0));
-        read_disk_block(fs, inode->blocks[12 + 2], (void*)tmp);
-        if(!alloc_inode_metadata_block(&(tmp[e]), fs, inode, index, (void*)tmp, inode->blocks[12 + 2]));
+        if(!alloc_inode_metadata_block((inode->blocks + 12 + 2), inode, index, NULL, 0));
+        read_disk_block(inode->blocks[12 + 2], (void*)tmp);
+        if(!alloc_inode_metadata_block(&(tmp[e]), inode, index, (void*)tmp, inode->blocks[12 + 2]));
         unsigned int temp = tmp[e];
-        read_disk_block(fs, tmp[e], (void*)tmp);
-        if(!alloc_inode_metadata_block(&(tmp[f]), fs, inode, index, (void*)tmp, temp));
+        read_disk_block(tmp[e], (void*)tmp);
+        if(!alloc_inode_metadata_block(&(tmp[f]), inode, index, (void*)tmp, temp));
         temp = tmp[f];
-        read_disk_block(fs, tmp[f], (void*)tmp);
+        read_disk_block(tmp[f], (void*)tmp);
         tmp[g] = disk_block;
-        write_disk_block(fs, temp, (void*)tmp);
+        write_disk_block(temp, (void*)tmp);
         goto exit;
     }
 exit:
     del(tmp);
 }
 
-void alloc_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t block) {
-    uint32_t ret = ext2_alloc_block(fs);
-    set_disk_block_number(fs, inode, index, block, ret);
+void alloc_inode_block(inode_base_t *inode, uint32_t index, uint32_t block) {
+    uint32_t ret = ext2_alloc_block();
+    set_disk_block_number(inode, index, block, ret);
     inode->n_sectors = (block + 1) * (fs->block_size / 512);
-    write_inode_metadata(fs, inode, index);
+    write_inode_metadata(inode, index);
 }
 
-void free_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t block) {
-    uint32_t ret = get_disk_block_number(fs, inode, block);
-    ext2_free_block(fs, ret);
-    set_disk_block_number(fs, inode, index, ret, 0);
-    write_inode_metadata(fs, inode, index);
+void free_inode_block(inode_base_t *inode, uint32_t index, uint32_t block) {
+    uint32_t ret = get_disk_block_number(inode, block);
+    ext2_free_block(ret);
+    set_disk_block_number(inode, index, ret, 0);
+    write_inode_metadata(inode, index);
 }
 
-uint32_t alloc_inode(EXT2_t *fs) {
+uint32_t alloc_inode(void) {
     uint32_t *buf = NULL;
     new(buf, fs->block_size, uint32_t);
     // Read the inode bitmap, find free inode, return its index
@@ -270,7 +306,7 @@ uint32_t alloc_inode(EXT2_t *fs) {
             continue;
 
         uint32_t bitmap_block = fs->BGD[i].inode_bitmap_addr;
-        read_disk_block(fs, bitmap_block, (void*)buf);
+        read_disk_block(bitmap_block, (void*)buf);
         for(uint32_t j = 0; j < fs->block_size / 4; j++) {
             uint32_t sub_bitmap = buf[j];
             if(sub_bitmap == 0xFFFFFFFF)
@@ -281,10 +317,10 @@ uint32_t alloc_inode(EXT2_t *fs) {
                     // Set bitmap and return
                     uint32_t mask = (0x1 << k);
                     buf[j] = buf[j] | mask;
-                    write_disk_block(fs, bitmap_block, (void*)buf);
+                    write_disk_block(bitmap_block, (void*)buf);
                     // update free_inodes
                     fs->BGD[i].n_unalloc_inodes--;
-                    write_bgd(fs);
+                    write_bgd();
                     return i * fs->inodes_per_group + j * 32 + k;
                 }
             }
@@ -297,7 +333,7 @@ exit:
 /*
  * Free an inode from inode bitmap
  * */
-void free_inode(EXT2_t *fs, uint32_t inode) {
+void free_inode(uint32_t inode) {
     uint32_t *buf = NULL;
     new(buf, fs->block_size, uint32_t);
     // Which group it belongs to ?
@@ -308,16 +344,16 @@ void free_inode(EXT2_t *fs, uint32_t inode) {
     uint32_t idx = (inode - (fs->inodes_per_group * group_idx)) % 4;
 
     uint32_t bitmap_block = fs->BGD[group_idx].inode_bitmap_addr;
-    read_disk_block(fs, bitmap_block, (void*)buf);
+    read_disk_block(bitmap_block, (void*)buf);
 
     // Mask out that inode and write back the bitmap
     uint32_t mask = ~(0x1 << idx);
     buf[sub_bitmap_idx] = buf[sub_bitmap_idx] & mask;
 
-    write_disk_block(fs, bitmap_block, (void*)buf);
+    write_disk_block(bitmap_block, (void*)buf);
 
     // update free_inodes
     fs->BGD[group_idx].n_unalloc_inodes++;
-    write_bgd(fs);
+    write_bgd();
 exit:
 }

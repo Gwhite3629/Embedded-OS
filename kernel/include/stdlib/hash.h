@@ -4,7 +4,7 @@
 #include "types.h"
 #include "list.h"
 #include "extra.h"
-
+/*
 #if BITS_PER_LONG == 32
     #define GOLDEN_RATIO_PRIME GOLDEN_RATIO_32
     #define hash_long(val, bits) hash_32(val, bits)
@@ -17,7 +17,16 @@
 
 #define GOLDEN_RATIO_32 0x61C88647
 #define GOLDEN_RATIO_64 0x61C8864680B583EBull
-
+*/
+static inline uint32_t hash32(char *string) {
+    unsigned long val = 5381;
+    int c = 0;
+    while ((c = *string++)) {
+        val = ((val << 5) + val) + c;
+    }
+    return (uint32_t)(val & (__INT_MAX__));
+}
+/*
 static inline uint32_t hash_32(uint32_t val, uint32_t bits)
 {
     return val * GOLDEN_RATIO_32 >> (32 - bits);
@@ -98,5 +107,5 @@ static inline void hash_del(struct hlist_node *node)
 #define hash_for_each_possible_safe(name, obj, tmp, member, key) \
     hlist_for_each_entry_safe(obj, tmp, \
         &name[hash_min(key, HASH_BITS(name))], member)
-
+*/
 #endif // _HASH_H_

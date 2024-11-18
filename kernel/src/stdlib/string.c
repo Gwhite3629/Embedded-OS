@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <memory/malloc.h>
+#include <trace/strace.h>
 
 void *memcpy(void *dest, const void *src, size_t n)
 {
@@ -90,6 +91,19 @@ char *strncpy(char *dest, const char *src, uint32_t n)
     return dest;
 }
 
+char *strcpy(char *dest, const char *src)
+{
+    int i = 0;
+    char c = '\0';
+    do {
+        c = src[i];
+        dest[i] = c;
+        i++;
+    } while (c != '\0');
+
+    return dest;
+}
+
 char *strncat(char *dest, const char *src, uint32_t n)
 {
     uint32_t i;
@@ -138,11 +152,13 @@ int32_t strlcpy(char *dest, const char *src, uint32_t n)
 
 char *strdup(const char *src)
 {
+    push_trace("char *strdup(const char *)","strdup",src,0,0,0);
     int len = strlen(src) + 1;
     char *dst = NULL;
     new(dst, len, char);
-    memcpy(dst, src, len);
+    memcpy(dst, src, len-1);
 exit:
+    pop_trace();
     return dst;
 }
 

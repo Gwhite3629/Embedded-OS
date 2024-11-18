@@ -50,6 +50,10 @@ _start:
     orr     x0, x0, #(1 << 1)   // SWIO hardwired on Pi3
     msr     hcr_el2, x0
     mrs     x0, hcr_el2
+    // disable sp alignment fault
+    //mrs x2, sctlr_el1
+    //and x2, x2, #0xfffffffffffffff7
+    //msr sctlr_el1, x2
     // change execution level to EL1
     mov     x2, #0x3c4
     msr     spsr_el2, x2

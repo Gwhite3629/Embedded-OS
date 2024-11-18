@@ -22,13 +22,36 @@
 #define O_NOFOLLOW      0x1000
 #define O_PATH          0x2000
 
+#define FS_UNKNOWN      0x00
 #define FS_FILE         0x01
 #define FS_DIR          0x02
-#define FS_CHARDEV      0x04
-#define FS_BLOCKDEV     0x08
-#define FS_PIPE         0x10
-#define FS_SYMLINK      0x20
-#define FS_MOUNT        0x40
+#define FS_CHARDEV      0x03
+#define FS_BLOCKDEV     0x04
+#define FS_FIFO         0x05
+#define FS_SOCK         0x06
+#define FS_SYMLINK      0x07
+
+/*
+typedef union fs_entry {
+    struct fs_tree *dir;
+    FILE *file;
+} fs_entry;
+
+typedef struct fs_tree {
+    char *name;
+    uint32_t hash;
+    uint32_t inode;
+    uint32_t n_entries;
+    uint8_t *type;
+    fs_entry **entries;
+} fs_tree;
+
+struct entry_info {
+    fs_entry *entry;
+    uint8_t type;
+    int ret;
+};
+*/
 
 void fs_init(void);
 
@@ -61,6 +84,8 @@ int fs_symlink(char *value, char *name);
 
 int fs_readlink(FILE *file, char *buf, uint32_t size);
 
-void file_mount(char *mountpoint, FILE *file);
+int file_mount(char *mountpoint, FILE *file);
+
+extern fs_tree *root;
 
 #endif // _FILE_H_

@@ -7,6 +7,7 @@ obj += $(ktree)/fs
 obj += $(ktree)/syscall
 obj += $(ktree)/editor
 obj += $(ktree)/perf
+obj += $(ktree)/trace
 
 $(obj):
 	for i in $(obj); do \

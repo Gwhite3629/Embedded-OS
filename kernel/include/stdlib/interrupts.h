@@ -30,4 +30,6 @@ void disable_interrupts(void);
 
 void interrupt_barrier(void);
 
+void instruction_barrier(void);
+
 #endif // _INTERRUPTS_H_

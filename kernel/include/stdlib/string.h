@@ -17,6 +17,8 @@ int strcmp(const char *s1, const char *s2);
 
 char *strncpy(char *dest, const char *src, uint32_t n);
 
+char *strcpy(char *dest, const char *src);
+
 char *strncat(char *dest, const char *src, uint32_t n);
 
 int memcmp(const char *s1, const char *s2, uint32_t n);

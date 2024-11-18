@@ -22,3 +22,4 @@
 #include "stdlib/serial.h"
 #include "stdlib/printk.h"
 #include "stdlib/types.h"
+#include "stdlib/hash.h"

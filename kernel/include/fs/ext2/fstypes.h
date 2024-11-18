@@ -25,6 +25,7 @@ typedef struct superblock {
     uint16_t error_action;          // What to do on error
     uint16_t minor_ver;             // Minor portion of volume version
     uint32_t last_check_time;       // Time of last check (POSIX)
+    uint32_t check_interval;        // Check Interval
     uint32_t OS_ID;                 // ID of OS in which volume was created
     uint32_t major_ver;             // Major portion of volume version
     uint16_t res_user_ID;           // User ID that can use reserved blocks
@@ -46,7 +47,7 @@ typedef struct superblock {
     uint32_t journal_inode;
     uint32_t journal_device;
     uint32_t head_orphan_inode_list;// Head of orphan inode list
-} __attribute__((packed)) superblock_t;
+} __attribute__((__packed__, __aligned__(1))) superblock_t;
 
 // Rest of EXT2 superblock is unused
 
@@ -57,22 +58,26 @@ typedef struct block_group_descriptor {
     uint16_t n_unalloc_blocks;
     uint16_t n_unalloc_inodes;
     uint16_t n_dir;
-    uint8_t pad[14];
-} __attribute__((packed)) block_group_descriptor_t; // 32 bytes
+    uint16_t pad1;
+    uint8_t bg_reserved[12];
+} __attribute__((__packed__, __aligned__(1))) block_group_descriptor_t; // 32 bytes
 
 typedef struct EXT2 {
     struct block_device *dev;
     superblock_t *superblock;
     block_group_descriptor_t *BGD;
+    uint32_t start_block;
     uint32_t block_size;
     uint32_t blocks_per_group;
     uint32_t inodes_per_group;
     uint32_t n_groups;
     uint32_t bgd_blocks;
+    char *pwd;
 } EXT2_t;
 
 typedef struct FILE {
     char name[256];
+    uint32_t hash;
     uint32_t inode;
     uint32_t size;
     uint32_t create_time;
@@ -87,15 +92,10 @@ typedef struct FILE {
     int refcount;
 } FILE;
 
-typedef struct fs_entry {
-    char *name;
-    FILE *file;
-} fs_entry_t;
-
 typedef struct inode_base {
     uint16_t inode_type_perm;           // Type and permissions
     uint16_t user_ID;                   // User ID
-    uint32_t size_lower;                // Lower 32 bits of size in bytes
+    int32_t size_lower;                // Lower 32 bits of size in bytes
     uint32_t last_access_time;          // Time of last access (POSIX)
     uint32_t creation_time;             // Time of creation (POSIX)
     uint32_t last_mod_time;             // Time of last modification (POSIX)
@@ -111,7 +111,7 @@ typedef struct inode_base {
     uint32_t f_size_dir_acl;            // top bits of file size or dir ACL (if ver >= 1)
     uint32_t frag_block_addr;           // Block address of fragment
     uint8_t OS_Val_2[12];               // OS Specific value 2
-} __attribute__((packed)) inode_base_t; // 128 Bytes
+} __attribute__((__packed__, __aligned__(1))) inode_base_t; // 128 Bytes
 
 typedef struct dirent {
     uint32_t inode_number;
@@ -119,6 +119,26 @@ typedef struct dirent {
     uint8_t name_len;
     uint8_t type;
     char *name;
-} __attribute__((packed)) dirent_t;
+} __attribute__((__packed__, __aligned__(1))) dirent_t;
+
+typedef union fs_entry {
+    struct fs_tree *dir;
+    FILE *file;
+} fs_entry;
+
+typedef struct fs_tree {
+    char *name;
+    uint32_t hash;
+    uint32_t inode;
+    uint32_t n_entries;
+    uint8_t *type;
+    fs_entry **entries;
+} fs_tree;
+
+struct entry_info {
+    fs_entry *entry;
+    uint8_t type;
+    int ret;
+};
 
 #endif // _FSTYPES_H_

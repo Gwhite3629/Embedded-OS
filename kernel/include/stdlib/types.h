@@ -51,10 +51,10 @@ typedef struct rb_root {
 
 struct chr_dat {
     int x0;
-    int x1;
+    int y0;
     int x;
     int y;
-    unsigned char attr;
+    uint32_t color;
 };
 
 #define RB_ROOT (rb_root) {NULL, }

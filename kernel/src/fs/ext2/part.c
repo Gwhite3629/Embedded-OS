@@ -8,6 +8,8 @@ int print_MBR_table(void)
     int r = E_NOERR;
     uint8_t *sector_data = NULL;
     
+    uint32_t super_sector;
+
     struct MBR current_part;
 
     new(sector_data, 512, uint8_t);
@@ -33,8 +35,12 @@ int print_MBR_table(void)
         (((current_part.end_cyl_hi & 0x3) << 8) | current_part.end_cyl) & 0x3ff);                                                          
         printk(CYAN(   "Relative Sector  %8x\n"), current_part.relative_sector);                                                       
         printk(CYAN(   "Total Sectors    %8x\n"), current_part.partition_sectors);                                                     
-        printk(RED(    "-------- END MBR --------\n"));
+        printk(GREEN(  "-------- END MBR --------\n"));
+        if (i == 1) {
+            super_sector = current_part.relative_sector;
+        }
     }
+    return super_sector;
 exit:
-    return E_NOERR;
+    return ret;
 }

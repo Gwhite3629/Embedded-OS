@@ -70,27 +70,27 @@ static inline uint32_t inode_get_block(uint32_t index, superblock_t superblock)
 // 6. Index inode table
 // 7. Dir and File data are in data blocks from inode
 
-void read_inode_metadata(EXT2_t *fs, inode_base_t *inode, uint32_t index);
-void write_inode_metadata(EXT2_t *fs, inode_base_t *inode, uint32_t index);
+void read_inode_metadata(inode_base_t *inode, uint32_t index);
+void write_inode_metadata(inode_base_t *inode, uint32_t index);
 
-uint32_t read_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t offset, uint32_t size, char *buf);
-void write_inode_filedata(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t offset, uint32_t size, char *buf);
+uint32_t read_inode_filedata(inode_base_t *inode, uint32_t offset, uint32_t size, char *buf);
+void write_inode_filedata(inode_base_t *inode, uint32_t index, uint32_t offset, uint32_t size, char *buf);
 
-char *read_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t block);
-void write_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t block, char *buf);
+char *read_inode_block(inode_base_t *inode, uint32_t block);
+void write_inode_block(inode_base_t *inode, uint32_t block, char *buf);
 
-void read_disk_block(EXT2_t *fs, uint32_t block, char *buf);
-void write_disk_block(EXT2_t *fs, uint32_t block, char *buf);
+void read_disk_block(uint32_t block, char *buf);
+void write_disk_block(uint32_t block, char *buf);
 
-int alloc_inode_metadata_block(uint32_t *block_ptr, EXT2_t *fs, inode_base_t *inode, uint32_t index, char *buf, uint32_t block_overwrite);
+int alloc_inode_metadata_block(uint32_t *block_ptr, inode_base_t *inode, uint32_t index, char *buf, uint32_t block_overwrite);
 
-uint32_t get_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t inode_block);
-void set_disk_block_number(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t inode_block, uint32_t disk_block);
+uint32_t get_disk_block_number(inode_base_t *inode, uint32_t inode_block);
+void set_disk_block_number(inode_base_t *inode, uint32_t index, uint32_t inode_block, uint32_t disk_block);
 
-void alloc_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t block);
-void free_inode_block(EXT2_t *fs, inode_base_t *inode, uint32_t index, uint32_t block);
+void alloc_inode_block(inode_base_t *inode, uint32_t index, uint32_t block);
+void free_inode_block(inode_base_t *inode, uint32_t index, uint32_t block);
 
-uint32_t alloc_inode(EXT2_t *fs);
-void free_inode(EXT2_t *fs, uint32_t inode);
+uint32_t alloc_inode(void);
+void free_inode(uint32_t inode);
 
 #endif // _INODE_H_

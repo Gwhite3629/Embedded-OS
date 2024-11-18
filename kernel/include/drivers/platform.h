@@ -377,7 +377,7 @@ typedef struct __attribute__((aligned (32))) {
     uint32_t resv1;      // Reserved 1
     uint32_t resv2;      // Reserved 2
 } DMA_CB;
-
+/*
 #define DMA0_BASE   0x7000 // DMA Channel 0 Register Set
 #define DMA1_BASE   0x7100 // DMA Channel 1 Register Set
 #define DMA2_BASE   0x7200 // DMA Channel 2 Register Set
@@ -599,7 +599,7 @@ typedef struct __attribute__((aligned (32))) {
 #define DMA_EN12  0x1000 // DMA Enable: Enable DMA Engine 12
 #define DMA_EN13  0x2000 // DMA Enable: Enable DMA Engine 13
 #define DMA_EN14  0x4000 // DMA Enable: Enable DMA Engine 14
-
+*/
 /* GPIO */
 
 struct _gpio {

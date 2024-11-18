@@ -304,28 +304,28 @@ uint32_t init_framebuffer(uint32_t width, uint32_t height, uint32_t depth)
     return E_NOERR;
 }
 
-void draw_pixel(int x, int y, unsigned char attr)
+void draw_pixel(int x, int y, uint32_t color)
 {
     uint32_t offset = (x*4) + (y * fb.pitch);
-    mmio_write(((uint32_t)(uint64_t)fb.buf) + offset, fb.palette[attr & 0x0f]);
+    mmio_write(((uint32_t)(uint64_t)fb.buf) + offset, color);
 }
 
-void draw_rect(int x1, int y1, int x2, int y2, unsigned char attr, int fill)
+void draw_rect(int x1, int y1, int x2, int y2, uint32_t color, int fill)
 {
     int y=y1;
 
     while (y <= y2) {
        int x=x1;
        while (x <= x2) {
-	  if ((x == x1 || x == x2) || (y == y1 || y == y2)) draw_pixel(x, y, attr);
-	  else if (fill) draw_pixel(x, y, (attr & 0x0f));
+	  if ((x == x1 || x == x2) || (y == y1 || y == y2)) draw_pixel(x, y, color);
+	  else if (fill) draw_pixel(x, y, color);
           x++;
        }
        y++;
     }
 }
 
-void draw_line(int x1, int y1, int x2, int y2, unsigned char attr)  
+void draw_line(int x1, int y1, int x2, int y2, uint32_t color)  
 {  
     int dx, dy, p, x, y;
 
@@ -337,18 +337,18 @@ void draw_line(int x1, int y1, int x2, int y2, unsigned char attr)
 
     while (x<x2) {
        if (p >= 0) {
-          draw_pixel(x,y,attr);
+          draw_pixel(x,y,color);
           y++;
           p = p+2*dy-2*dx;
        } else {
-          draw_pixel(x,y,attr);
+          draw_pixel(x,y,color);
           p = p+2*dy;
        }
        x++;
     }
 }
 
-void draw_circle(int x0, int y0, int radius, unsigned char attr, int fill)
+void draw_circle(int x0, int y0, int radius, uint32_t color, int fill)
 {
     int x = radius;
     int y = 0;
@@ -356,19 +356,19 @@ void draw_circle(int x0, int y0, int radius, unsigned char attr, int fill)
  
     while (x >= y) {
 	if (fill) {
-	   draw_line(x0 - y, y0 + x, x0 + y, y0 + x, (attr & 0xf0) >> 4);
-	   draw_line(x0 - x, y0 + y, x0 + x, y0 + y, (attr & 0xf0) >> 4);
-	   draw_line(x0 - x, y0 - y, x0 + x, y0 - y, (attr & 0xf0) >> 4);
-	   draw_line(x0 - y, y0 - x, x0 + y, y0 - x, (attr & 0xf0) >> 4);
+	   draw_line(x0 - y, y0 + x, x0 + y, y0 + x, color);
+	   draw_line(x0 - x, y0 + y, x0 + x, y0 + y, color);
+	   draw_line(x0 - x, y0 - y, x0 + x, y0 - y, color);
+	   draw_line(x0 - y, y0 - x, x0 + y, y0 - x, color);
 	}
-	draw_pixel(x0 - y, y0 + x, attr);
-	draw_pixel(x0 + y, y0 + x, attr);
-	draw_pixel(x0 - x, y0 + y, attr);
-    draw_pixel(x0 + x, y0 + y, attr);
-	draw_pixel(x0 - x, y0 - y, attr);
-	draw_pixel(x0 + x, y0 - y, attr);
-	draw_pixel(x0 - y, y0 - x, attr);
-	draw_pixel(x0 + y, y0 - x, attr);
+	draw_pixel(x0 - y, y0 + x, color);
+	draw_pixel(x0 + y, y0 + x, color);
+	draw_pixel(x0 - x, y0 + y, color);
+    draw_pixel(x0 + x, y0 + y, color);
+	draw_pixel(x0 - x, y0 - y, color);
+	draw_pixel(x0 + x, y0 - y, color);
+	draw_pixel(x0 - y, y0 - x, color);
+	draw_pixel(x0 + y, y0 - x, color);
 
 	if (err <= 0) {
 	    y += 1;
@@ -382,7 +382,7 @@ void draw_circle(int x0, int y0, int radius, unsigned char attr, int fill)
     }
 }
 
-void draw_char(unsigned char ch, int x, int y, unsigned char attr)
+void draw_char(unsigned char ch, int x, int y, uint32_t color)
 {
     unsigned char *glyph = (unsigned char *)&font + (ch < FONT_NUMGLYPHS ? ch : 0) * FONT_BPG;
 
@@ -390,14 +390,14 @@ void draw_char(unsigned char ch, int x, int y, unsigned char attr)
 	for (int j=0;j<FONT_WIDTH;j++) {
 	    unsigned char mask = 1 << j;
 	    if ((*glyph & mask)) {
-	        draw_pixel(x+j, y+i, attr & 0x0f);
+	        draw_pixel(x+j, y+i, color);
         }
 	}
 	glyph += FONT_BPL;
     }
 }
 
-void draw_string(int x, int y, char *s, unsigned char attr)
+void draw_string(int x, int y, char *s, uint32_t color)
 {
     int x_init = x;
     int y_init = y;
@@ -405,11 +405,12 @@ void draw_string(int x, int y, char *s, unsigned char attr)
        if (*s == '\r') {
           x = x_init;
        } else if(*s == '\n') {
-          x = y_init; y += FONT_HEIGHT;
+          x = x_init; y += FONT_HEIGHT;
        } else {
-	  draw_char(*s, x, y, attr);
+	  draw_char(*s, x, y, color);
           x += FONT_WIDTH;
        }
        s++;
     }
 }
+

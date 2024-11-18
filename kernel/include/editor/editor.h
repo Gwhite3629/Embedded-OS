@@ -1,7 +1,7 @@
 #ifndef __EDITOR_H_
 #define __EDITOR_H_
 
-
+#include "../stdlib/types.h"
 
 struct environment {
     char *file_name; // Name of output file
@@ -16,6 +16,8 @@ struct environment {
     struct line *tmp1;
     struct line *tmp2;
     int quit;
+    int clr;
+    struct chr_dat info;
 };
 
 struct line {

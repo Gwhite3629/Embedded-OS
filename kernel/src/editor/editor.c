@@ -2,13 +2,15 @@
 #include <stdlib.h>
 #include <memory/malloc.h>
 #include <fs/ext2/file.h>
+#include <trace/strace.h>
 
 int editor(char *fname)
 {
+    push_trace("int editor(char*)","editor",fname,0,0,0);
     int ret = E_NOERR;
     struct environment *env;
 
-    ret = init_env(&env, 0, NULL);
+    ret = init_env(&env, 1, fname);
 
     while (!env->quit) {
         ret = input(&env);
@@ -22,12 +24,13 @@ int editor(char *fname)
 
 exit:
     destroy_env(&env);
-
+    pop_trace();
     return ret;
 }
 
 int init_env(struct environment **env, int v, char *fname)
 {
+    push_trace("int init_env(struct environment**,int,char*)","init_env",env,v,fname,0);
     int ret = E_NOERR;
 
     new((*env), 1, struct environment);
@@ -51,33 +54,41 @@ int init_env(struct environment **env, int v, char *fname)
     (*env)->quit = 0;
     (*env)->top = 0;
     (*env)->bottom = 23;
+    (*env)->clr = 0;
     init_line(env);
+
+    (*env)->info.x0 = 1300;
+    (*env)->info.y0 = 48;
+    (*env)->info.color = 0x919CA6;
 
     if ((*env)->valid_fname) {
         read_file(env);
     }
-
+    draw(env);
 exit:
-
+    pop_trace();
     return ret;
 }
 
 void init_line(struct environment **env)
 {
+    push_trace("void init_line(struct environment **)","init_line",env,0,0,0);
     (*env)->file_data[(*env)->index].index = 0;
     (*env)->file_data[(*env)->index].max = 0;
     memset((*env)->file_data[(*env)->index].ldata, '\0', 4096);
     (*env)->file_data[(*env)->index].ldata[0] = ' ';
     memset((*env)->file_data[(*env)->index].tmp1, '\0', 4096);
     memset((*env)->file_data[(*env)->index].tmp2, '\0', 4096);
+    pop_trace();
 }
 
 int read_file(struct environment **env)
 {
+    push_trace("int read_file(struct environment **)","read_file",env,0,0,0);
     int ret = E_NOERR;
     FILE *f = NULL;
 
-    f = f_open((*env)->file_name, 0);
+//    f = f_open((*env)->file_name, 0);
 
     unsigned int i = 0;
 
@@ -102,11 +113,13 @@ exit:
     if (f)
         f_close(f);
 
+    pop_trace();
     return ret;
 }
 
 int write_file(struct environment **env)
 {
+    push_trace("int write_file(struct environment **)","write_file",env,0,0,0);
     int ret = E_NOERR;
 
     FILE *f = NULL;
@@ -128,18 +141,18 @@ int write_file(struct environment **env)
         (*env)->new = 1;
     }
 
-    f = f_open((*env)->file_name, 0);
-
+ //   f = f_open((*env)->file_name, 0);
+/*
     for (unsigned long i = 0; i <= (*env)->max; i++) {
         f_write(f, sizeof(char) * (*env)->file_data[i].max, (*env)->file_data[i].ldata);
         f_putc(f, '\n');
     }
-
+*/
 exit:
     if (f) {
-        f_close(f);
+  //      f_close(f);
     }
-
+    pop_trace();
     return ret;
 }
 
@@ -155,7 +168,8 @@ exit:
 }
 
 void editorRefreshScreen(void) {
-    printk("\x1b[2J");
+    draw_rect(1296, 32, 1919, 240, 0x0, 1);
+    //printk("\x1b[2J");
 }
 
 int draw(struct environment **env)
@@ -176,41 +190,55 @@ int draw(struct environment **env)
         (*env)->bottom++;
     }
 
-    editorRefreshScreen();
+    if ((*env)->clr) {
+        editorRefreshScreen();
+        (*env)->clr = 0;
+    }
+    (*env)->info.x = (*env)->info.x0;
+    (*env)->info.y = (*env)->info.y0;
 
     for (unsigned long i = (*env)->top; i < (*env)->bottom; i++) {
         if (i <= (*env)->max) {
-            printk("%3ld: ", i);
+            print_screen(&(*env)->info, "%3ld: ", i);
+            //printk("%3ld: ", i);
             //write(STDOUT_FILENO, ": ", 2);
             if (i == ((*env)->index)) {
                 for (unsigned long j = 0; j <= (*env)->file_data[i].max; j++) {
                     if (j == ((*env)->file_data[i].index)){
                         if ((*env)->file_data[i].index == (*env)->file_data[i].max) {
-                            printk("\033[30m\033[47m ");
+                            print_screen(&(*env)->info, " ");
+                            //printk("\033[30m\033[47m ");
                             //write(STDOUT_FILENO, "\033[30m\033[47m ", 11);
-                            printk("\033[0m");
+                            //print_screen(&(*env)->info, "\033[0m");
+                            //printk("\033[0m");
                             //write(STDOUT_FILENO, "\033[0m", 4);
                         } else {
-                            printk("\033[30m\033[47m%c", (*env)->file_data[i].ldata[j]);
+                            print_screen(&(*env)->info, "%c", (*env)->file_data[i].ldata[j]);
+                            //printk("\033[30m\033[47m%c", (*env)->file_data[i].ldata[j]);
                             //write(STDOUT_FILENO, "\033[0m\033[47m", 9);
                             //write(STDOUT_FILENO, &(*env)->file_data[i].ldata[j], 1);
-                            printk("\033[0m");
+                            //print_screen(&(*env)->info, "\033[0m");
+                            //printk("\033[0m");
                             //write(STDOUT_FILENO, "\033[0m", 4);
                         }
                     } else {
-                        printk("%c", (*env)->file_data[i].ldata[j]);
+                        print_screen(&(*env)->info, "%c", (*env)->file_data[i].ldata[j]);
+                        //printk("%c", (*env)->file_data[i].ldata[j]);
                         //write(STDOUT_FILENO, &(*env)->file_data[i].ldata[j], 1);
                     }
                 }
-                printk("\n");
+                print_screen(&(*env)->info, "\n");
+                //printk("\n");
                 //write(STDOUT_FILENO, "\n", 1);
             } else {
-                printk("%s\n", (*env)->file_data[i].ldata);
+                print_screen(&(*env)->info, "%s\n", (*env)->file_data[i].ldata);
+                //printk("%s\n", (*env)->file_data[i].ldata);
                 //write(STDOUT_FILENO, (*env)->file_data[i].ldata, (*env)->file_data[i].max);
                 //write(STDOUT_FILENO, "\n", 1);
             }
         } else {
-            printk("~\n");
+            print_screen(&(*env)->info, "~\n");
+            //printk("~\n");
             //write(STDOUT_FILENO, "~\n", 2);
         }
     }
@@ -225,8 +253,9 @@ int input(struct environment **env)
     int ret = E_NOERR;
     char c = '\0';
     char str[9] = "\0\0\0\0\0\0\0\0\0";
-    while(!(*env)->quit) {
+    if (!(*env)->quit) {
         c = uart_getc();
+        printk(YELLOW("GOT INPUT: %x\n"), c);
         // Not updated
         if ((c >= 0x20) & (c < 0x7F)) {
             if ((*env)->file_data[(*env)->index].index == (*env)->file_data[(*env)->index].max) {
@@ -246,7 +275,7 @@ int input(struct environment **env)
             (*env)->file_data[(*env)->index].index++;
             (*env)->new = 1;
         // Updated
-        } else if (c == 0x7F) {
+        } else if (c == 0x8) {
             if ((*env)->file_data[(*env)->index].index == 0) {
                 if ((*env)->file_data[(*env)->index].max == 0) {
                     if ((*env)->index == 0) {
@@ -260,6 +289,7 @@ int input(struct environment **env)
                         alt((*env)->tmp1, (*env)->alloc_size, struct line);
                         alt((*env)->tmp2, (*env)->alloc_size, struct line);
                         (*env)->index--;
+                        (*env)->clr = 1;
                         (*env)->new = 1;
                     }
                 } else if ((*env)->index != 0) {
@@ -278,12 +308,14 @@ int input(struct environment **env)
                     (*env)->file_data[(*env)->index].index = (*env)->file_data[(*env)->index].max;
                     (*env)->file_data[(*env)->index].max += nb;
                     memset((*env)->file_data[(*env)->index].tmp1, '\0', 4096);
+                    (*env)->clr = 1;
                     (*env)->new = 1;
                 }
             } else if ((*env)->file_data[(*env)->index].index == (*env)->file_data[(*env)->index].max) {
                 (*env)->file_data[(*env)->index].ldata[(*env)->file_data[(*env)->index].index - 1] = '\0';
                 (*env)->file_data[(*env)->index].index--;
                 (*env)->file_data[(*env)->index].max--;
+                (*env)->clr = 1;
                 (*env)->new = 1;
             } else {
                 memcpy((*env)->file_data[(*env)->index].tmp1, (*env)->file_data[(*env)->index].ldata, (*env)->file_data[(*env)->index].index - 1);
@@ -296,6 +328,7 @@ int input(struct environment **env)
                 memset((*env)->file_data[(*env)->index].tmp2, '\0', 4096);
                 (*env)->file_data[(*env)->index].index--;
                 (*env)->file_data[(*env)->index].max--;
+                (*env)->clr = 1;
                 (*env)->new = 1;
             }
         // Updated
@@ -338,7 +371,7 @@ int input(struct environment **env)
                 }
             }
         // Updated
-        } else if (c == 0x0A) {
+        } else if (c == 0x0D) {
             (*env)->alloc_size++;
             alt((*env)->file_data, (*env)->alloc_size, struct line);
             alt((*env)->tmp1, (*env)->alloc_size, struct line);
@@ -412,6 +445,6 @@ int input(struct environment **env)
 	    memset(str, '\0', 9);
     }
 exit:
-    (*env)->quit = 1;
+    //(*env)->quit = 1;
     return ret;
 }
