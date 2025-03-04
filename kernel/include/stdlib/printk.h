@@ -6,12 +6,18 @@
 #include "types.h"
 #include "err.h"
 
-#define RED(s)      ("\x1b[1;31m" s "\x1b[1;0m")
-#define GREEN(s)    ("\x1b[1;32m" s "\x1b[1;0m")
-#define YELLOW(s)   ("\x1b[1;33m" s "\x1b[1;0m")
-#define BLUE(s)     ("\x1b[1;34m" s "\x1b[1;0m")
-#define MAGENTA(s)  ("\x1b[1;35m" s "\x1b[1;0m")
-#define CYAN(s)     ("\x1b[1;36m" s "\x1b[1;0m")
+#define RESET       "\x1b[22m"
+
+#define BOLD(s)     ("\x1b[1m" s RESET)
+#define DIM(s)      ("\x1b[2m" s RESET)
+#define BLINK(s)    ("\x1b[5m" s RESET)
+
+#define RED(s)      "\x1b[31m" s "\x1b[0m"
+#define GREEN(s)    "\x1b[32m" s "\x1b[0m"
+#define YELLOW(s)   "\x1b[33m" s "\x1b[0m"
+#define BLUE(s)     "\x1b[34m" s "\x1b[0m"
+#define MAGENTA(s)  "\x1b[35m" s "\x1b[0m"
+#define CYAN(s)     "\x1b[36m" s "\x1b[0m"
 
 int printk(char *fmt, ...);
 int print_screen(struct chr_dat *dat, char *format, ...);

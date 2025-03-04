@@ -37,7 +37,7 @@ int isspace(char c);
 int isprint(char c);
 
 char *strsep(char **stringp, const char *delim);
-list_t *str_split(const char *str, const char *delim, unsigned int *n_token);
+char **str_split(const char *str, char delim, unsigned int *n_token);
 char *list2str(list_t *list, char *delim);
 
 #endif // _STRING_H_

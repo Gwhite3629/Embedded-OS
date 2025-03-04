@@ -446,7 +446,10 @@ void *alloc(heap_t *h, uint32_t n)
         create_region(h, (((n + NEW_REGION_SIZE) / h->alignment) + 1)*h->alignment);
         ptr = alloc(h, n);
         return ptr;
-    }
+    }// else {
+      //  printk(GREEN("NEW PTR: %x\n"), ptr);
+      //  printk(GREEN("REG: %d, SIZE: %d\n"), i, n);
+   // }
 
     return ptr;
 }
@@ -552,6 +555,7 @@ void cull(heap_t *h, void *ptr)
     for (i = 1; i < h->n_regions; i++) {
         for (j = 0; j < h->regions[i]->n_chunks; j++) {
             if (h->regions[i]->chunks[j]->addr == ptr) {
+                //memzero(h->regions[i]->chunks[j]->addr, h->regions[i]->chunks[j]->size);
                 found = 1;
                 break;
             }
@@ -630,6 +634,7 @@ void *change(heap_t *h, void *ptr, int size)
 
     for (i = 1; i < h->n_regions; i++) {
         for (j = 0; j < h->regions[i]->n_chunks; j++) {
+    //        printk(YELLOW("reg[%d] chunk[%d] %8x\n"), i, j, h->regions[i]->chunks[j]->addr);
             if (h->regions[i]->chunks[j]->addr == ptr) {
                 found = 1;
                 break;
@@ -640,7 +645,10 @@ void *change(heap_t *h, void *ptr, int size)
         }
     }
 
+    //printk(GREEN("PTR: %x, n_reg: %d\n"), ptr, h->n_regions);
+    
     if (found == 0) {
+        printk(RED("NO REGION OF SIZE: %d BYTES\n"), size);
         return NULL;
     }
 

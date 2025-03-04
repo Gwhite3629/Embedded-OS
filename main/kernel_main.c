@@ -31,6 +31,68 @@ uint32_t shell(void);
 
 void draw_example(struct framebuffer *fb);
 
+int ls(char *buf)
+{
+    int ret = E_NOERR;
+    char c = 0;
+    char *spath = NULL;
+    fs_tree *dir = NULL;
+    printk(YELLOW("BUF: \"%s\", len: %d\n"), buf, strlen(buf));
+    printk(YELLOW("PWD: \"%s\", len: %d\n"), fs->pwd, strlen(fs->pwd));
+    if (strlen(buf) < 4) {
+        new(spath, strlen(fs->pwd) + 1, char);
+        memset(spath, 0, strlen(fs->pwd) + 1);
+        memcpy(spath, fs->pwd, strlen(fs->pwd));
+    } else {
+        new(spath, strlen(buf + 3) + 1, char);
+        memset(spath, 0, strlen(buf + 3) + 1);
+        memcpy(spath, buf + 3, strlen(buf + 3));
+    }
+
+    printk("Raw ls path: %s\n", spath);
+    int j = 0;
+    while (c = spath[j]) {
+        printk("%x ", c);
+        j++;
+    }
+    printk("\n");
+
+    if ((strlen(spath) == 1) & (spath[0] == '/')) {
+        dir = root;
+    } else {
+        struct entry_info res = traverse_fs(spath);
+        ret = res.ret;
+        if ((ret != E_NOERR) | (res.type != FS_DIR)) {
+            printk(RED("ls: invalid path\n"));
+            goto exit;
+        }
+        dir = res.entry->dir;
+    }
+   
+    printk("n entries: %d\n", dir->n_entries);
+
+    for (int i = 0; i < dir->n_entries; i++) {
+        printk("%1x ", dir->type[i]);
+        switch (dir->type[i]) {
+            case FS_FILE:
+                printk(DIM("%16s %8d\n"), dir->entries[i]->file->name, dir->entries[i]->file->size);
+                break;
+            case FS_DIR:
+                printk(BLUE("%16s %8d\n"), dir->entries[i]->dir->name, dir->entries[i]->dir->n_entries);
+                break;
+            default:
+                printk(DIM(YELLOW("UNKNOWN TYPE\n")));
+                break;
+        }
+    }
+
+exit:
+    if (spath) {
+        del(spath);
+    }
+    return ret;
+}
+
 int echo(char *buf)
 {
     printk("\n%s\n", buf+5);
@@ -51,7 +113,37 @@ int show_time(char *buf)
 
 int call_editor(char *buf)
 {
-    return editor(buf+5);
+    int ret = E_NOERR;
+    char c = 0;
+    char *spath = NULL;
+    printk(YELLOW("BUF: \"%s\", len: %d\n"), buf, strlen(buf));
+    printk(YELLOW("PWD: \"%s\", len: %d\n"), fs->pwd, strlen(fs->pwd));
+    if (strlen(buf) < 6) {
+        new(spath, strlen(fs->pwd) + 1, char);
+        memset(spath, 0, strlen(fs->pwd) + 1);
+        memcpy(spath, fs->pwd, strlen(fs->pwd));
+    } else {
+        new(spath, strlen(buf + 5) + 1, char);
+        memset(spath, 0, strlen(buf + 5) + 1);
+        memcpy(spath, buf + 5, strlen(buf + 5));
+    }
+
+    printk("Raw edit path: %s, %d\n", spath, strlen(spath));
+    int j = 0;
+    while (c = spath[j]) {
+        printk("%x ", c);
+        j++;
+    }
+    printk("\n");
+
+    ret = editor(spath);
+
+exit:
+    if (spath) {
+        del(spath);
+    }
+
+    return ret;
 }
 
 void main()
@@ -130,7 +222,7 @@ void main()
 
     printk(GREEN("EXT2: INITIALIZED\n"));
 
-    enable_interrupts();
+//    enable_interrupts();
 
     printk("Current Exception Level: %d\n", get_current_el());
 
@@ -166,13 +258,14 @@ command_t interpret(char *buf, int buflen)
     // Clear command
     } else if (!strncmp("clear", buf, 5)) {
         return &clear;
-    // Anything our shell doesn't know
     } else if (!strncmp("time", buf, 4)) {
         return &show_time;
     } else if (!strncmp("edit", buf, 4)) {
         return &call_editor;
     } else if (!strncmp("listperf", buf, 8)) {
         return &perf_list;
+    } else if (!strncmp("ls", buf, 2)) {
+        return &ls;
     } else if (buflen == 0) {
         printk("\n");
         return NULL;
@@ -200,6 +293,7 @@ int run(char *buf, int buflen)
             ret = perf_cleanup();
         }
     } else {
+        printk("\n");
         func = interpret(buf, buflen);
         if (func != NULL) { 
             ret = func(buf);
@@ -214,7 +308,9 @@ uint32_t shell(void)
     int ret = 0;
     char ch;
 	uint32_t buflen = 0;
-	char buf[4096];
+	char *buf;
+
+    new(buf, 4096, char);
 
     /* Enter our "shell" */
 
@@ -244,11 +340,14 @@ uint32_t shell(void)
 			default:
                 buf[buflen] = ch;
                 buflen++;
-		}
+                break;
+        }
         // Display character to screen
         uart_putc(ch);
         if (ret != 0) {
             printk("\nERROR: %d\n", ret);
         }
 	}
+exit:
+    return ret;
 }

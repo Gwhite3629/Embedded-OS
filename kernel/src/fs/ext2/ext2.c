@@ -68,6 +68,7 @@ void ext2_mkfile(FILE *file, char *name, uint16_t perm)
 {
     push_trace("void ext2_mkfile(FILE*,char*,uint16_t)","ext2_mkfile",file,name,perm,0);
     uint32_t index = alloc_inode();
+
     inode_base_t *inode = NULL;
     new(inode, 1, inode_base_t);
     read_inode_metadata(inode, index);
@@ -402,13 +403,11 @@ void ext2_open(FILE *file, uint32_t flags)
     push_trace("void ext2_open(FILE*,uint32_t)","ext2_open",file,flags,0,0);
     // Overwrite the file on open
     // Add flags for other modes and create them
-    if (flags & 1) {
-        inode_base_t * inode = NULL;
-        new(inode, 1, inode_base_t);
-        read_inode_metadata(inode, file->inode);
-        inode->size_lower = 0;
-        write_inode_metadata(inode, file->inode);
-    }
+
+    file->file_buffer = NULL;
+    new(file->file_buffer, file->size, char);
+    ext2_read(file, 0, file->size, file->file_buffer);
+
 exit:
     pop_trace();
 }
@@ -522,7 +521,7 @@ fs_tree *get_ext2_root(inode_base_t * inode)
     root.size = ((dirent_t *)test)[0].size;
     root.name_len = ((dirent_t *)test)[0].name_len;
     root.type = ((dirent_t *)test)[0].type;
-    new(root.name,root.name_len,char);
+    new(root.name,root.name_len + 1,char);
 
     for (int i = 0; i < root.name_len; i++) {
         root.name[i] = (char)(((dirent_t *)test)[0].name + i);
@@ -573,8 +572,12 @@ void initial_fs(struct block_device *dev)
     push_trace("void initial_fs(struct block_device)","initial_fs",dev,0,0,0);
     int ret = E_NOERR;
     new(fs, 1, EXT2_t);
+    new(fs->pwd, 2, char);
 
+    fs->pwd[0] = '/';
+    fs->pwd[1] = '\0';
     fs->dev = dev;
+    
 
 exit:
     pop_trace();
@@ -603,10 +606,7 @@ int assign_superblock(uint32_t super_sector)
     fs->blocks_per_group = fs->superblock->n_block_in_group;
     fs->inodes_per_group = fs->superblock->n_inode_in_group;
 
-    fs->n_groups = fs->superblock->n_blocks / fs->blocks_per_group;
-    if (fs->blocks_per_group * fs->n_groups < fs->n_groups) {
-        fs->n_groups++;
-    }
+    fs->n_groups = 1 + (fs->superblock->n_blocks-1) / fs->blocks_per_group;
 
     printk(CYAN("Block Size:            %10d\n"), fs->block_size);
     printk(CYAN("Inode Size:            %10d\n"), fs->superblock->inode_size);
@@ -629,17 +629,27 @@ int read_BGD(void)
 
     fs->BGD = NULL;
 
+    printk(YELLOW("Size of BGD: %d\n"), sizeof(block_group_descriptor_t));
+
     uint32_t n_sectors = ((sizeof(block_group_descriptor_t) * fs->n_groups) / 512) + 1;
     uint32_t bgd_block = ((2048) / fs->block_size) + 1;
+    uint32_t n_blocks = (fs->n_groups * sizeof(block_group_descriptor_t) / fs->block_size) + 1;
     uint32_t bgd_sector = bgd_block * 8;
 
-    //volatile uint32_t __attribute__((__packed__, aligned(4))) buf[n_sectors*512/4];
+    //volatile uint32_t __attribute__((__packed__, aligned(4))) buf[512/4];
 
-    new(fs->BGD, n_sectors*512 / sizeof(block_group_descriptor_t), block_group_descriptor_t);
+    uint8_t *tmp;
 
-    fs->dev->read((uint8_t *)fs->BGD, n_sectors, fs->start_block + bgd_sector);
+    new(tmp, n_blocks * fs->block_size, uint8_t);
 
-    //memcpy(fs->BGD, (const void *)buf, fs->n_groups * sizeof(block_group_descriptor_t));
+    fs->BGD = (block_group_descriptor_t *)tmp;
+
+    for (int i = 0; i < n_blocks; i++) {
+        fs->dev->read(((uint8_t *)fs->BGD + fs->block_size*i), fs->block_size / 512, \
+        fs->start_block + (bgd_block + i)*8);
+    }
+
+    //fs->dev->read((uint8_t *)fs->BGD, n_sectors, fs->start_block + bgd_sector);
 
     printk(CYAN("BGD INODE TABLE: %d\n"),\
     fs->BGD[0].inode_table_addr);
@@ -676,6 +686,24 @@ exit:
     return ret;
 }
 */
+
+int print_dirent(dirent_t *dir)
+{
+    int ret = 0;
+
+    printk(YELLOW("------ INODE %8d ------\n"), dir->inode_number);
+    printk("INODE SIZE: %8d\n", dir->size);
+    printk("INODE NAME LEN: %4d\n", dir->name_len);
+    printk("INODE TYPE: %2x\n", dir->type);
+    printk("INODE NAME:");
+    for (int i = 0; i < dir->name_len; i++) {
+        printk("%c", ((char *)(&dir->name))[i]);
+    }
+    printk("\n" YELLOW("-------- INODE END --------\n"));
+
+    return ret;
+}
+
 // Recurrent dirent reading function which
 int populate_recur(fs_tree *start)
 {
@@ -684,63 +712,101 @@ int populate_recur(fs_tree *start)
     char cur_name[256];
     dirent_t *tmp_dir;
 
+    inode_base_t *entry_inode = NULL;
     inode_base_t *cur_inode = NULL;
-    uint32_t *raw_block = NULL;
+    uint8_t *raw_block = NULL;
 
+    // Create Inode structure for start directory
     new(cur_inode, 1, inode_base_t);
-    new(raw_block, fs->block_size/4, uint32_t);
+    new(entry_inode, 1, inode_base_t);
 
+    // Read metadata from start directory
     read_inode_metadata(cur_inode, start->inode);
-    fs->dev->read((uint8_t *)raw_block, 8, fs->start_block + (cur_inode->blocks[0]*8));
-
+    printk(YELLOW("INDIRECT BLOCK POINTER: %d\n"), cur_inode->blocks[0]);
+    
+    // Create and read initial inode file blocks
+    new(raw_block, fs->block_size, uint8_t);
+    fs->dev->read(raw_block, 8, fs->start_block + (cur_inode->blocks[0]*8));
+/*
+    if (cur_inode != NULL) {
+        printk(YELLOW("Culling cur_inode\n"));
+        del(cur_inode);
+    }
+*/
+    // Read all dirents in inode data block
     do {
-        tmp_dir = ((dirent_t *)(raw_block + cur_offset));
+        // Get dirent at offset, offset is dynamic and depends on
+        // A field in the dirent
+        tmp_dir = ((dirent_t *)((uint32_t)raw_block + cur_offset));
         if (tmp_dir->type == 0) {break;}
 
         start->n_entries++;
+        printk(YELLOW("Resizing types\n"));
         alt(start->type, start->n_entries, uint8_t);
+        printk(YELLOW("Resizing entries\n"));
         alt(start->entries, start->n_entries, fs_entry *);
         for (int i = 0; i < tmp_dir->name_len; i++) {
-            cur_name[i] = (char)(tmp_dir->name + i);
+            cur_name[i] = ((char *)(&tmp_dir->name))[i];
         }
 
         start->type[start->n_entries - 1] = tmp_dir->type;
         new(start->entries[start->n_entries - 1], 1, fs_entry);
+
+        print_dirent(tmp_dir);
+
         switch (tmp_dir->type) {
             case FS_FILE:
                 new(start->entries[start->n_entries - 1]->file, 1, FILE);
                 FILE *tfile = start->entries[start->n_entries - 1]->file;
                 strncpy(tfile->name, cur_name, tmp_dir->name_len);
+                printk(CYAN("found file: %s\n"), tfile->name);
                 tfile->hash = hash32(tfile->name);
                 tfile->inode = tmp_dir->inode_number;
+                read_inode_metadata(entry_inode, tfile->inode);
+                tfile->size = entry_inode->lower_size;
+                tfile->create_time = entry_inode->creation_time;
+                tfile->access_time = entry_inode->last_access_time;
+                tfile->modify_time = entry_inode->last_mod_time;
+                tfile->flags = 0;
+                tfile->nlink = entry_inode->n_hard_links;
                 break;
             case FS_DIR:
                 new(start->entries[start->n_entries - 1]->dir, 1, fs_tree);
                 fs_tree *tdir = start->entries[start->n_entries - 1]->dir;
+                new(tdir->name, tmp_dir->name_len + 1, char);
+                memset(tdir->name, 0, tmp_dir->name_len + 1);
+                new(tdir->type, 1, uint8_t);
+                new(tdir->entries, 1, fs_entry *);
                 strncpy(tdir->name, cur_name, tmp_dir->name_len);
+                printk(CYAN("found dir: %s\n"), tdir->name);
                 tdir->hash = hash32(tdir->name);
                 tdir->inode = tmp_dir->inode_number;
-                ret = populate_recur(tdir);
-                if (ret != E_NOERR) {
-                    printk(RED("VFS: failed to populate in recurrence\n"));
-                    goto exit;
+                tdir->n_entries = 0;
+                if ((strncmp(tdir->name, ".", 1) != 0) & (strncmp(tdir->name, "..", 1) != 0)) {
+                    printk(YELLOW("RECURSING\n"));
+                    ret = populate_recur(tdir);
+                    if (ret != E_NOERR) {
+                        printk(RED("VFS: failed to populate in recurrence %x\n"), ret);
+                        goto exit;
+                    }
                 }
                 break;
             default:
                 start->entries[start->n_entries - 1] = NULL;
-                printk(YELLOW("Unknown file type: placing dummy\n"));
+                printk(YELLOW("Unknown file type %d: placing dummy\n"), tmp_dir->type);
                 break;
         }
+        printk(CYAN("Next dirent: %d ahead\n"), tmp_dir->size);
         cur_offset += tmp_dir->size;
     } while(tmp_dir->type);
     
 exit:
-    if (cur_inode) {
-        del(cur_inode);
-    }
-    if (raw_block) {
+/*
+    if (raw_block != NULL) {
+        printk(YELLOW("Culling raw_block\n"));
         del(raw_block);
     }
+*/
     return ret;
 }
 

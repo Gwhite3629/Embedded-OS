@@ -86,6 +86,8 @@ int fs_readlink(FILE *file, char *buf, uint32_t size);
 
 int file_mount(char *mountpoint, FILE *file);
 
+struct entry_info traverse_fs(const char *path);
+
 extern fs_tree *root;
 
 #endif // _FILE_H_

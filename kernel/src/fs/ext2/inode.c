@@ -14,13 +14,15 @@ void read_inode_metadata(inode_base_t *inode, uint32_t index) {
     uint32_t group = (index - 1) / fs->inodes_per_group;
     // The block that points to a table of all inodes
     uint32_t inode_table_block = fs->BGD[group].inode_table_addr;
-  
+ 
+    printk("n_dir: %d\n",fs->BGD[group].n_dir);
+
     uint32_t idx = (index - 1) % fs->inodes_per_group;
     uint32_t block_offset = (idx * fs->superblock->inode_size) / fs->block_size;
     uint32_t offset_in_block = (idx * fs->superblock->inode_size) % fs->block_size;
     uint32_t block_num = inode_table_block + block_offset;
 
-    uint32_t n_sectors = fs->superblock->inode_size / (512 + 1);
+    uint32_t n_sectors = (fs->superblock->inode_size / 512) + 1;
 
     printk(CYAN("READING INODE:     %d\n"), index);
     printk(CYAN("group:             %d\n"), group);
@@ -32,14 +34,20 @@ void read_inode_metadata(inode_base_t *inode, uint32_t index) {
     printk(CYAN("n_sectors:         %d\n"), n_sectors);
 
     uint16_t *block_buf = NULL;
-    new(block_buf, n_sectors * 512 / 2, uint16_t);
+    if (n_sectors > 0) {
+        new(block_buf, n_sectors * 512 / 2, uint16_t);
     
-    fs->dev->read((uint8_t *)block_buf, n_sectors, fs->start_block + block_num * 8);
+        fs->dev->read((uint8_t *)block_buf, n_sectors, fs->start_block + block_num * 8);
 
-    memcpy(inode, &block_buf[offset_in_block / 2], fs->superblock->inode_size);
+        memcpy(inode, &block_buf[offset_in_block / 2], fs->superblock->inode_size);
+    }
+
 exit:
+    if (block_buf) {
+        printk(YELLOW("Culling block_buf\n"));
+        del(block_buf);
+    }
     pop_trace();
-    del(block_buf);
 }
 
 void write_inode_metadata(inode_base_t *inode, uint32_t index) {
@@ -80,6 +88,8 @@ uint32_t read_inode_filedata(inode_base_t *inode, uint32_t offset, uint32_t size
     uint32_t start_off = offset % fs->block_size;
     // How much bytes to read for the end block
     uint32_t end_size = end_offset - end_block * fs->block_size;
+
+    printk("start_off: %d, end_off: %d\n", start_off, end_size);
 
     uint32_t i = start_block;
     uint32_t cur_off = 0;

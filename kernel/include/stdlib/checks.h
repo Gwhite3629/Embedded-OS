@@ -1,5 +1,5 @@
 #ifndef _CHECKS_H_
-#define _CHECK_H_
+#define _CHECKS_H_
 
 #include "err.h"
 

@@ -36,7 +36,8 @@ int init_env(struct environment **env, int v, char *fname)
     new((*env), 1, struct environment);
 
     if (v) {
-        new((*env)->file_name, strlen(fname), char);
+        new((*env)->file_name, strlen(fname)+1, char);
+        memset((*env)->file_name, 0, strlen(fname)+1);
         memcpy((*env)->file_name, fname, strlen(fname)*sizeof(char));
         (*env)->valid_fname = 1;
     } else {
@@ -88,7 +89,7 @@ int read_file(struct environment **env)
     int ret = E_NOERR;
     FILE *f = NULL;
 
-//    f = f_open((*env)->file_name, 0);
+    f = f_open((*env)->file_name, 0);
 
     unsigned int i = 0;
 

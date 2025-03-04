@@ -60,7 +60,7 @@ typedef struct block_group_descriptor {
     uint16_t n_dir;
     uint16_t pad1;
     uint8_t bg_reserved[12];
-} __attribute__((__packed__, __aligned__(1))) block_group_descriptor_t; // 32 bytes
+} __attribute__((__packed__)) block_group_descriptor_t; // 32 bytes
 
 typedef struct EXT2 {
     struct block_device *dev;
@@ -87,6 +87,8 @@ typedef struct FILE {
     uint32_t nlink;
 
     EXT2_t *fs;
+
+    char *file_buffer;
 
     uint32_t cur_offset;
     int refcount;

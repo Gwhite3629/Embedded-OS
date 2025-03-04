@@ -20,24 +20,19 @@ void *memcpy(void *dest, const void *src, size_t n)
 
 void *memmove(void *dest, const void *src, size_t n)
 {
-    char *bsrc = (char *)src;
-    char *bdest = (char *)dest;
+    char *d = dest;
+	const char *s = src;
 
-    if (bdest == NULL) {
-        return NULL;
-    }
+	if (d==s) return d;
+	if ((uintptr_t)s-(uintptr_t)d-n <= -2*n) return memcpy(d, s, n);
 
-    char temp[n];
+	if (d<s) {
+		for (; n; n--) *d++ = *s++;
+	} else {
+		while (n) n--, d[n] = s[n];
+	}
 
-    for (size_t i = 0; i < n; i++) {
-        temp[i] = bsrc[i];
-    }
-
-    for (size_t i = 0; i < n; i++) {
-        bdest[i] = temp[i];
-    }
-
-    return bdest;
+    return dest;
 }
 
 int strlen(const char *s1)
@@ -276,23 +271,64 @@ char *strsep(char **stringp, const char *delim)
     }
 }
 
-list_t *str_split(const char *str, const char *delim, unsigned int *n_token)
+char **str_split(const char *str, char delim, unsigned int *n_token)
 {
-    list_t *ret_list = list_create();
-    char *s = strdup(str);
-    char *token, *rest = s;
-    while ((token = strsep(&rest, delim)) != NULL) {
-        if(!strcmp(token, ".")) continue;
-        if(!strcmp(token, "..")) {
-            if(list_size(ret_list) > 0) list_pop(ret_list);
-            continue;
-        }
-        list_push(ret_list, strdup(token));
-        if(n_token) (*n_token)++;
+    char **sep_str = NULL;
+    char *host_str = NULL;
+    char *start = NULL;
+    char *end = NULL;
+    
+    char c;
+    int start_off = 0;
+    int end_off = strlen(str);
+
+    // Clear leading and trailing delim characters
+    while (str[start_off] == delim) {
+        start_off++;
     }
-    del(s);
+
+    while (str[end_off - 1] == delim) {
+        end_off--;
+    }
+
+    // +2 because of trailing null and end_off -1
+    new(host_str, end_off - start_off + 2, char);
+    strncpy(host_str, str + start_off, end_off - start_off + 1);
+   
+    printk("host_str %s\n", host_str);
+    
+    start = host_str;
+
+    new(sep_str, 1, char *);
+    *n_token = 0;
+
+    int j = strlen(host_str);
+    for (int i = 0; i < j; i++) {
+        if (host_str[i] == delim) {
+            while (host_str[i + 1] == delim) {
+                j -= 1;
+                memmove(&host_str[i],&host_str[i+1],j-i);
+                host_str[j] = '\0';
+            }
+        }
+    }
+
+    while (c = *host_str++) {
+        if (c == delim) {
+            (*n_token)++;
+            alt(sep_str, *n_token + 1, char *);
+            sep_str[*n_token - 1] = start;
+            start = host_str;
+            host_str[-1] = '\0';
+        }
+    }
+
+    (*n_token)++;
+    alt(sep_str, (*n_token + 1), char *);
+    sep_str[*n_token - 1] = start;
+
 exit:
-    return ret_list;
+    return sep_str;
 }
 
 char *list2str(list_t *list, char *delim)

@@ -840,7 +840,7 @@ size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba)
             return E_DISKERR;
         }
         int done = 0;
-        if ((uint32_t)buffer & 0x03) {
+        if (!((uint32_t)buffer & 0x03)) {
             while (done < 512) {
                 int data = mmio_read(EMMC_DATA);
                 buffer[done++] = (data >> 0 ) & 0xff;

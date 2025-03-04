@@ -48,6 +48,21 @@ uint32_t f_write(FILE *file, uint32_t size, char *buffer)
     return -1;
 }
 
+FILE *f_open(const char *name, uint32_t flags)
+{
+    struct entry_info entry;
+    entry = traverse_fs(name);
+    
+    if (entry.type != FS_FILE) {
+        printk(RED("Entry type not a file\n"));
+        return NULL;
+    }
+
+    fs_open(entry.entry->file, flags);
+
+    return entry.entry->file;
+}
+
 void fs_open(FILE *file, uint32_t flags)
 {
     push_trace("void fs_open(FILE*,uint32_t)","fs_open",file,flags,0,0);
@@ -82,9 +97,12 @@ char* f_gets (FILE* fp, int len, char* buff)
 	unsigned int rc;
 	uint32_t dc;
     unsigned int ct;
+    unsigned int off = 0;
+
 
 	while (nc < len) {
-        rc = f_read(fp, 1, s);		/* Get a code unit */
+        strncpy(s, fp->file_buffer + off, 4);
+        off += 4;
         if (rc != 1) break;			/* EOF? */
         dc = s[0];
         if (dc >= 0x80) {			/* Multi-byte sequence? */
@@ -399,25 +417,30 @@ struct entry_info traverse_fs(const char *path)
     int ret = E_NOERR;
     int i = 0;
     int found = 0;
-    list_t *path_list = NULL;
+    char **path_list = NULL;
     unsigned int n_token = 0;
 
     struct entry_info entry_return;
 
-    char *use_path;
+    char *use_path = NULL;
+    char *t;
+    char c;
 
-    new(use_path,strlen(path),char);
-    
+    new(use_path,strlen(path)+1+strlen(fs->pwd),char);
+    memset(use_path,0,strlen(path)+1+strlen(fs->pwd));
+
     int plen = strlen(path);
+    printk("plen: %d\n", plen);
 
     // Relative case, prepend pwd
     // THIS NEEDS TO BE A PID RELATIVE VALUE
     // CURRENTLY GLOBAL KERNEL VALUE HELD IN FS
-    // PWD also must begin with '/' but not end with '/' unless root
+    // PWD also must begin with '/'
     if (path[0] != '/') {
-        if ((fs->pwd != NULL) & (fs->pwd[strlen(fs->pwd) - 1] != '/')) {
+        if (fs->pwd != NULL) {
             strncpy(use_path,fs->pwd,strlen(fs->pwd));
             strncat(use_path,path,plen);
+            use_path[plen+strlen(fs->pwd)] = '\0';
         } else {
             printk(RED("VFS: pwd invalid\n"));
             ret = E_BADPATH;
@@ -425,11 +448,26 @@ struct entry_info traverse_fs(const char *path)
         }
     } else {
         strncpy(use_path,path,plen);
+        use_path[plen] = '\0';
     }
 
+    printk("altered search path: %s\n", use_path);
+
     // Get linked list of path names, values are strings
-    path_list = str_split(use_path,"/",&n_token);
+    path_list = str_split(use_path,'/',&n_token);
     
+    printk("n_tokens: %d\n", n_token);
+
+    for (int i = 0; i < n_token; i++) {
+        printk("path string: %s, ", path_list[i]);
+        int j = 0;
+        while (c = path_list[i][j]) {
+            printk("%x ", c);
+            j++;
+        }
+        printk("\n");
+    }
+
     // Path has no entries, root is handled seperately
     if ((n_token == 0) | (path_list == NULL)) {
         printk(RED("Failed to traverse: null path\n"));
@@ -438,7 +476,6 @@ struct entry_info traverse_fs(const char *path)
     }
 
     fs_tree *fs_head = root;
-    listnode_t *t = path_list->head;
     // Traversal of only directories
     for (int i = 0; i < n_token - 1; i++) {
         // Check for good search conditions:
@@ -446,7 +483,7 @@ struct entry_info traverse_fs(const char *path)
         // Path has valid string
         // VFS dir has '.' and '..' minimum
         // VFS dir has real entries
-        if ((found == 0) | (t == NULL) | (fs_head->n_entries < 2) | (fs_head->entries == NULL)) {
+        if ((t == NULL) | (fs_head->n_entries < 2) | (fs_head->entries == NULL)) {
             printk(RED("VFS: path hashing failed\n"));
             ret = E_BADPATH;
             goto exit;
@@ -454,44 +491,51 @@ struct entry_info traverse_fs(const char *path)
 
         found = 0;
 
+        t = path_list[i];
+
         // Traverse all VFS dir entries and assume dir type
         // Assumption is safe because an invalid access is a read
         for (int j = 0; j < fs_head->n_entries; j++) {
-            if (fs_head->entries[j]->dir->hash == hash32(t->value)) {
+            if (fs_head->entries[j]->dir->hash == hash32(t)) {
                 fs_head = fs_head->entries[j]->dir;
                 found = 1;
                 break;
             }
         }
-
-        // Next path string
-        t = t->next;
     }
 
     // Path not valid, fail
-    if (found == 0) {
+    if ((found == 0) & (n_token != 1)) {
         printk(RED("VFS: path hashing failed\n"));
         ret = E_BADPATH;
         goto exit;
     }
 
     uint32_t hash = 0;
+    t = path_list[n_token - 1];
 
     // Type agnostic endpoint, can add more types here eventually
     for (int j = 0; j < fs_head->n_entries; j++) {
         switch (fs_head->type[j]) {
             case FS_FILE:
                 hash = fs_head->entries[j]->file->hash;
+                printk("Testing: \n\tpath: %s, entry: %s\n", t,\
+                fs_head->entries[j]->file->name); 
+                printk("\tpath: %8x, entry: %8x\n",hash32(t),hash);
                 break;
             case FS_DIR:
                 hash = fs_head->entries[j]->dir->hash;
+                printk("Testing: \n\tpath: %s, entry: %s\n",t,\
+                fs_head->entries[j]->dir->name); 
+                printk("\tpath: %8x, entry: %8x\n",hash32(t),hash);
                 break;
             default:
                 printk(RED("VFS: invalid file type\n"));
                 ret = E_BADPATH;
                 goto exit;
         }
-        if (hash == hash32(t->value)) {
+        if (hash == hash32(t)) {
+            printk("got final hash: %8x\n", hash);
             entry_return.entry = fs_head->entries[j];
             entry_return.type = fs_head->type[j];
             break;
@@ -499,8 +543,14 @@ struct entry_info traverse_fs(const char *path)
     }
 
 exit:
+    if (path_list[0]) {
+        del(path_list[0]);
+    }
     if (path_list) {
         del(path_list);
+    }
+    if (use_path) {
+        del(use_path);
     }
     entry_return.ret = ret;
     return entry_return;
