@@ -20,13 +20,13 @@ void handle_error(uint64_t x0);
 
 void handle_irq(void);
 
-err_t handle_irq_event(irq_t * q);
-
 void init_vectors(void);
 
 void enable_interrupts(void);
 
 void disable_interrupts(void);
+
+void memory_barrier(void);
 
 void interrupt_barrier(void);
 

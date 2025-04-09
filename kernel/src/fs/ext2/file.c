@@ -22,15 +22,17 @@ uint32_t f_read(FILE *file, uint32_t size, char *buffer)
 {
     push_trace("uint32_t f_read(FILE*,uint32_t,char*)","f_read",file,size,buffer,0);
     uint32_t offset = file->cur_offset;
-    if (file) {
-        unsigned int ret = ext2_read(file, offset, size, buffer);
-        file->cur_offset += ret;
-        pop_trace();
-        return ret;
+    if (!file) return -1;
+    if ((size + offset) > file->size) return -1;
+    if (file->file_buffer == NULL) { 
+        fs_open(file, 0);
     }
 
+    memcpy(buffer, (file->file_buffer + offset), size);
+    file->cur_offset += ret;
+
     pop_trace();
-    return -1;
+    return ret;
 }
 
 uint32_t f_write(FILE *file, uint32_t size, char *buffer)
@@ -38,7 +40,9 @@ uint32_t f_write(FILE *file, uint32_t size, char *buffer)
     push_trace("uint32_t f_write(FILE*,uint32_t,char*)","f_write",file,size,buffer,0);
     uint32_t offset = file->cur_offset;
     if (file) {
+//        disable_interrupts();
         unsigned int ret = ext2_write(file, offset, size, buffer);
+//        enable_interrupts();
         file->cur_offset += ret;
         pop_trace();
         return ret;
@@ -72,7 +76,10 @@ void fs_open(FILE *file, uint32_t flags)
     }
     if (file->refcount >= 0) file->refcount++;
     file->cur_offset = 0;
+
+//    disable_interrupts();
     ext2_open(file, flags);
+//    enable_interrupts();
 
     pop_trace();
 }

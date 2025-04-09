@@ -2,9 +2,9 @@
 CROSS = aarch64-linux-gnu-
 CC = gcc
 AS = as
-ASFLAGS = -mcpu=cortex-a72+nosimd
+ASFLAGS = -mcpu=cortex-a72+nosimd+nosve
 DISABLE_WARN = -Wno-unused-function -Wno-unused-variable -Wno-attributes
-CFLAGS = -Wall -O1 -mcpu=cortex-a72+nosimd -mstrict-align -nostartfiles -ffreestanding -nostdlib $(DISABLE_WARN)
+CFLAGS = -Wall -O3 -mcpu=cortex-a72+nosimd+nosve+nofp -mstrict-align -nostartfiles -ffreestanding -nostdlib $(DISABLE_WARN)
 LFLAGS = --no-undefined -T $(LINKER_SCRIPT)
 
 LINKER_SCRIPT = $(srctree)/kernel.ld

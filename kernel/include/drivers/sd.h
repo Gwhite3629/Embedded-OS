@@ -307,6 +307,7 @@ uint32_t sd_cmd(unsigned int code, unsigned int arg);
 int sd_clk(unsigned int f);
 void sd_gpio(void);
 
+int sd_reset(void);
 int sd_init(void);
 
 size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba);

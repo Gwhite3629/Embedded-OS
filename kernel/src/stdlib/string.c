@@ -313,7 +313,7 @@ char **str_split(const char *str, char delim, unsigned int *n_token)
         }
     }
 
-    while (c = *host_str++) {
+    while ((c = *host_str++)) {
         if (c == delim) {
             (*n_token)++;
             alt(sep_str, *n_token + 1, char *);

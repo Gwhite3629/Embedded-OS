@@ -42,6 +42,8 @@ void read_inode_metadata(inode_base_t *inode, uint32_t index) {
         memcpy(inode, &block_buf[offset_in_block / 2], fs->superblock->inode_size);
     }
 
+    printk(CYAN("size_lower:        %d\n"), inode->size_lower);
+
 exit:
     if (block_buf) {
         printk(YELLOW("Culling block_buf\n"));
@@ -105,6 +107,7 @@ uint32_t read_inode_filedata(inode_base_t *inode, uint32_t offset, uint32_t size
         del(block_buf);
         i++;
     }
+
 exit:
     pop_trace();
     return end_offset - offset;
@@ -170,7 +173,7 @@ void write_inode_block(inode_base_t *inode, uint32_t iblock, char *buf) {
 void read_disk_block(uint32_t block, char *buf) {
     push_trace("void read_disk_block(uint32_t,char*)","read_disk_block",block,buf,0,0);
     // Simply call the hard disk/floppy/whatever driver to read two consecutive sectors
-    fs->dev->read((uint8_t *)buf, fs->block_size / 512, fs->start_block + 8 * block);
+    fs->dev->read((uint8_t *)buf, 8, fs->start_block + 8 * block);
     pop_trace();
 }
 
@@ -196,6 +199,7 @@ int alloc_inode_metadata_block(uint32_t *block_ptr, inode_base_t *inode, uint32_
 }
 
 uint32_t get_disk_block_number(inode_base_t *inode, uint32_t inode_block) {
+    push_trace("uint32_t get_disk_block_number(inode_base_t*,uint32_t)","get_disk_block_number",inode,inode_block,0,0);
     unsigned int p = fs->block_size / 4, ret = E_NOERR;
     int a, b, c, d, e, f, g;
     unsigned int *tmp = NULL;
@@ -234,6 +238,7 @@ uint32_t get_disk_block_number(inode_base_t *inode, uint32_t inode_block) {
     }
 
 exit:
+    pop_trace();
     cull(global_heap, tmp);
     return ret;
 }

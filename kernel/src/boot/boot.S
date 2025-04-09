@@ -26,19 +26,19 @@ _start:
 
     // running at EL3?
     cmp     x0, #12
-    bne     5f
+    bne     3f
     // should never be executed, just for completeness
     mov     x2, #0x5b1
     msr     scr_el3, x2
     mov     x2, #0x3c9
     msr     spsr_el3, x2
-    adr     x2, 5f
+    adr     x2, 3f
     msr     elr_el3, x2
     eret
 
     // running at EL2?
-5:  cmp     x0, #4
-    beq     5f
+3:  cmp     x0, #4
+    beq     4f
     msr     sp_el1, x1
     // enable CNTP for EL1
     mrs     x0, cnthctl_el2
@@ -57,23 +57,23 @@ _start:
     // change execution level to EL1
     mov     x2, #0x3c4
     msr     spsr_el2, x2
-    adr     x2, 5f
+    adr     x2, 4f
     msr     elr_el2, x2
     eret
 
-5:  
+4:  
     mov     x1, #STACK
     mov     sp, x1
 
     // clear bss
     ldr     x1, =__bss_start
     ldr     w2, =__bss_size
-3:  cbz     w2, 4f
+5:  cbz     w2, 6f
     str     xzr, [x1], #8
     sub     w2, w2, #1
-    cbnz    w2, 3b
+    cbnz    w2, 5b
 
     // jump to C code, should not return
-4:  bl      main
+6:  bl      main
     // for failsafe, halt this core too
     b       1b

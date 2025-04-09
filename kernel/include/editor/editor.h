@@ -7,25 +7,12 @@ struct environment {
     char *file_name; // Name of output file
     int valid_fname; // Indicates if user specified file at startup
     int new; // Indicates if there is a new character to write
-    struct line *file_data; // File contents
+    char *file_data; // File contents
+    uint32_t index;
     unsigned long alloc_size; // Current size of file
-    unsigned long index; // Current line number
-    unsigned long max; // Max number of lines typed
-    unsigned long top;
-    unsigned long bottom;
-    struct line *tmp1;
-    struct line *tmp2;
     int quit;
     int clr;
     struct chr_dat info;
-};
-
-struct line {
-    char ldata[4096]; // Characters in current line
-    unsigned long index; // Current index in line
-    unsigned long max; // Max index in line
-    char tmp1[4096];
-    char tmp2[4096];
 };
 
 int editor(char *fname);

@@ -21,7 +21,7 @@
 .equ S_FRAME_SIZE,    256
 
 .macro k_entry
-    sub sp, sp, #192
+    sub sp, sp, #S_FRAME_SIZE
     stp	x0, x1, [sp, #0]
 	stp	x2, x3, [sp, #16]
 	stp	x4, x5, [sp, #32]
@@ -31,8 +31,13 @@
 	stp	x12, x13, [sp, #96]
 	stp	x14, x15, [sp, #112]
 	stp	x16, x17, [sp, #128]
-	stp	x18, x29, [sp, #144]
-    stp x30, xzr, [sp, #160]
+	stp	x18, x19, [sp, #144]
+    stp x20, x21, [sp, #160]
+    stp x22, x23, [sp, #176]
+    stp x24, x25, [sp, #192]
+    stp x26, x27, [sp, #208]
+    stp x28, x29, [sp, #224]
+    stp x30, xzr, [sp, #240]
 .endm
 
 .macro k_exit
@@ -45,10 +50,14 @@
 	ldp	x12, x13, [sp, #96]
 	ldp	x14, x15, [sp, #112]
 	ldp	x16, x17, [sp, #128]
-	ldp	x18, x29, [sp, #144]
-    ldp x30, xzr, [sp, #160]
-    add sp, sp, #192
-    eret
+	ldp	x18, x19, [sp, #144]
+    ldp x20, x21, [sp, #160]
+    ldp x22, x23, [sp, #176]
+    ldp x24, x25, [sp, #192]
+    ldp x26, x27, [sp, #208]
+    ldp x28, x29, [sp, #224]
+    ldp x30, xzr, [sp, #240]
+    add sp, sp, #S_FRAME_SIZE
     eret
 .endm
 
@@ -59,40 +68,33 @@
     k_exit
 .endm
 
+.macro ventry label
+.align 7
+    b \label
+.endm
+
+.align 11
 .globl vectors
-.balign 2048
 vectors:
-    b S_EL1t
-.balign 0x80   
-    b I_EL1t
-.balign 0x80
-    b F_EL1t
-.balign 0x80
-    b E_EL1t
-.balign 0x80
-    b S_EL1h
-.balign 0x80
-    b I_EL1h
-.balign 0x80
-    b F_EL1h
-.balign 0x80
-    b E_EL1h
-.balign 0x80
-    b S_EL0_64
-.balign 0x80
-    b I_EL0_64
-.balign 0x80
-    b F_EL0_64
-.balign 0x80
-    b E_EL0_64
-.balign 0x80
-    b S_EL0_32
-.balign 0x80
-    b I_EL0_32
-.balign 0x80
-    b F_EL0_32
-.balign 0x80
-    b E_EL0_32
+    ventry S_EL1t
+    ventry I_EL1t
+    ventry F_EL1t
+    ventry E_EL1t
+
+    ventry S_EL1h
+    ventry I_EL1h
+    ventry F_EL1h
+    ventry E_EL1h
+    
+    ventry S_EL0_64
+    ventry I_EL0_64
+    ventry F_EL0_64
+    ventry E_EL0_64
+    
+    ventry S_EL0_32
+    ventry I_EL0_32
+    ventry F_EL0_32
+    ventry E_EL0_32
 
 S_EL1t:
     handle_invalid S_INV_EL1t

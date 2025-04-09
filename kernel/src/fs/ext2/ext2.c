@@ -403,10 +403,12 @@ void ext2_open(FILE *file, uint32_t flags)
     push_trace("void ext2_open(FILE*,uint32_t)","ext2_open",file,flags,0,0);
     // Overwrite the file on open
     // Add flags for other modes and create them
-
-    file->file_buffer = NULL;
-    new(file->file_buffer, file->size, char);
-    ext2_read(file, 0, file->size, file->file_buffer);
+    
+    if (file->file_buffer == NULL) {
+        new(file->file_buffer, file->size, char);
+        printk(GREEN("Created File buffer of size: %d\n"), file->size);
+        ext2_read(file, 0, file->size, file->file_buffer);
+    }
 
 exit:
     pop_trace();
@@ -414,6 +416,10 @@ exit:
 
 void ext2_close(FILE *file)
 {
+    if (file->file_buffer != NULL) {
+        del(file->file_buffer);
+    }
+exit:
     return;
 }
 
@@ -723,10 +729,22 @@ int populate_recur(fs_tree *start)
     // Read metadata from start directory
     read_inode_metadata(cur_inode, start->inode);
     printk(YELLOW("INDIRECT BLOCK POINTER: %d\n"), cur_inode->blocks[0]);
-    
-    // Create and read initial inode file blocks
-    new(raw_block, fs->block_size, uint8_t);
-    fs->dev->read(raw_block, 8, fs->start_block + (cur_inode->blocks[0]*8));
+   
+    int n_blocks = (cur_inode->n_sectors/8) + 1;
+
+    new(raw_block, fs->block_size*n_blocks, uint8_t);
+
+    for (int i = 0; (i < n_blocks) & (i < 12); i++) {
+        // Create and read initial inode file blocks
+        fs->dev->read(raw_block + fs->block_size*i, 8, fs->start_block + (cur_inode->blocks[i]*8));
+    }
+
+    // Handle indirect blocks
+    if (n_blocks > 12) {
+       // Ignored for now
+       // Who has more than 12 blocks worth of dirs in one dir
+    }
+
 /*
     if (cur_inode != NULL) {
         printk(YELLOW("Culling cur_inode\n"));
@@ -763,7 +781,7 @@ int populate_recur(fs_tree *start)
                 tfile->hash = hash32(tfile->name);
                 tfile->inode = tmp_dir->inode_number;
                 read_inode_metadata(entry_inode, tfile->inode);
-                tfile->size = entry_inode->lower_size;
+                tfile->size = entry_inode->size_lower;
                 tfile->create_time = entry_inode->creation_time;
                 tfile->access_time = entry_inode->last_access_time;
                 tfile->modify_time = entry_inode->last_mod_time;

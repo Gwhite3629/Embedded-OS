@@ -23,3 +23,5 @@
 #include "stdlib/printk.h"
 #include "stdlib/types.h"
 #include "stdlib/hash.h"
+#include "stdlib/shell.h"
+#include "stdlib/commands.h"

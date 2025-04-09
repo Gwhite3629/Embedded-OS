@@ -1,5 +1,4 @@
 obj-u = $(utree)/lib
-obj-u += $(utree)/src
 
 $(obj-u):
 	for i in $(obj-u); do \

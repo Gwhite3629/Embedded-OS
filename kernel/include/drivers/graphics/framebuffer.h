@@ -30,7 +30,7 @@ enum {
 
 extern unsigned char font[FONT_NUMGLYPHS][FONT_BPG];
 
-extern struct framebuffer fb;
+extern volatile struct framebuffer fb;
 
 uint32_t init_framebuffer(uint32_t width, uint32_t height, uint32_t depth);
 

@@ -812,17 +812,22 @@ int sd_wait_data(void)
 
 size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba)
 {
+    int ret = E_NOERR;
     int r,c=0,d;
     if(num<1) {
         num=1;
     }
     if ((r = ensure_data_mode())) {
         printk(RED("SD: FAILED TO ACQUIRE CORRECT MODE\n"));
-        return r;
+        ret = r;
+        goto exit;
     }
     printk("sd_read lba: %x, num: %d\n", lba, num);
 
-    if (sd_wait_data()) return E_TIMEOUT;
+    if (sd_wait_data()) {
+        ret = E_TIMEOUT;
+        goto exit;
+    }
 
     mmio_write(EMMC_BLKSIZECNT, (num << 16) | 512);
 
@@ -837,7 +842,8 @@ size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba)
         if ((r = sd_int(EMMC_IRPT_READ_RDY))) {
             printk(RED("SD: FAILED TO READ DATA\n"));
             emmc_dev->last_error = r;
-            return E_DISKERR;
+            ret = E_DISKERR;
+            goto exit;
         }
         int done = 0;
         if (!((uint32_t)buffer & 0x03)) {
@@ -861,17 +867,19 @@ size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba)
     if (c != num) {
         printk(RED("SD: Read Transfer Incomplete: %d/%d\n"), c, num);
         printk(RED("SD: Read Transfer: %8x %8x %8x %8x\n"),\
-            mmio_read(EMMC_STATUS), mmio_read(EMMC_INTERRUPT),\
-            mmio_read(EMMC_RESP0), mmio_read(EMMC_BLKSIZECNT));
-            return E_TIMEOUT;
+        mmio_read(EMMC_STATUS), mmio_read(EMMC_INTERRUPT),\
+        mmio_read(EMMC_RESP0), mmio_read(EMMC_BLKSIZECNT));
+        ret = E_TIMEOUT;        
+        goto exit;
     }
 
     if (num > 1) {
        r = sd_cmd(CMD12, 0);
     }
 
-    //sd_cmd(CMD12, 0);
-    return num;
+    ret = num;
+exit:
+    return ret;
 }
 
 size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba)
@@ -1069,6 +1077,11 @@ void sd_gpio(void)
     wait_cycles(150);
     mmio_write(GPIO_GPPUD, 0);
     mmio_write(GPIO_GPPUDCLK1, 0);
+}
+
+int sd_reset(void)
+{
+    sd_cmd(CMD0,0);
 }
 
 int sd_init(void)

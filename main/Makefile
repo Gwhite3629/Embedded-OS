@@ -14,6 +14,7 @@ kernel8.img: $(obj) $(obj-u)
 	memset.o kernel_main.o ext2.o file.o sd.o proc.o editor.o \
 	events.o perf.o counters.o qsort.o mailbox.o mmu.o mmu_a.o \
 	list.o inode.o tree.o framebuffer.o bsearch.o part.o strace.o \
+	commands.o shell.o \
 	-o kernel8.elf
 	$(CROSS)objcopy -O binary kernel8.elf kernel8.img
 

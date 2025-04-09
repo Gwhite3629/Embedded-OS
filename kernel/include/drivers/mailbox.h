@@ -173,6 +173,7 @@ uint32_t get_pixel_order();
 uint32_t set_pixel_order(uint32_t state);
 
 void sd_disable_low_power(void);
+void sd_power_off(void);
 
 extern volatile uint32_t *mbox;
 
