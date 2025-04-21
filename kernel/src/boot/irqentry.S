@@ -21,6 +21,7 @@
 .equ S_FRAME_SIZE,    256
 
 .macro k_entry
+    dsb sy;
     sub sp, sp, #S_FRAME_SIZE
     stp	x0, x1, [sp, #0]
 	stp	x2, x3, [sp, #16]
@@ -58,6 +59,7 @@
     ldp x28, x29, [sp, #224]
     ldp x30, xzr, [sp, #240]
     add sp, sp, #S_FRAME_SIZE
+    dsb sy;
     eret
 .endm
 

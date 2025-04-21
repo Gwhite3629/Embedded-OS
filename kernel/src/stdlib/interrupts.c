@@ -59,9 +59,6 @@ void handle_irq(void)
 	uint32_t pending;
 	uint32_t x;
 
-    memory_barrier();
-    instruction_barrier();
-
 	pending = chip_read(IRQ0_PENDING2);
     //acquire(&q->irq_lock);
 

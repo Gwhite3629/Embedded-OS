@@ -24,12 +24,14 @@ volatile struct  _gpio * GPIO = (struct  _gpio *) (PERIPHERAL_BASE + GPIO_BASE);
 volatile struct   _irq * IRQ  = (struct   _irq *) (PERIPHERAL_BASE + IRQ_BASE);
 
 void mmio_write(uint32_t reg, uint32_t data) {
+    memory_barrier();
     *((volatile uint32_t *)((uint64_t)reg)) = data;
-    asm volatile("dmb sy");
 }
 
 uint32_t mmio_read(uint32_t reg) {
-    return *((volatile uint32_t *)((uint64_t)reg));
+    uint32_t val = *((volatile uint32_t *)((uint64_t)reg));
+    memory_barrier();
+    return val;
 }
 
 #define TIMER_CLO       TIMER_VALUE
