@@ -3,6 +3,7 @@
 
 #include "../stdlib/types.h"
 #include "../stdlib/hardware_rpi4b.h"
+#include "../stdlib/interrupts.h"
 
 #define __raw_writel __raw_writel
 static inline void __raw_writel(u32 val, volatile void __iomem *addr)
