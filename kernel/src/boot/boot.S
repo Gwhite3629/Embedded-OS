@@ -33,9 +33,6 @@ _start:
 
     bl setup_gic
 
-    mov     x1, #STACK
-    mov     sp, x1
-
     // set up EL1
     mrs     x0, CurrentEL
     and     x0, x0, #12 // clear reserved bits
@@ -78,6 +75,9 @@ _start:
     eret
 
 4:  
+    mov     x1, 1
+    msr     spsel, x1
+
     mov     x1, #STACK
     mov     sp, x1
 

@@ -41,6 +41,8 @@ void main()
     uart_init();
     printk("\x1b[1;32mUART FINISHED\x1b[1;0m\n");
 
+    init_tickcounter();
+
     gic400_init((void *)0xFF840000UL);
     init_vectors();
     interrupt_barrier();
@@ -100,7 +102,7 @@ void main()
     populate_fs();
     printk(GREEN("EXT2: Prepared root\n"));
 
-//    enable_interrupts();
+    enable_interrupts();
 
     printk(GREEN("EXT2: INITIALIZED\n"));
 

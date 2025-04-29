@@ -261,7 +261,7 @@ int clear(char *buf)
 
 int show_time(char *buf)
 {
-    printk("\n%d\n", tick_counter);
+    printk("\n%d\n", get_tickcounter());
     return 0;
 }
 

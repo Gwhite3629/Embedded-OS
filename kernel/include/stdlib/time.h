@@ -3,8 +3,6 @@
 
 #include "types.h"
 
-extern int tick_counter;
-
 extern uint64_t timer_freq;
 
 int timer_init(void);

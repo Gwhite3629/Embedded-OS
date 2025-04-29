@@ -2,8 +2,6 @@
 #include <drivers/io.h>
 #include <drivers/platform.h>
 
-int tick_counter = 0;
-
 uint64_t timer_freq;
 
 int timer_init(void)

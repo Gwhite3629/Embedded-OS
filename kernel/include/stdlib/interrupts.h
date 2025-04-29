@@ -16,6 +16,9 @@ typedef struct irq_t {
 
 extern irq_t IRQ_LIST[1];
 
+int init_tickcounter();
+int get_tickcounter();
+
 void handle_error(uint64_t x0);
 
 void handle_irq(void);

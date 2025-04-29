@@ -60,8 +60,8 @@ err_t swi_handler_c(uint64_t r0, uint64_t r1, uint64_t r2, uint64_t r3)
                 printk("Invalid write address\n");
                 ret = E_INVALID;
             } else {
-                (*((uint32_t *)(r0))) = (uint32_t)tick_counter;
-                ret = tick_counter;
+                (*((uint32_t *)(r0))) = (uint32_t)get_tickcounter();
+                ret = get_tickcounter();
             }
             break;
     }

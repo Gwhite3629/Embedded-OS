@@ -6,6 +6,12 @@
 
 //irq_t IRQ_LIST[1] = {};
 
+static volatile int tick_counter;
+
+int init_tickcounter() {tick_counter = 0;}
+
+int get_tickcounter() {return tick_counter;}
+
 inline void handle_error(uint64_t x0)
 {
 	uint64_t x1 = 0;
