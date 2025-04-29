@@ -132,13 +132,13 @@ static VMSAv8_64_DESCRIPTOR __attribute__((aligned(TLB_ALIGN))) PT_virtual3[512]
 
 void identity_map(void)
 {
-    uint32_t base;
+    uint32_t base = 0;
     get_vc_address();
     uint32_t vc_val = vc_base_address / PT_SIZE;
 
     printk("VC Address %x\n", vc_base_address);
 
-    // Region 0 -> VC mem
+    // Region End Kernel -> VC mem
     for (base = 0; base < (vc_val - 1); base++) {
         PT_identity2[base] = (VMSAv8_64_DESCRIPTOR){
             .Address = (uintptr_t)base << (21 - 12),

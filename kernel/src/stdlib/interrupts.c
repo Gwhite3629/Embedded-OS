@@ -6,7 +6,7 @@
 
 //irq_t IRQ_LIST[1] = {};
 
-void handle_error(uint64_t x0)
+inline void handle_error(uint64_t x0)
 {
 	uint64_t x1 = 0;
 	uint64_t x2 = 0;
@@ -53,7 +53,7 @@ void handle_error(uint64_t x0)
 	return;
 }
 
-void handle_irq(void)
+void __attribute__((noinline)) handle_irq(void)
 {
     err_t ret = E_NOERR;
 	uint32_t pending;
@@ -122,39 +122,39 @@ void __SVC__ reset_error(void) {
 
 }
 
-void init_vectors(void)
+void __attribute__((noinline)) init_vectors(void)
 {
 	asm volatile(
 		"adr x0, vectors\n"
     	"msr vbar_el1, x0\n");
 }
 
-void enable_interrupts(void)
+void __attribute__((noinline)) enable_interrupts(void)
 {
     asm volatile(
-		"msr daifclr, #2\n");
+		"msr daifclr, #7\n");
 }
 
-void disable_interrupts(void)
+void __attribute__((noinline)) disable_interrupts(void)
 {
     interrupt_barrier();
     asm volatile(
-		"msr daifset, #2\n");
+		"msr daifset, #7\n");
 }
 
-void memory_barrier(void)
+void __attribute__((noinline)) memory_barrier(void)
 {
     asm volatile(
         "dmb sy\n");
 }
 
-void interrupt_barrier(void)
+void __attribute__((noinline)) interrupt_barrier(void)
 {
 	asm volatile(
     	"dsb sy\n");
 }
 
-void instruction_barrier(void)
+void __attribute__((noinline)) instruction_barrier(void)
 {
     asm volatile(
         "isb\n");

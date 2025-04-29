@@ -3,19 +3,35 @@
 #define LOCAL_PRESCALER		0xff800008
 #define OSC_FREQ            54000000
 #define STACK               0x3B100000
+
+#define GIC_DISTB   0xff841000
+#define GIC_CPUB    0xff842000
+
+#define GICC_CTRLR      0x0
+#define GICC_PMR        0x4
+#define IT_NR           0x8
+#define GICD_CTRLR      0x0
+#define GICD_IGROUPR    0x80
+
 .section ".text.boot"  // Make sure the linker puts this at the start of the kernel image
 
 .global _start  // Execution starts here
 
 _start:
-    // Check processor ID is zero (executing on main core), else hang
+// Check processor ID is zero (executing on main core), else hang
     mrs     x1, mpidr_el1
     and     x1, x1, #3
     cbz     x1, 2f
     // We're not on the main core, so hang in an infinite wait loop
+    adr     x5, spin_cpu0
 1:  wfe
-    b       1b
+    ldr     x4, [x5, x1, lsl #3]
+    cbz     x4, 1b
 2:  // We're on the main core!
+
+//    bl setup_timer
+
+    bl setup_gic
 
     mov     x1, #STACK
     mov     sp, x1
@@ -77,3 +93,51 @@ _start:
 6:  bl      main
     // for failsafe, halt this core too
     b       1b
+
+.ltorg
+
+.org 0x110
+.globl spin_cpu0
+spin_cpu0:
+    .quad 0
+
+setup_timer:
+    ldr     x0, =LOCAL_CONTROL
+    str     wzr, [x0]
+    mov     w1, 0x80000000
+    str     w1, [x0, #(LOCAL_PRESCALER - LOCAL_CONTROL)]
+
+    ldr     x0, =OSC_FREQ
+    msr     cntfrq_el0, x0
+    msr     cntvoff_el2, xzr
+
+
+
+setup_gic:
+    mrs x0, MPIDR_EL1
+    ldr x2, =GIC_DISTB
+    tst x0, #0x3
+    b.eq 2f
+
+    mov w0, #3
+    str w0, [x2, #GICD_CTRLR]
+2:
+    add x1, x2, #(GIC_CPUB - GIC_DISTB)
+    mov w0, #0x1e7
+    str w0, [x1, #GICC_CTRLR]
+    mov w0, #0xff
+    str w0, [x1, #GICC_PMR]
+    add x2, x2, #GICD_IGROUPR
+    mov x0, #(IT_NR * 4)
+    mov w1, #~0
+3:
+    subs x0, x0, #4
+    str w1, [x2, x0]
+    b.ne 3b
+    ret
+
+.ltorg
+
+
+
+

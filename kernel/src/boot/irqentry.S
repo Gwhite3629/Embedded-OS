@@ -21,7 +21,8 @@
 .equ S_FRAME_SIZE,    256
 
 .macro k_entry
-    dsb sy;
+    isb
+    dsb ish
     sub sp, sp, #S_FRAME_SIZE
     stp	x0, x1, [sp, #0]
 	stp	x2, x3, [sp, #16]
@@ -39,9 +40,12 @@
     stp x26, x27, [sp, #208]
     stp x28, x29, [sp, #224]
     stp x30, xzr, [sp, #240]
+    isb
+    dsb nsh
 .endm
 
 .macro k_exit
+    isb
     ldp	x0, x1, [sp, #0]
 	ldp	x2, x3, [sp, #16]
 	ldp	x4, x5, [sp, #32]
@@ -59,7 +63,13 @@
     ldp x28, x29, [sp, #224]
     ldp x30, xzr, [sp, #240]
     add sp, sp, #S_FRAME_SIZE
-    dsb sy;
+    dsb nsh
+    isb
+    eret
+.endm
+
+.macro handle_skip err
+    isb
     eret
 .endm
 

@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <drivers/io.h>
+#include <drivers/platform.h>
 
 int tick_counter = 0;
+
+uint64_t timer_freq;
 
 int timer_init(void)
 {
@@ -68,4 +71,27 @@ void wait_msec(unsigned int n)
         );
     } while ((r - t) < i);
     //printk("DONE WAIT\n");
+}
+
+void __attribute__((noinline)) sys_timer_init(void)
+{
+    asm volatile(
+        "mrs x1, CNTFRQ_EL0\n"
+        "msr CNTP_TVAL_EL0, x1\n"
+        "mov x0, 1\n"
+        "msr CNTP_CTL_EL0, x0\n"
+        :::"x0","x1");
+    asm volatile(
+        "mrs %[result], CNTFRQ_EL0\n"
+        : [result] "=r"(timer_freq));
+    mmio_write(SYS_TIMER_BASE, 0xF);
+}
+
+uint64_t __attribute__((noinline)) sys_timer_read(void)
+{
+    uint64_t timer_val = 0;
+    asm volatile(
+        "mrs %[result], CNTPCT_EL0\n"
+        : [result] "=r"(timer_val));
+    return timer_val;
 }

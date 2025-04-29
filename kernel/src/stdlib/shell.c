@@ -39,6 +39,12 @@ command_t interpret(char *buf, int buflen)
         return &cat;
     } else if (!strncmp("shutdown", buf, 8)) {
         return &shutdown;
+    } else if (!strncmp("usage", buf, 5)) {
+        return &usage;
+    } else if (!strncmp("memcpy_test", buf, 11)) {
+        return &memcpy_test;
+    } else if (!strncmp("memset_test", buf, 11)) {
+        return &memset_test;
     } else if (buflen == 0) {
         printk("\n");
         return NULL;
@@ -58,7 +64,7 @@ int run(char *buf, int buflen)
         func = interpret(buf+5, buflen-4);
         if (func != NULL) {
             begin_profiling();
-            ret = func(buf);
+            ret = func(buf+5);
             overflow = end_profiling();
             if (ret != 0) return ret;
             printk("\nOverflow: %d\n", overflow);

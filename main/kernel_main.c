@@ -67,6 +67,7 @@ void main()
     printk("\x1b[1;32mHEAP FINISHED WITH %d REGIONS\x1b[1;0m\n", global_heap->n_regions);
 
     timer_init();
+    sys_timer_init();
     printk("\x1b[1;32mTIMER FINISHED\x1b[1;0m\n");
 
     bcm_2708_get_state();    
@@ -78,7 +79,7 @@ void main()
     tmp.y0 -= 8;
     tmp.y -= 8;
     print_screen(&tmp, "FUNCTION HISTORY");
-   
+
     sd_init();
     printk("\x1b[1;32mSD FINISHED\x1b[1;0m\n");
 

@@ -11,6 +11,12 @@ int clear(char *buf);
 
 int show_time(char *buf);
 
+int usage(char *buf);
+
+int memcpy_test(char *buf);
+
+int memset_test(char *buf);
+
 /*
 int call_editor(char *buf);
 */

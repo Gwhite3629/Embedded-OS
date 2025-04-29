@@ -1,6 +1,8 @@
 #include <drivers/performance/counters.h>
 #include <drivers/performance/pmu_constants.h>
+#include <drivers/platform.h>
 
+#include <stdlib/hardware_rpi4b.h>
 #include <stdlib/types.h>
 
 int active_counters[MAX_COUNTERS];
@@ -8,6 +10,9 @@ uint64_t counter_final[MAX_COUNTERS+1];
 uint64_t counter_start[MAX_COUNTERS+1];
 
 int n_active_counters;
+
+uint64_t time_start;
+uint64_t time_end;
 
 void init_pmu(void)
 {
@@ -98,6 +103,7 @@ void profile_start(void)
 
     // Read cycle counter
     counter_start[MAX_COUNTERS] = read_perf_register(PMCCNTR_EL0);
+    time_start = sys_timer_read();
 }
 
 void profile_end(void)
@@ -109,6 +115,7 @@ void profile_end(void)
 
     // Read cycle counter
     counter_final[MAX_COUNTERS] = read_perf_register(PMCCNTR_EL0);
+    time_end = sys_timer_read();
 }
 
 void enable_global_counters(void)
@@ -127,10 +134,10 @@ void disable_global_counters(void)
 // Choose which events (events.h)
 // 
 // Call init_pmu() function
-// Call enable_counter() for each event
 // Call enable_cycle_counter()
-// Call enable_global_counters()
+// Call enable_counter() for each event
 // Call profile_start()
+// Call enable_global_counters()
 // 
 // *** Do code to profile ***
 // 

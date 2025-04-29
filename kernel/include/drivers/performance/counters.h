@@ -13,6 +13,9 @@ extern uint64_t counter_start[MAX_COUNTERS+1];
 
 extern int n_active_counters;
 
+extern uint64_t time_start; 
+extern uint64_t time_end;
+
 static int read_perf_register(int reg)
 {
     int v;

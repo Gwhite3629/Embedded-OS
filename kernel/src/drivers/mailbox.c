@@ -57,7 +57,7 @@ void get_arm_address(void)
             if (early_mbox[1] == 0x80000000) {
                 printk("TAG IDENTIFIER:     %x\n", early_mbox[2]);
                 printk("TAG V-BUFFER SIZE:  %x\n", early_mbox[3]);
-                arm_base_address = early_mbox[5] + 0x800000;
+                arm_base_address = early_mbox[5] + 0x100000;
                 arm_size = early_mbox[6];
                 printk("FINAL TAG:          %x\n", early_mbox[7]);
                 return;

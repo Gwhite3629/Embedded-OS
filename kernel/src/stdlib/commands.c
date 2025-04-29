@@ -5,6 +5,148 @@
 
 #include <memory/malloc.h>
 
+int memset_test(char *buf) {
+    unsigned int n_token = 0;
+    char **tokens = NULL;
+    char *memreg = NULL;
+    uint32_t base_num = 0;
+    uint32_t mult = 0;
+    uint64_t copy_amount = 0;
+
+    uint64_t time_start = 0;
+    uint64_t time_end = 0;
+
+    char *sbuf = buf + 12;
+
+    tokens = str_split(sbuf, ' ', &n_token);
+
+    if (n_token != 2) {
+        printk(RED("Correct Usage:\n"));
+        printk("memset_test <num> <K_M_G>\n");
+        return E_BADARG;
+    }
+
+    base_num = atoi(tokens[0]);
+
+    switch(tokens[1][0]) {
+        case 'K':
+            mult = 1000;
+            break;
+        case 'M':
+            mult = 1000000;
+            break;
+        case 'G':
+            mult = 1000000000;
+            break;
+        default:
+            printk(RED("Invalid Mult Value\n"));
+            return E_BADARG;
+    }
+
+    copy_amount = base_num * mult;
+
+    new(memreg, copy_amount, char);
+
+    printk(GREEN("START MEMSET\n"));
+    time_start = sys_timer_read();
+
+    memset(memreg, 0, copy_amount);
+
+    time_end = sys_timer_read();
+    printk(GREEN("END COPY\n"));
+
+    printk("Set time: %lu ticks @ %lu Hz\n", time_end - time_start, timer_freq);
+
+exit:
+
+    if (memreg) {
+        del(memreg);
+    }
+
+    return E_NOERR;
+}
+
+int memcpy_test(char *buf) {
+    unsigned int n_token = 0;
+    char **tokens = NULL;
+    char *copy_src = NULL;
+    char *copy_dest = NULL;
+    uint32_t base_num = 0;
+    uint32_t mult = 0;
+    uint64_t copy_amount = 0;
+
+    uint64_t time_start = 0;
+    uint64_t time_end = 0;
+
+    char *sbuf = buf + 12;
+
+    tokens = str_split(sbuf, ' ', &n_token);
+
+    if (n_token != 2) {
+        printk(RED("Correct Usage:\n"));
+        printk("memcpy_test <num> <K_M_G>\n");
+        return E_BADARG;
+    }
+
+    base_num = atoi(tokens[0]);
+    
+    switch(tokens[1][0]) {
+        case 'K':
+            mult = 1000;
+            break;
+        case 'M':
+            mult = 1000000;
+            break;
+        case 'G':
+            mult = 1000000000;
+            break;
+        default:
+            printk(RED("Invalid Mult Value\n"));
+            return E_BADARG;
+    }
+
+    copy_amount = base_num * mult;
+
+    new(copy_src, copy_amount, char);
+    new(copy_dest, copy_amount, char);
+
+    printk(GREEN("START COPY\n"));
+    time_start = sys_timer_read();
+
+    memcpy(copy_dest, copy_src, copy_amount); 
+
+    time_end = sys_timer_read();
+    printk(GREEN("END COPY\n"));
+
+    printk("Copy time: %lu ticks @ %lu Hz\n", time_end - time_start, timer_freq);
+
+exit:
+
+    if (copy_src) {
+        del(copy_src);
+    }
+    if (copy_dest) {
+        del(copy_dest);
+    }
+
+    return E_NOERR;
+}
+
+int usage(char *buf) {
+    uint64_t alloced = 0;
+    uint64_t memusage = 0;
+
+    for (int i = 0; i<global_heap->n_regions; i++) {
+        memusage += global_heap->regions[i]->used_size;
+        alloced += global_heap->regions[i]->alloc_size;
+    }
+
+    printk(GREEN("Allocated Memory: %lu bytes\n"), alloced);
+    printk(GREEN("Used Memory: %lu bytes\n"), memusage);
+
+    return E_NOERR;
+}
+
 static struct entry_info fs_helper(char *buf, int len)
 {
     char c = 0;

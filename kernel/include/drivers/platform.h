@@ -842,8 +842,17 @@ struct timer_wait {
 extern "C" {
 #endif
 
-void     mmio_write(uint32_t reg, uint32_t data);
-uint32_t mmio_read(uint32_t reg);
+static void __attribute__((noinline)) mmio_write(uint32_t reg, uint32_t data)
+{
+    memory_barrier();
+    *((volatile uint32_t *)((uint64_t)reg)) = data;
+}
+static uint32_t __attribute__((noinline)) mmio_read(uint32_t reg)
+{
+    uint32_t val = *((volatile uint32_t *)((uint64_t)reg));
+    memory_barrier();
+    return val;
+}
 
 int      usleep(uint32_t usec);
 

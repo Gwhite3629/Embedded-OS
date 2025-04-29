@@ -307,11 +307,7 @@ uint32_t init_framebuffer(uint32_t width, uint32_t height, uint32_t depth)
 void draw_pixel(int x, int y, uint32_t color)
 {
     uint32_t offset = (x*4) + (y * fb.pitch);
-    interrupt_barrier();
-    memory_barrier();
     mmio_write(((uint32_t)(uint64_t)fb.buf) + offset, color);
-    memory_barrier();
-    interrupt_barrier();
 }
 
 void draw_rect(int x1, int y1, int x2, int y2, uint32_t color, int fill)

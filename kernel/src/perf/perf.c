@@ -101,10 +101,10 @@ exit:
 
 // Choose which events (events.h)
 // Call init_pmu() function
+// Call profile_start()
+// Call enable_cycle_counter()
 // Call enable_counter() for each event
 // Call enable_cycle_counter()
-// Call enable_global_counters()
-// Call profile_start()
 void begin_profiling(void)
 {
     int ret = 0;
@@ -120,8 +120,8 @@ void begin_profiling(void)
         i++;
     }
     enable_cycle_counter();
-    enable_global_counters();
     profile_start();
+    enable_global_counters();
 }
 
 // Call disable_global_counters()
@@ -133,12 +133,12 @@ uint64_t end_profiling(void)
 {
     int i = 0;
     disable_global_counters();
+    profile_end();
     while(events[i] != -1) {
         disable_counter(events[i]);
         i++;
     }
     disable_cycle_counter();
-    profile_end();
     uint64_t overflow = deinit_pmu();
     return overflow;
 }
@@ -155,6 +155,8 @@ int perf_list(char *buf)
 void perf_print(void)
 {
     int i = 0;
+
+    printk("TIME: %lu ticks @ %lu Hz\n", time_end - time_start, timer_freq);
 
     for (i = 0; i < n_events; i++) {
         printk("\n%s\n", names[i]);

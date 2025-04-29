@@ -148,10 +148,10 @@
 
 
 
-/*********/
-/* Timer */
-/*********/
-/* Section 14 */
+/*************/
+/* ARM Timer */
+/*************/
+/* Section 12 */
 			/*7e00b000 */
 #define TIMER_BASE	IO_BASE + CASTA(0xb000)
 /* LOAD = Value to Count Down from */
@@ -178,7 +178,36 @@
 #define TIMER_PREDIVIDER	CASTA(TIMER_BASE+0x41c)
 #define TIMER_FREE_RUNNING	CASTA(TIMER_BASE+0x420)
 
+/****************/
+/* System Timer */
+/****************/
 
+#define SYS_TIMER_BASE IO_BASE + CASTA(0x3000)
+// Control / Status register
+#define SYS_TIMER_CS            CASTA(TIMER_BASE + 0x00)
+#define SYS_TIMER_CS_M0         CASTV(1<<0)
+#define SYS_TIMER_CS_M1         CASTV(1<<1)
+#define SYS_TIMER_CS_M2         CASTV(1<<2)
+#define SYS_TIMER_CS_M3         CASTV(1<<3)
+// Counter Lower 32
+#define SYS_TIMER_CLO           CASTA(TIMER_BASE + 0x04)
+
+// Counter Higher 32
+#define SYS_TIMER_CHI           CASTA(TIMER_BASE + 0x08)
+
+#define SYS_TIMER_RATE          1000000
+
+// Compare 0
+#define SYS_TIMER_C0            CASTA(TIMER_BASE + 0x0c)
+
+// Compare 1
+#define SYS_TIMER_C1            CASTA(TIMER_BASE + 0x10)
+
+// Compare 2
+#define SYS_TIMER_C2            CASTA(TIMER_BASE + 0x14)
+
+// Compare 3
+#define SYS_TIMER_C3            CASTA(TIMER_BASE + 0x18)
 
 /********/
 /* UART */
