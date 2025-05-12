@@ -846,7 +846,7 @@ size_t sd_read(uint8_t *buffer, size_t num, uint32_t lba)
             goto exit;
         }
         int done = 0;
-        if (!((uint32_t)buffer & 0x03)) {
+        if (!((uint64_t)buffer & 0x03)) {
             while (done < 512) {
                 int data = mmio_read(EMMC_DATA);
                 buffer[done++] = (data >> 0 ) & 0xff;
@@ -912,7 +912,7 @@ size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba)
             return E_DISKERR;
         }
         int done = 0;
-        if ((uint32_t)buffer & 0x03) {
+        if ((uint64_t)buffer & 0x03) {
             while (done < 512) {
                 int data =  (buffer[done++] << 0 );
                 data +=     (buffer[done++] << 8 );
@@ -936,7 +936,7 @@ size_t sd_write(uint8_t *buffer, size_t num, uint32_t lba)
             return E_TIMEOUT;
     }
 
-    if (r = sd_int(EMMC_IRPT_DATA_DONE)) {
+    if ((r = sd_int(EMMC_IRPT_DATA_DONE))) {
         printk(RED("SD: Write Transfer timeout waiting for data done\n"));
         return E_TIMEOUT;
     }
@@ -1079,7 +1079,7 @@ void sd_gpio(void)
     mmio_write(GPIO_GPPUDCLK1, 0);
 }
 
-int sd_reset(void)
+void sd_reset(void)
 {
     sd_cmd(CMD0,0);
 }

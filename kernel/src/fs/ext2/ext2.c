@@ -530,7 +530,7 @@ fs_tree *get_ext2_root(inode_base_t * inode)
     new(root.name,root.name_len + 1,char);
 
     for (int i = 0; i < root.name_len; i++) {
-        root.name[i] = (char)(((dirent_t *)test)[0].name + i);
+        root.name[i] = (char)(uint64_t)(((dirent_t *)test)[0].name + i);
     }
 
     printk(CYAN("ROOT: inode: %u\n"), root.inode_number);
@@ -573,7 +573,7 @@ void scan_superblock(uint32_t super_sector)
     pop_trace();
 }
 
-void initial_fs(struct block_device *dev)
+int initial_fs(struct block_device *dev)
 {
     push_trace("void initial_fs(struct block_device)","initial_fs",dev,0,0,0);
     int ret = E_NOERR;
@@ -587,7 +587,7 @@ void initial_fs(struct block_device *dev)
 
 exit:
     pop_trace();
-    return;
+    return ret;
 }
 
 int assign_superblock(uint32_t super_sector)
@@ -755,7 +755,7 @@ int populate_recur(fs_tree *start)
     do {
         // Get dirent at offset, offset is dynamic and depends on
         // A field in the dirent
-        tmp_dir = ((dirent_t *)((uint32_t)raw_block + cur_offset));
+        tmp_dir = ((dirent_t *)((uint64_t)raw_block + cur_offset));
         if (tmp_dir->type == 0) {break;}
 
         start->n_entries++;

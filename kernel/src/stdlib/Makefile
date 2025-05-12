@@ -1,13 +1,17 @@
 CFLAGS += $(KINCLUDE)
-obj := bsearch.o list.o tree.o lock.o rbtree.o bitrev.o memset.o qsort.o string.o interrupts.o time.o serial.o printk.o shell.o commands.o
+ASFLAGS += $(KINCLUDE)
+obj := asm_macros.o bsearch.o list.o tree.o lock.o rbtree.o bitrev.o memset.o qsort.o string.o interrupts.o time.o serial.o printk.o shell.o commands.o
 
 all: $(obj)
+
+asm_macros.o:
+	$(CROSS)$(CC) $(CFLAGS) -o asm_macros.o -c $(ktree)/stdlib/asm_macros.S
 
 bsearch.o:
 	$(CROSS)$(CC) $(CFLAGS) -o bsearch.o -c $(ktree)/stdlib/bsearch.c
 
 lock.o:
-	$(CROSS)$(CC) $(CFLAGS) -o lock.o -c $(ktree)/stdlib/lock.c
+	$(CROSS)$(CC) $(ASFLAGS) -o lock.o -c $(ktree)/stdlib/lock.S
 
 rbtree.o:
 	$(CROSS)$(CC) $(CFLAGS) -o rbtree.o -c $(ktree)/stdlib/rbtree.c

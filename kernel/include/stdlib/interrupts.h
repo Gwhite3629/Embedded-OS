@@ -10,13 +10,12 @@ typedef err_t (*irq_handler_t)(int, void *);
 typedef struct irq_t {
     irq_handler_t func;
     unsigned int irq;
-    lock_t irq_lock;
     void *handler_data;
 } irq_t;
 
 extern irq_t IRQ_LIST[1];
 
-int init_tickcounter();
+void init_tickcounter();
 int get_tickcounter();
 
 void handle_error(uint64_t x0);

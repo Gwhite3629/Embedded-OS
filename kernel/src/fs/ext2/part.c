@@ -8,7 +8,7 @@ int print_MBR_table(void)
     int r = E_NOERR;
     uint8_t *sector_data = NULL;
     
-    uint32_t super_sector;
+    uint32_t super_sector = 0;
 
     struct MBR current_part;
 

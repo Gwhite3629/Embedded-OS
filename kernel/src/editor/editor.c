@@ -209,7 +209,7 @@ int input(struct environment **env)
         }
         c = '\0';
     }
-exit:
+    
     //(*env)->quit = 1;
     return ret;
 

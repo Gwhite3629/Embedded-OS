@@ -1,56 +1,71 @@
 #include <stdlib.h>
-#include <process/proc.h>
 
-err_t init_lock(lock_t *lock)
-{
-    lock->owner = -1;
-    lock->acquired = 0;
-    return E_NOERR;
-}
+/* * * * * * *
+ * SPINLOCKS *
+ * * * * * * */
 
-void remove_lock(lock_t *lock)
-{
-    if (READ_ONCE(lock->owner) == current_proc->pid) {
-        lock->owner = -1;
-        lock->acquired = 0;
-    }
-}
-
-void acquire(lock_t *lock)
+void __attribute__((noinline)) spinlock_acquire(spinlock_t *lock)
 {
     unsigned long tmp;
     uint32_t newval;
-    lock_t lockval;
+    spinlock_t lockval;
 
-    if (READ_ONCE(lock->owner) == current_proc->pid) {
-        if (!READ_ONCE(lock->acquired)) {
-            WRITE_ONCE(lock->acquired, 1);
-        } else {
-            return;
-        }
-    } else {
-        wait_acquire(lock);
-    }
-    
+    asm volatile (
+    "1: ldrex   %0, [%3]\n"
+    "   add     %1, %0, %4\n"
+    "   strex   %2, %1, [%3]\n"
+    "   teq     %2, #0\n"
+    "   bne     1b"
+    :   "=&r"   (lockval), "=&r" (newval), "=&r" (tmp)
+    :   "r"     (&lock->), "I" (1 << TICKET_SHIFT)
+    :   "cc");
 }
 
-void release(lock_t *lock)
+int __attribute__((noinline)) spinlock_trylock(spinlock_t *lock)
 {
-    if (READ_ONCE(lock->owner) == current_proc->pid) {
-        WRITE_ONCE(lock->acquired, 0);
-    } else {
-        wait_acquire(lock);
-        release(lock);
-    }
+
 }
 
-void wait_acquire(lock_t *lock)
+void __attribute__((noinline)) spinlock_release(spinlock_t *lock)
 {
-    if (READ_ONCE(lock->owner) == current_proc->pid) {
-        WRITE_ONCE(lock->acquired, 1);
-    } else {
-        while (!(READ_ONCE(lock->owner) == current_proc->pid));
-        WRITE_ONCE(lock->owner, current_proc->pid);
-        WRITE_ONCE(lock->acquired, 1);
-    }
+
 }
+
+/* * * * * *
+ * RWLOCKS *
+ * * * * * */
+
+// Write
+
+void __attribute__((noinline)) writelock_acquire(rwlock_t *rw)
+{
+
+}
+
+int  __attribute__((noinline)) writelock_trylock(rwlock_t *rw)
+{
+
+}
+
+void __attribute__((noinline)) writelock_release(rwlock_t *rw)
+{
+
+}
+
+// Read
+
+void __attribute__((noinline)) readlock_acquire(rwlock_t *rw)
+{
+
+}
+
+int  __attribute__((noinline)) readlock_trylock(rwlock_t *rw)
+{
+
+}
+
+void __attribute__((noinline)) readlock_release(rwlock_t *rw)
+{
+
+}
+

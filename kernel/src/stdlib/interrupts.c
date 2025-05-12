@@ -8,7 +8,7 @@
 
 static volatile int tick_counter;
 
-int init_tickcounter() {tick_counter = 0;}
+void init_tickcounter() {tick_counter = 0;}
 
 int get_tickcounter() {return tick_counter;}
 

@@ -1,12 +1,10 @@
 #include <stdlib.h>
 #include <memory/hardware_reserve.h>
 
-uint64_t MAX_MEMORY = (3*1024*1024*1024);     // 1GB
+uint64_t MAX_MEMORY = (1024*1024*1024);     // 1GB
 #define KERNEL_RESERVED (16*1024*1024)  // 16MB
 
 #define CHUNK_SIZE 4096
-
-lock_t MEM_LOCK = {UNLOCKED, KERNEL_OWNER};
 
 uint64_t MEMORY_TOTAL;
 

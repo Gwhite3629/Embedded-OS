@@ -56,7 +56,7 @@ void ext2_free_block(uint32_t block);
 fs_tree *get_ext2_root(inode_base_t *inode);
 void ext2_init(struct block_device *dev);
 
-void initial_fs(struct block_device *dev);
+int initial_fs(struct block_device *dev);
 
 int assign_superblock(uint32_t super_sector);
 

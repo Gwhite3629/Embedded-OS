@@ -101,9 +101,9 @@ char* f_gets (FILE* fp, int len, char* buff)
     int nc = 0;
 	char *p = buff;
 	char s[4];
-	unsigned int rc;
-	uint32_t dc;
-    unsigned int ct;
+	unsigned int rc = 1;
+	uint32_t dc = 0;
+    unsigned int ct = 0;
     unsigned int off = 0;
 
 
@@ -430,7 +430,7 @@ struct entry_info traverse_fs(const char *path)
     struct entry_info entry_return;
 
     char *use_path = NULL;
-    char *t;
+    char *t = NULL;
     char c;
 
     new(use_path,strlen(path)+1+strlen(fs->pwd),char);
@@ -468,7 +468,7 @@ struct entry_info traverse_fs(const char *path)
     for (int i = 0; i < n_token; i++) {
         printk("path string: %s, ", path_list[i]);
         int j = 0;
-        while (c = path_list[i][j]) {
+        while ((c = path_list[i][j])) {
             printk("%x ", c);
             j++;
         }
@@ -483,6 +483,7 @@ struct entry_info traverse_fs(const char *path)
     }
 
     fs_tree *fs_head = root;
+    t = path_list[0];
     // Traversal of only directories
     for (int i = 0; i < n_token - 1; i++) {
         // Check for good search conditions:

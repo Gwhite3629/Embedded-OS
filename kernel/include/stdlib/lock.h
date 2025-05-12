@@ -3,24 +3,11 @@
 
 #include "types.h"
 
-#define KERNEL_OWNER 0
+typedef struct spinlock {
+    volatile uint32_t lock;
+} spinlock_t;
 
-#define LOCKED 1
-#define UNLOCKED 0
-
-typedef struct lock_t {
-    bool acquired;
-    uint32_t owner;
-} lock_t;
-
-err_t init_lock(lock_t *lock);
-
-void remove_lock(lock_t *lock);
-
-void acquire(lock_t *lock);
-
-void release(lock_t *lock);
-
-void wait_acquire(lock_t *lock);
+void spin_lock(spinlock_t *lock);
+void spin_unlock(spinlock_t *lock);
 
 #endif // _LOCK_H_
