@@ -10,9 +10,6 @@ asm_macros.o:
 bsearch.o:
 	$(CROSS)$(CC) $(CFLAGS) -o bsearch.o -c $(ktree)/stdlib/bsearch.c
 
-lock.o:
-	$(CROSS)$(CC) $(ASFLAGS) -o lock.o -c $(ktree)/stdlib/lock.S
-
 rbtree.o:
 	$(CROSS)$(CC) $(CFLAGS) -o rbtree.o -c $(ktree)/stdlib/rbtree.c
 
