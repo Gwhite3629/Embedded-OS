@@ -26,11 +26,11 @@ typedef uint32_t size_t;
 typedef long int int64_t;
 typedef int int32_t;
 typedef signed short int16_t;
-//typedef char int8_t;
+// typedef char int8_t;
 
 typedef uint64_t uintptr_t;
 
-typedef int bool;
+// typedef int bool;
 
 #define true 1
 #define false 0
@@ -41,12 +41,12 @@ typedef struct DLL {
 
 typedef struct rb_node {
     unsigned long __rb_parent_color;
-	struct rb_node *rb_right;
-	struct rb_node *rb_left;
+    struct rb_node* rb_right;
+    struct rb_node* rb_left;
 } rb_node;
 
 typedef struct rb_root {
-    struct rb_node *rb_node;
+    struct rb_node* rb_node;
 } rb_root;
 
 struct chr_dat {
@@ -57,11 +57,12 @@ struct chr_dat {
     uint32_t color;
 };
 
-#define RB_ROOT (rb_root) {NULL, }
+#define RB_ROOT                                                                \
+    (rb_root) { NULL, }
 
-typedef int (*__compar_fn_t) (const void *, const void *);
+typedef int (*__compar_fn_t)(const void*, const void*);
 
-typedef int (*__compar_d_fn_t) (const void *, const void *, void *);
+typedef int (*__compar_d_fn_t)(const void*, const void*, void*);
 
 #define CHAR_BIT 8
 
@@ -70,7 +71,7 @@ typedef struct hlist_node {
 } hlist_node;
 
 typedef struct hlist_head {
-    struct hlist_node *first;
+    struct hlist_node* first;
 } hlist_head;
 
 #define __iomem __attribute__((noderef, address_space(2)))

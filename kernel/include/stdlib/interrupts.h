@@ -1,16 +1,17 @@
 #ifndef _INTERRUPTS_H_
 #define _INTERRUPTS_H_
 
-#include "../stdlib.h"
+#include "err.h"
+#include "types.h"
 
 // Int indicates number for verification
 // Void * indicates pointer to data structure for relevant irq
-typedef err_t (*irq_handler_t)(int, void *);
+typedef err_t (*irq_handler_t)(int, void*);
 
 typedef struct irq_t {
     irq_handler_t func;
     unsigned int irq;
-    void *handler_data;
+    void* handler_data;
 } irq_t;
 
 extern irq_t IRQ_LIST[1];

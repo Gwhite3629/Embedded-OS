@@ -1,6 +1,6 @@
 CFLAGS += $(KINCLUDE)
 ASFLAGS += $(KINCLUDE)
-obj := asm_macros.o bsearch.o list.o tree.o lock.o rbtree.o bitrev.o memset.o qsort.o string.o interrupts.o time.o serial.o printk.o shell.o commands.o
+obj := asm_macros.o bsearch.o list.o tree.o rbtree.o bitrev.o memset.o qsort.o string.o interrupts.o time.o serial.o printk.o shell.o commands.o
 
 all: $(obj)
 
